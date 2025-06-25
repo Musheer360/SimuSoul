@@ -10,7 +10,7 @@ import type { Persona, UserDetails, ChatMessage, ChatSession } from '@/lib/types
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
-import { Send, Loader2, Bot, User, AlertCircle, Trash2, MessageSquarePlus, ArrowLeft } from 'lucide-react';
+import { Send, Loader2, Bot, User, AlertCircle, Trash2, MessageSquarePlus, ArrowLeft, PanelLeft } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import {
   AlertDialog,
@@ -21,6 +21,7 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
+  AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { cn } from '@/lib/utils';
@@ -29,45 +30,32 @@ import { Skeleton } from '@/components/ui/skeleton';
 
 function PersonaChatSkeleton() {
   return (
-    <div className="container max-w-6xl mx-auto h-[calc(100vh-4rem)] flex flex-col py-6">
-      <div className="mb-4">
-        <Skeleton className="h-9 w-48" />
-      </div>
-      <div className="grid grid-cols-1 md:grid-cols-[300px_1fr] gap-6 flex-1 min-h-0">
-        {/* Left Sidebar Skeleton */}
-        <div className="space-y-6 flex flex-col">
-          <Card>
-            <CardHeader className="items-center text-center">
-              <Skeleton className="h-32 w-32 rounded-full" />
-              <Skeleton className="h-8 w-40 mt-4" />
-            </CardHeader>
-            <CardContent className="px-4 pb-4">
-              <Skeleton className="h-10 w-full" />
-            </CardContent>
-          </Card>
-          <Card className="flex-1">
-            <CardHeader>
-              <Skeleton className="h-7 w-32" />
-            </CardHeader>
-            <CardContent className="p-2">
-              <div className="space-y-1">
-                <Skeleton className="h-8 w-full" />
-                <Skeleton className="h-8 w-full" />
-                <Skeleton className="h-8 w-full" />
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-        {/* Right Chat Panel Skeleton */}
-        <Card className="flex flex-col h-full">
-          <CardHeader>
-            <Skeleton className="h-7 w-48" />
-          </CardHeader>
-          <div className="flex-1 p-4" />
-          <div className="p-4 border-t">
-            <Skeleton className="h-10 w-full" />
+    <div className="flex h-[calc(100vh-4rem)]">
+      {/* Left Sidebar Skeleton */}
+      <div className="w-80 bg-card border-r flex flex-col p-4 gap-6">
+        <div className="flex items-center gap-4">
+          <Skeleton className="h-16 w-16 rounded-full" />
+          <div className="flex-1 space-y-2">
+            <Skeleton className="h-6 w-3/4" />
           </div>
-        </Card>
+        </div>
+        <Skeleton className="h-10 w-full" />
+        <div className="space-y-2 flex-1">
+          <Skeleton className="h-6 w-1/2 mb-4" />
+          <Skeleton className="h-8 w-full" />
+          <Skeleton className="h-8 w-full" />
+          <Skeleton className="h-8 w-full" />
+        </div>
+      </div>
+      {/* Right Chat Panel Skeleton */}
+      <div className="flex-1 flex flex-col">
+        <div className="p-4 border-b">
+          <Skeleton className="h-8 w-48" />
+        </div>
+        <div className="flex-1 p-4" />
+        <div className="p-4 border-t">
+          <Skeleton className="h-10 max-w-2xl mx-auto" />
+        </div>
       </div>
     </div>
   );
@@ -93,8 +81,10 @@ export default function PersonaChatPage() {
   const [chatToDelete, setChatToDelete] = useState<ChatSession | null>(null);
   const [isPersonaDeleteDialogOpen, setIsPersonaDeleteDialogOpen] = useState(false);
   const [isMounted, setIsMounted] = useState(false);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
 
   const scrollAreaRef = useRef<HTMLDivElement>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   useEffect(() => {
     setIsMounted(true);
@@ -159,6 +149,14 @@ export default function PersonaChatPage() {
       }
     }
   }, [messages]);
+
+  const handleInput = (e: React.FormEvent<HTMLTextAreaElement>) => {
+    const textarea = e.currentTarget;
+    textarea.style.height = 'auto'; // Reset height
+    // 240 is max-h-60
+    const newHeight = Math.min(textarea.scrollHeight, 160);
+    textarea.style.height = `${newHeight}px`; // Set to scroll height up to a max
+  };
   
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
@@ -182,6 +180,9 @@ export default function PersonaChatPage() {
     
     setPersonas(prev => prev.map(p => p.id === persona.id ? updatedPersona : p));
     setInput('');
+    if(textareaRef.current) {
+        textareaRef.current.style.height = 'auto';
+    }
     setIsLoading(true);
     setError(null);
 
@@ -236,7 +237,7 @@ export default function PersonaChatPage() {
 
   if (!persona) {
     return (
-       <div className="flex items-center justify-center h-full">
+       <div className="container flex items-center justify-center h-[calc(100vh-4rem)]">
         <Card className="m-auto">
           <CardHeader>
             <CardTitle>Persona Not Found</CardTitle>
@@ -257,163 +258,168 @@ export default function PersonaChatPage() {
 
   return (
     <>
-      <div className="container max-w-6xl mx-auto h-[calc(100vh-4rem)] flex flex-col py-6">
-        <div className="mb-4 flex-shrink-0">
-          <Button asChild variant="ghost" className="text-muted-foreground hover:text-foreground">
-            <Link href="/">
-              <ArrowLeft className="mr-2 h-4 w-4" />
-              Back to All Personas
-            </Link>
-          </Button>
-        </div>
-        <div className="grid grid-cols-1 md:grid-cols-[300px_1fr] gap-6 flex-1 min-h-0">
+      <div className="flex h-[calc(100vh-4rem)] bg-background">
           {/* Left Sidebar */}
-          <div className="animate-fade-in space-y-6 flex flex-col min-h-0">
-            <Card>
-              <CardHeader className="items-center text-center">
-                <Image
-                  src={persona.profilePictureUrl}
-                  alt={persona.name}
-                  width={128}
-                  height={128}
-                  className={cn(
-                    "rounded-full object-cover aspect-square border-4 border-primary/50 transition-all duration-500",
-                    isLoading && "animate-[glow_2s_ease-in-out_infinite]"
-                  )}
-                  data-ai-hint="persona portrait"
-                />
-                <CardTitle className="font-headline text-2xl pt-4">{persona.name}</CardTitle>
-              </CardHeader>
-              <CardContent className="px-4 pb-4">
+          <div className={cn(
+              "transition-all duration-300 ease-in-out flex flex-col bg-card border-r",
+              isSidebarOpen ? "w-80" : "w-0 opacity-0"
+          )}>
+            <div className="p-4 space-y-4 flex-shrink-0">
+                <div className="flex items-center gap-4">
+                     <Image
+                      src={persona.profilePictureUrl}
+                      alt={persona.name}
+                      width={64}
+                      height={64}
+                      className={cn(
+                        "rounded-full object-cover aspect-square border-2 border-primary/50 transition-all duration-500",
+                        isLoading && "animate-[glow_2s_ease-in-out_infinite]"
+                      )}
+                      data-ai-hint="persona portrait"
+                    />
+                    <h2 className="font-headline text-xl font-semibold truncate">{persona.name}</h2>
+                </div>
                 <Button variant="destructive" className="w-full" onClick={() => setIsPersonaDeleteDialogOpen(true)}>
                   <Trash2 className="mr-2 h-4 w-4" /> Delete Persona
                 </Button>
-              </CardContent>
-            </Card>
-
-            <Card className="flex-1 flex flex-col min-h-0">
-                <CardHeader>
-                    <div className="flex justify-between items-center">
-                        <CardTitle className="font-headline text-lg">Chat History</CardTitle>
-                        <Button size="sm" variant="ghost" onClick={handleNewChat}>
-                            <MessageSquarePlus className="mr-2 h-4 w-4" /> New
-                        </Button>
-                    </div>
-                </CardHeader>
-                <CardContent className="flex-1 min-h-0 p-2">
-                    <ScrollArea className="h-full pr-2">
-                      {sortedChats.length > 0 ? (
-                        <div className="space-y-1">
-                        {sortedChats.map(chat => (
-                          <Link key={chat.id} href={`/persona/${persona.id}?chat=${chat.id}`} className="block group" scroll={false}>
-                            <div className={cn(
-                              "flex justify-between items-center p-2 rounded-md transition-colors",
-                              activeChatId === chat.id ? 'bg-primary/20' : 'hover:bg-secondary'
-                            )}>
-                              <p className="text-sm truncate pr-2">{chat.title}</p>
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                className="h-6 w-6 shrink-0 opacity-0 group-hover:opacity-100"
-                                onClick={(e) => { 
-                                  e.preventDefault(); 
-                                  e.stopPropagation();
-                                  setChatToDelete(chat);
-                                  setIsDeleteDialogOpen(true);
-                                }}
-                              >
-                                <Trash2 className="h-4 w-4 text-destructive/70 hover:text-destructive" />
-                              </Button>
-                            </div>
-                          </Link>
-                        ))}
-                        </div>
-                      ) : (
-                        <p className="text-sm text-muted-foreground text-center py-4">No chats yet.</p>
-                      )}
-                    </ScrollArea>
-                </CardContent>
-            </Card>
-          </div>
-          
-          {/* Right Chat Panel */}
-          <div className="flex flex-col h-full bg-card rounded-lg border">
-            {activeChatId && activeChat ? (
-              <>
-                <CardHeader>
-                  <CardTitle className="font-headline text-xl truncate">{activeChat.title}</CardTitle>
-                </CardHeader>
-                <ScrollArea className="flex-1" ref={scrollAreaRef}>
-                  <div className="space-y-6 p-4">
-                    {messages.map((message, index) => (
-                      <div key={index} className={cn("flex items-start gap-3 animate-fade-in-up", message.role === 'user' && 'flex-row-reverse')}>
-                        <Avatar className="flex-shrink-0">
-                          {message.role === 'assistant' ? (
-                            <>
-                              <AvatarImage src={persona.profilePictureUrl} alt={persona.name} />
-                              <AvatarFallback><Bot /></AvatarFallback>
-                            </>
-                          ) : (
-                            <AvatarFallback><User /></AvatarFallback>
-                          )}
-                        </Avatar>
-                        <div className={cn("max-w-xl p-3 rounded-lg", message.role === 'user' ? 'bg-primary text-primary-foreground' : 'bg-secondary')}>
-                          <p className="text-sm whitespace-pre-wrap">{message.content}</p>
-                        </div>
-                      </div>
-                    ))}
-                    {isLoading && (
-                      <div className="flex items-start gap-3 justify-start animate-fade-in-up">
-                        <Avatar className="flex-shrink-0">
-                            <AvatarImage src={persona.profilePictureUrl} alt={persona.name} />
-                            <AvatarFallback><Bot /></AvatarFallback>
-                          </Avatar>
-                          <div className="p-3 rounded-lg bg-secondary flex items-center">
-                            <Loader2 className="h-5 w-5 text-muted-foreground animate-spin"/>
+            </div>
+            
+            <div className="p-4 flex-1 flex flex-col min-h-0 border-t">
+                <div className="flex justify-between items-center mb-2">
+                    <h3 className="font-headline text-lg">Chat History</h3>
+                    <Button size="sm" variant="ghost" onClick={handleNewChat}>
+                        <MessageSquarePlus className="mr-2 h-4 w-4" /> New
+                    </Button>
+                </div>
+                <ScrollArea className="flex-1 -mx-4">
+                  <div className="px-4">
+                    {sortedChats.length > 0 ? (
+                      <div className="space-y-1">
+                      {sortedChats.map(chat => (
+                        <Link key={chat.id} href={`/persona/${persona.id}?chat=${chat.id}`} className="block group" scroll={false}>
+                          <div className={cn(
+                            "flex justify-between items-center p-2 rounded-md transition-colors",
+                            activeChatId === chat.id ? 'bg-primary/20' : 'hover:bg-secondary'
+                          )}>
+                            <p className="text-sm truncate pr-2">{chat.title}</p>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-6 w-6 shrink-0 opacity-0 group-hover:opacity-100"
+                              onClick={(e) => { 
+                                e.preventDefault(); 
+                                e.stopPropagation();
+                                setChatToDelete(chat);
+                                setIsDeleteDialogOpen(true);
+                              }}
+                            >
+                              <Trash2 className="h-4 w-4 text-destructive/70 hover:text-destructive" />
+                            </Button>
                           </div>
+                        </Link>
+                      ))}
                       </div>
-                    )}
-                    {error && (
-                      <Alert variant="destructive">
-                        <AlertCircle className="h-4 w-4" />
-                        <AlertTitle>Error</AlertTitle>
-                        <AlertDescription>{error}</AlertDescription>
-                      </Alert>
+                    ) : (
+                      <p className="text-sm text-muted-foreground text-center py-4">No chats yet.</p>
                     )}
                   </div>
                 </ScrollArea>
-                <div className="p-4 border-t">
-                  <form onSubmit={handleSubmit} className="flex items-center gap-2">
-                    <Textarea
-                      value={input}
-                      onChange={(e) => setInput(e.target.value)}
-                      placeholder={`Message ${persona.name}...`}
-                      className="flex-1 resize-none"
-                      rows={1}
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter' && !e.shiftKey) {
-                          e.preventDefault();
-                          handleSubmit(e);
-                        }
-                      }}
-                    />
-                    <Button type="submit" size="icon" disabled={isLoading || !input.trim()}>
-                      <Send className="h-4 w-4" />
-                    </Button>
-                  </form>
-                </div>
-              </>
-            ) : (
-              <div className="flex flex-col items-center justify-center h-full text-center p-4">
-                  <Bot className="h-16 w-16 text-muted-foreground" />
-                  <h3 className="mt-4 text-xl font-medium font-headline">No Active Chat</h3>
-                  <p className="mt-2 text-base text-muted-foreground">
-                    Select a conversation or start a new one.
-                  </p>
-                </div>
-            )}
+            </div>
           </div>
-        </div>
+          
+          {/* Right Chat Panel */}
+          <div className="flex-1 flex flex-col h-full">
+             <header className="flex items-center gap-4 p-2 border-b flex-shrink-0">
+                <Button variant="ghost" size="icon" onClick={() => setIsSidebarOpen(!isSidebarOpen)}>
+                    <PanelLeft className="h-5 w-5" />
+                </Button>
+                <Button asChild variant="ghost" className="text-muted-foreground hover:text-foreground">
+                    <Link href="/">
+                    <ArrowLeft className="mr-2 h-4 w-4" />
+                    Back to All Personas
+                    </Link>
+                </Button>
+            </header>
+            
+            <div className="flex-1 flex flex-col min-h-0">
+                {activeChatId && activeChat ? (
+                <>
+                    <ScrollArea className="flex-1" ref={scrollAreaRef}>
+                    <div className="space-y-6 p-4">
+                        {messages.map((message, index) => (
+                        <div key={index} className={cn("flex items-start gap-3 animate-fade-in-up", message.role === 'user' && 'justify-end')}>
+                             {message.role === 'assistant' && (
+                                <Avatar className="flex-shrink-0">
+                                    <AvatarImage src={persona.profilePictureUrl} alt={persona.name} />
+                                    <AvatarFallback><Bot /></AvatarFallback>
+                                </Avatar>
+                            )}
+                            <div className={cn("max-w-xl p-3 rounded-lg", message.role === 'user' ? 'bg-primary text-primary-foreground' : 'bg-secondary')}>
+                            <p className="text-sm whitespace-pre-wrap">{message.content}</p>
+                            </div>
+                            {message.role === 'user' && (
+                                <Avatar className="flex-shrink-0">
+                                    <AvatarFallback><User /></AvatarFallback>
+                                </Avatar>
+                            )}
+                        </div>
+                        ))}
+                        {isLoading && (
+                        <div className="flex items-start gap-3 justify-start animate-fade-in-up">
+                            <Avatar className="flex-shrink-0">
+                                <AvatarImage src={persona.profilePictureUrl} alt={persona.name} />
+                                <AvatarFallback><Bot /></AvatarFallback>
+                            </Avatar>
+                            <div className="p-3 rounded-lg bg-secondary flex items-center">
+                                <Loader2 className="h-5 w-5 text-muted-foreground animate-spin"/>
+                            </div>
+                        </div>
+                        )}
+                        {error && (
+                        <Alert variant="destructive">
+                            <AlertCircle className="h-4 w-4" />
+                            <AlertTitle>Error</AlertTitle>
+                            <AlertDescription>{error}</AlertDescription>
+                        </Alert>
+                        )}
+                    </div>
+                    </ScrollArea>
+                    <div className="p-4 border-t bg-background">
+                    <div className="max-w-3xl mx-auto">
+                        <form onSubmit={handleSubmit} className="flex items-end gap-2">
+                            <Textarea
+                                ref={textareaRef}
+                                value={input}
+                                onChange={(e) => setInput(e.target.value)}
+                                onInput={handleInput}
+                                placeholder={`Message ${persona.name}...`}
+                                className="flex-1 resize-none overflow-y-auto"
+                                rows={1}
+                                onKeyDown={(e) => {
+                                    if (e.key === 'Enter' && !e.shiftKey) {
+                                    e.preventDefault();
+                                    if(textareaRef.current) handleSubmit(e);
+                                    }
+                                }}
+                            />
+                            <Button type="submit" size="icon" disabled={isLoading || !input.trim()}>
+                            <Send className="h-4 w-4" />
+                            </Button>
+                        </form>
+                    </div>
+                    </div>
+                </>
+                ) : (
+                <div className="flex flex-col items-center justify-center h-full text-center p-4">
+                    <Bot className="h-16 w-16 text-muted-foreground" />
+                    <h3 className="mt-4 text-xl font-medium font-headline">No Active Chat</h3>
+                    <p className="mt-2 text-base text-muted-foreground">
+                        Select a conversation or start a new one.
+                    </p>
+                    </div>
+                )}
+            </div>
+          </div>
       </div>
 
       {/* Dialogs */}
