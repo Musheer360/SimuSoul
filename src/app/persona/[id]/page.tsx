@@ -88,6 +88,9 @@ export default function PersonaChatPage() {
 
   useEffect(() => {
     setIsMounted(true);
+  }, []);
+
+  useEffect(() => {
     const foundPersona = personas.find(p => p.id === id);
     if (foundPersona) {
       setPersona(foundPersona);
@@ -109,6 +112,11 @@ export default function PersonaChatPage() {
     setPersonas(prev => prev.map(p => p.id === persona.id ? updatedPersona : p));
     router.push(`/persona/${persona.id}?chat=${newChat.id}`);
   }, [persona, router, setPersonas]);
+  
+  const sortedChats = useMemo(() => {
+    if (!persona?.chats) return [];
+    return [...persona.chats].sort((a, b) => b.createdAt - a.createdAt);
+  }, [persona?.chats]);
 
   useEffect(() => {
     if (!persona) return;
@@ -119,13 +127,12 @@ export default function PersonaChatPage() {
     if (chatIdFromQuery && chatExists) {
       setActiveChatId(chatIdFromQuery);
     } else if (persona.chats.length > 0) {
-      const sortedChats = [...persona.chats].sort((a, b) => b.createdAt - a.createdAt);
       const latestChatId = sortedChats[0].id;
       router.replace(`/persona/${persona.id}?chat=${latestChatId}`, { scroll: false });
     } else {
       handleNewChat();
     }
-  }, [persona, searchParams, router, handleNewChat]);
+  }, [persona, searchParams, router, handleNewChat, sortedChats]);
 
   const activeChat = useMemo(() => {
     return persona?.chats.find(c => c.id === activeChatId);
@@ -133,10 +140,6 @@ export default function PersonaChatPage() {
 
   const messages = useMemo(() => activeChat?.messages || [], [activeChat]);
 
-  const sortedChats = useMemo(() => {
-    if (!persona?.chats) return [];
-    return [...persona.chats].sort((a, b) => b.createdAt - a.createdAt);
-  }, [persona?.chats]);
 
   useEffect(() => {
     if (scrollAreaRef.current) {
@@ -279,9 +282,27 @@ export default function PersonaChatPage() {
                     />
                     <h2 className="font-headline text-xl font-semibold truncate">{persona.name}</h2>
                 </div>
-                <Button variant="destructive" className="w-full" onClick={() => setIsPersonaDeleteDialogOpen(true)}>
-                  <Trash2 className="mr-2 h-4 w-4" /> Delete Persona
-                </Button>
+                <AlertDialog>
+                 <AlertDialogTrigger asChild>
+                   <Button variant="destructive" className="w-full">
+                     <Trash2 className="mr-2 h-4 w-4" /> Delete Persona
+                   </Button>
+                 </AlertDialogTrigger>
+                 <AlertDialogContent>
+                   <AlertDialogHeader>
+                     <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+                     <AlertDialogDescription>
+                       This action will permanently delete {persona?.name} and all associated chats. This cannot be undone.
+                     </AlertDialogDescription>
+                   </AlertDialogHeader>
+                   <AlertDialogFooter>
+                     <AlertDialogCancel>Cancel</AlertDialogCancel>
+                     <AlertDialogAction className="bg-destructive text-destructive-foreground hover:bg-destructive/90" onClick={handleDeletePersona}>
+                       Delete
+                     </AlertDialogAction>
+                   </AlertDialogFooter>
+                 </AlertDialogContent>
+               </AlertDialog>
             </div>
             
             <div className="p-4 flex-1 flex flex-col min-h-0 border-t">
@@ -393,7 +414,7 @@ export default function PersonaChatPage() {
                               onChange={(e) => setInput(e.target.value)}
                               onInput={handleInput}
                               placeholder={`Message ${persona.name}...`}
-                              className="flex-1 resize-none border-0 bg-transparent p-3 text-sm shadow-none scrollbar-hide focus-visible:ring-0"
+                              className="flex-1 resize-none border-0 bg-transparent p-3 text-sm shadow-none scrollbar-hide focus-visible:ring-0 focus-visible:ring-offset-0"
                               rows={1}
                               onKeyDown={(e) => {
                                   if (e.key === 'Enter' && !e.shiftKey) {
