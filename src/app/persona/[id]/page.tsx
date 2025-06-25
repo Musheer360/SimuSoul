@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useRef, FormEvent, useMemo } from 'react';
+import { useEffect, useState, useRef, FormEvent, useMemo, useCallback } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useParams, useRouter, useSearchParams } from 'next/navigation';
@@ -53,6 +53,22 @@ export default function PersonaChatPage() {
     }
   }, [id, personas]);
 
+  const handleNewChat = useCallback(() => {
+    if (!persona) return;
+    const newChat: ChatSession = {
+      id: crypto.randomUUID(),
+      title: 'New Chat',
+      messages: [],
+      createdAt: Date.now(),
+    };
+    const updatedPersona = {
+      ...persona,
+      chats: [newChat, ...persona.chats],
+    };
+    setPersonas(prev => prev.map(p => p.id === persona.id ? updatedPersona : p));
+    router.push(`/persona/${persona.id}?chat=${newChat.id}`);
+  }, [persona, router, setPersonas]);
+
   useEffect(() => {
     if (!persona) return;
     
@@ -64,12 +80,11 @@ export default function PersonaChatPage() {
     } else if (persona.chats.length > 0) {
       const sortedChats = [...persona.chats].sort((a, b) => b.createdAt - a.createdAt);
       const latestChatId = sortedChats[0].id;
-      setActiveChatId(latestChatId);
       router.replace(`/persona/${persona.id}?chat=${latestChatId}`, { scroll: false });
     } else {
-      setActiveChatId(null);
+      handleNewChat();
     }
-  }, [persona, searchParams, router]);
+  }, [persona, searchParams, router, handleNewChat]);
 
   const activeChat = useMemo(() => {
     return persona?.chats.find(c => c.id === activeChatId);
@@ -135,35 +150,23 @@ export default function PersonaChatPage() {
     }
   };
 
-  const handleNewChat = () => {
-    if (!persona) return;
-    const newChat: ChatSession = {
-      id: crypto.randomUUID(),
-      title: 'New Chat',
-      messages: [],
-      createdAt: Date.now(),
-    };
-    const updatedPersona = {
-      ...persona,
-      chats: [newChat, ...persona.chats],
-    };
-    setPersonas(prev => prev.map(p => p.id === persona.id ? updatedPersona : p));
-    router.push(`/persona/${persona.id}?chat=${newChat.id}`);
-  };
-
-  const handleDeleteChat = (e: React.MouseEvent, chatId: string) => {
-    e.preventDefault();
-    e.stopPropagation();
+  const handleDeleteChat = useCallback((chatIdToDelete: string) => {
     if (!persona) return;
 
-    const updatedChats = persona.chats.filter(c => c.id !== chatId);
-    const updatedPersona = { ...persona, chats: updatedChats };
-    setPersonas(prev => prev.map(p => p.id === persona.id ? updatedPersona : p));
+    setPersonas(prev =>
+      prev.map(p => {
+        if (p.id === id) {
+          const updatedChats = p.chats.filter(c => c.id !== chatIdToDelete);
+          return { ...p, chats: updatedChats };
+        }
+        return p;
+      })
+    );
 
-    if (activeChatId === chatId) {
-      router.replace(`/persona/${persona.id}`);
+    if (activeChatId === chatIdToDelete) {
+      router.replace(`/persona/${id}`);
     }
-  };
+  }, [id, activeChatId, persona, setPersonas, router]);
 
   const handleDeletePersona = () => {
     setPersonas(prev => prev.filter(p => p.id !== id));
@@ -186,8 +189,8 @@ export default function PersonaChatPage() {
   }
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-      <div className="md:col-span-1 h-fit sticky top-24 animate-fade-in space-y-6">
+    <div className="grid grid-cols-1 md:grid-cols-[300px_1fr] gap-6">
+      <div className="h-fit sticky top-24 animate-fade-in space-y-6">
         <Card>
           <CardHeader className="items-center text-center">
             <Image
@@ -203,10 +206,28 @@ export default function PersonaChatPage() {
             />
             <CardTitle className="font-headline text-2xl pt-4">{persona.name}</CardTitle>
           </CardHeader>
-          <CardContent className="text-sm text-center">
-            <Button variant="destructive" className="w-full" onClick={handleDeletePersona}>
-              <Trash2 className="mr-2 h-4 w-4" /> Delete Persona
-            </Button>
+          <CardContent className="text-sm text-center px-4 pb-4">
+             <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button variant="destructive" className="w-full">
+                  <Trash2 className="mr-2 h-4 w-4" /> Delete Persona
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    This action will permanently delete {persona.name} and all associated chats. This cannot be undone.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                  <AlertDialogAction className="bg-destructive text-destructive-foreground hover:bg-destructive/90" onClick={handleDeletePersona}>
+                    Delete
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
           </CardContent>
         </Card>
 
@@ -238,19 +259,19 @@ export default function PersonaChatPage() {
                                 className="h-6 w-6 shrink-0 opacity-0 group-hover:opacity-100"
                                 onClick={(e) => { e.preventDefault(); e.stopPropagation(); }}
                               >
-                                <Trash2 className="h-4 w-4 text-destructive/70" />
+                                <Trash2 className="h-4 w-4 text-destructive/70 hover:text-destructive" />
                               </Button>
                             </AlertDialogTrigger>
                             <AlertDialogContent>
                               <AlertDialogHeader>
                                 <AlertDialogTitle>Delete Chat?</AlertDialogTitle>
                                 <AlertDialogDescription>
-                                  This will permanently delete this chat session.
+                                  This will permanently delete the chat session: "{chat.title}".
                                 </AlertDialogDescription>
                               </AlertDialogHeader>
                               <AlertDialogFooter>
                                 <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                <AlertDialogAction onClick={(e) => handleDeleteChat(e, chat.id)}>Delete</AlertDialogAction>
+                                <AlertDialogAction className="bg-destructive text-destructive-foreground hover:bg-destructive/90" onClick={() => handleDeleteChat(chat.id)}>Delete</AlertDialogAction>
                               </AlertDialogFooter>
                             </AlertDialogContent>
                           </AlertDialog>
@@ -266,7 +287,7 @@ export default function PersonaChatPage() {
         </Card>
       </div>
       
-      <div className="md:col-span-2 flex flex-col h-[calc(100vh-10rem)] bg-card rounded-lg border">
+      <div className="flex flex-col h-[calc(100vh-8rem)] bg-card rounded-lg border">
         {activeChatId && activeChat ? (
           <>
             <CardHeader>

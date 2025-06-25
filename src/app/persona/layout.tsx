@@ -8,7 +8,7 @@ export default function PersonaLayout({
   children: React.ReactNode;
 }) {
   return (
-    <div className="container py-8 max-w-4xl mx-auto">
+    <div className="container py-8 max-w-6xl mx-auto">
       <div className="mb-6">
         <Button asChild variant="ghost" className="text-muted-foreground hover:text-foreground">
           <Link href="/">
