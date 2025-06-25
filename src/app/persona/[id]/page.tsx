@@ -77,6 +77,11 @@ export default function PersonaChatPage() {
 
   const messages = useMemo(() => activeChat?.messages || [], [activeChat]);
 
+  const sortedChats = useMemo(() => {
+    if (!persona?.chats) return [];
+    return [...persona.chats].sort((a, b) => b.createdAt - a.createdAt);
+  }, [persona?.chats]);
+
   useEffect(() => {
     if (scrollAreaRef.current) {
       scrollAreaRef.current.scrollTo({
@@ -179,11 +184,6 @@ export default function PersonaChatPage() {
       </div>
     );
   }
-
-  const sortedChats = useMemo(() => {
-    if (!persona?.chats) return [];
-    return [...persona.chats].sort((a, b) => b.createdAt - a.createdAt);
-  }, [persona?.chats]);
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
