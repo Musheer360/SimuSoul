@@ -386,14 +386,14 @@ export default function PersonaChatPage() {
                     </ScrollArea>
                     <div className="p-4 border-t bg-background">
                       <div className="max-w-3xl mx-auto">
-                        <form onSubmit={handleSubmit} className="relative w-full">
+                        <form onSubmit={handleSubmit} className="relative flex w-full items-end rounded-lg border border-input bg-secondary">
                           <Textarea
                               ref={textareaRef}
                               value={input}
                               onChange={(e) => setInput(e.target.value)}
                               onInput={handleInput}
                               placeholder={`Message ${persona.name}...`}
-                              className="w-full flex-1 resize-none rounded-lg border border-input bg-secondary py-3 pl-4 pr-14 text-sm scrollbar-hide"
+                              className="flex-1 resize-none border-0 bg-transparent p-3 text-sm shadow-none scrollbar-hide focus-visible:ring-0"
                               rows={1}
                               onKeyDown={(e) => {
                                   if (e.key === 'Enter' && !e.shiftKey) {
@@ -404,8 +404,9 @@ export default function PersonaChatPage() {
                           />
                           <Button
                               type="submit"
+                              size="icon"
                               disabled={isLoading || !input.trim()}
-                              className="absolute bottom-1.5 right-2 h-7 w-7 rounded-lg"
+                              className="m-1.5 flex-shrink-0"
                           >
                               <Send className="h-4 w-4" />
                           </Button>
