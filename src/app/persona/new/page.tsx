@@ -1,7 +1,7 @@
 'use client';
 
-import { useFormState, useFormStatus } from 'react-dom';
-import { useEffect, useState, useRef } from 'react';
+import { useFormStatus } from 'react-dom';
+import { useEffect, useState, useRef, useActionState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useLocalStorage } from '@/hooks/use-local-storage';
 import {
@@ -69,7 +69,7 @@ export default function NewPersonaPage() {
     success: false,
     persona: null,
   };
-  const [state, dispatch] = useFormState(createPersonaAction, initialState);
+  const [state, dispatch] = useActionState(createPersonaAction, initialState);
 
   const nameRef = useRef<HTMLInputElement>(null);
 
