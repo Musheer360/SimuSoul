@@ -151,7 +151,7 @@ export default function NewPersonaPage() {
           <TabsList className="grid w-full grid-cols-2">
             <TabsTrigger value="manual">Manual</TabsTrigger>
             <TabsTrigger value="ai">
-              <Wand2 className="mr-2" /> Generate with AI
+              <Wand2 className="mr-2 h-4 w-4" /> Generate with AI
             </TabsTrigger>
           </TabsList>
           <TabsContent value="manual" className="pt-6">
@@ -184,9 +184,9 @@ export default function NewPersonaPage() {
                     disabled={isGeneratingDetails}
                   >
                     {isGeneratingDetails ? (
-                      <Loader2 className="mr-2 animate-spin" />
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                     ) : (
-                      <Wand2 className="mr-2" />
+                      <Wand2 className="mr-2 h-4 w-4" />
                     )}
                     Generate with AI
                   </Button>
