@@ -21,12 +21,10 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-  AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { cn } from '@/lib/utils';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Skeleton } from '@/components/ui/skeleton';
 
 export default function PersonaChatPage() {
   const router = useRouter();
@@ -43,6 +41,9 @@ export default function PersonaChatPage() {
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [chatToDelete, setChatToDelete] = useState<ChatSession | null>(null);
 
   const scrollAreaRef = useRef<HTMLDivElement>(null);
 
@@ -150,23 +151,26 @@ export default function PersonaChatPage() {
     }
   };
 
-  const handleDeleteChat = useCallback((chatIdToDelete: string) => {
-    if (!persona) return;
+  const handleConfirmDeleteChat = useCallback(() => {
+    if (!persona || !chatToDelete) return;
 
     setPersonas(prev =>
       prev.map(p => {
         if (p.id === id) {
-          const updatedChats = p.chats.filter(c => c.id !== chatIdToDelete);
+          const updatedChats = p.chats.filter(c => c.id !== chatToDelete.id);
           return { ...p, chats: updatedChats };
         }
         return p;
       })
     );
 
-    if (activeChatId === chatIdToDelete) {
+    if (activeChatId === chatToDelete.id) {
       router.replace(`/persona/${id}`);
     }
-  }, [id, activeChatId, persona, setPersonas, router]);
+    
+    setIsDeleteDialogOpen(false);
+    setChatToDelete(null);
+  }, [id, activeChatId, persona, chatToDelete, setPersonas, router]);
 
   const handleDeletePersona = () => {
     setPersonas(prev => prev.filter(p => p.id !== id));
@@ -251,30 +255,19 @@ export default function PersonaChatPage() {
                           activeChatId === chat.id ? 'bg-primary/20' : 'hover:bg-secondary'
                         )}>
                           <p className="text-sm truncate pr-2">{chat.title}</p>
-                          <AlertDialog>
-                            <AlertDialogTrigger asChild>
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                className="h-6 w-6 shrink-0 opacity-0 group-hover:opacity-100"
-                                onClick={(e) => { e.preventDefault(); e.stopPropagation(); }}
-                              >
-                                <Trash2 className="h-4 w-4 text-destructive/70 hover:text-destructive" />
-                              </Button>
-                            </AlertDialogTrigger>
-                            <AlertDialogContent>
-                              <AlertDialogHeader>
-                                <AlertDialogTitle>Delete Chat?</AlertDialogTitle>
-                                <AlertDialogDescription>
-                                  This will permanently delete the chat session: "{chat.title}".
-                                </AlertDialogDescription>
-                              </AlertDialogHeader>
-                              <AlertDialogFooter>
-                                <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                <AlertDialogAction className="bg-destructive text-destructive-foreground hover:bg-destructive/90" onClick={() => handleDeleteChat(chat.id)}>Delete</AlertDialogAction>
-                              </AlertDialogFooter>
-                            </AlertDialogContent>
-                          </AlertDialog>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-6 w-6 shrink-0 opacity-0 group-hover:opacity-100"
+                            onClick={(e) => { 
+                              e.preventDefault(); 
+                              e.stopPropagation();
+                              setChatToDelete(chat);
+                              setIsDeleteDialogOpen(true);
+                            }}
+                          >
+                            <Trash2 className="h-4 w-4 text-destructive/70 hover:text-destructive" />
+                          </Button>
                         </div>
                       </Link>
                     ))}
@@ -364,6 +357,21 @@ export default function PersonaChatPage() {
             </div>
         )}
       </div>
+
+       <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Chat?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will permanently delete the chat session: "{chatToDelete?.title}". This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setChatToDelete(null)}>Cancel</AlertDialogCancel>
+            <AlertDialogAction className="bg-destructive text-destructive-foreground hover:bg-destructive/90" onClick={handleConfirmDeleteChat}>Delete</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
