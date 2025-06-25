@@ -21,7 +21,6 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-  AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { cn } from '@/lib/utils';
@@ -153,7 +152,7 @@ export default function PersonaChatPage() {
   const handleInput = (e: React.FormEvent<HTMLTextAreaElement>) => {
     const textarea = e.currentTarget;
     textarea.style.height = 'auto'; // Reset height
-    // 240 is max-h-60
+    // max height 160px (h-40)
     const newHeight = Math.min(textarea.scrollHeight, 160);
     textarea.style.height = `${newHeight}px`; // Set to scroll height up to a max
   };
@@ -385,28 +384,33 @@ export default function PersonaChatPage() {
                     </div>
                     </ScrollArea>
                     <div className="p-4 border-t bg-background">
-                    <div className="max-w-3xl mx-auto">
-                        <form onSubmit={handleSubmit} className="flex items-end gap-2">
-                            <Textarea
-                                ref={textareaRef}
-                                value={input}
-                                onChange={(e) => setInput(e.target.value)}
-                                onInput={handleInput}
-                                placeholder={`Message ${persona.name}...`}
-                                className="flex-1 resize-none overflow-y-auto"
-                                rows={1}
-                                onKeyDown={(e) => {
-                                    if (e.key === 'Enter' && !e.shiftKey) {
-                                    e.preventDefault();
-                                    if(textareaRef.current) handleSubmit(e);
-                                    }
-                                }}
-                            />
-                            <Button type="submit" size="icon" disabled={isLoading || !input.trim()}>
-                            <Send className="h-4 w-4" />
-                            </Button>
+                      <div className="max-w-3xl mx-auto">
+                        <form onSubmit={handleSubmit} className="relative w-full">
+                          <Textarea
+                              ref={textareaRef}
+                              value={input}
+                              onChange={(e) => setInput(e.target.value)}
+                              onInput={handleInput}
+                              placeholder={`Message ${persona.name}...`}
+                              className="w-full flex-1 resize-none rounded-full border border-input bg-secondary py-3 pl-4 pr-12 text-sm"
+                              rows={1}
+                              onKeyDown={(e) => {
+                                  if (e.key === 'Enter' && !e.shiftKey) {
+                                  e.preventDefault();
+                                  if(textareaRef.current) handleSubmit(e as any);
+                                  }
+                              }}
+                          />
+                          <Button
+                              type="submit"
+                              size="icon"
+                              disabled={isLoading || !input.trim()}
+                              className="absolute bottom-2.5 right-2 h-8 w-8"
+                          >
+                              <Send className="h-4 w-4" />
+                          </Button>
                         </form>
-                    </div>
+                      </div>
                     </div>
                 </>
                 ) : (
