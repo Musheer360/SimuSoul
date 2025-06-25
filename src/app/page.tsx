@@ -3,12 +3,23 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { PlusCircle, User, Bot } from 'lucide-react';
+import { PlusCircle, User, Bot, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useLocalStorage } from '@/hooks/use-local-storage';
 import type { Persona } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog';
 
 function PersonaCardSkeleton() {
   return (
@@ -67,13 +78,47 @@ export default function HomePage() {
       {personas.length > 0 ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
           {personas.map((persona, index) => (
-            <Link
+            <Card
               key={persona.id}
-              href={`/persona/${persona.id}`}
-              className="block group animate-fade-in-up"
+              className="h-full transition-all duration-300 ease-in-out hover:shadow-lg hover:shadow-primary/20 hover:-translate-y-1 overflow-hidden relative group"
               style={{ animationDelay: `${index * 100}ms` }}
             >
-              <Card className="h-full transition-all duration-300 ease-in-out hover:shadow-lg hover:shadow-primary/20 hover:-translate-y-1 overflow-hidden">
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <Button
+                    variant="destructive"
+                    size="icon"
+                    className="absolute top-2 right-2 z-10 h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity"
+                    aria-label={`Delete ${persona.name}`}
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      This action cannot be undone. This will permanently delete the persona "{persona.name}".
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                    <AlertDialogAction
+                      className="bg-destructive hover:bg-destructive/90"
+                      onClick={() => {
+                        setPersonas((prev) => prev.filter((p) => p.id !== persona.id));
+                      }}
+                    >
+                      Delete
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
+
+              <Link
+                href={`/persona/${persona.id}`}
+                className="block group/link animate-fade-in-up"
+              >
                 <CardHeader className="flex flex-row items-center gap-4 p-4">
                   <Image
                     src={persona.profilePictureUrl}
@@ -83,7 +128,7 @@ export default function HomePage() {
                     className="rounded-full object-cover aspect-square border-2 border-primary/50"
                     data-ai-hint="persona portrait"
                   />
-                  <CardTitle className="font-headline text-xl text-primary group-hover:text-accent transition-colors">
+                  <CardTitle className="font-headline text-xl text-primary group-hover/link:text-accent transition-colors">
                     {persona.name}
                   </CardTitle>
                 </CardHeader>
@@ -92,8 +137,8 @@ export default function HomePage() {
                     {persona.traits}
                   </p>
                 </CardContent>
-              </Card>
-            </Link>
+              </Link>
+            </Card>
           ))}
         </div>
       ) : (

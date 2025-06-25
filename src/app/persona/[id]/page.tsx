@@ -6,11 +6,22 @@ import { useParams, useRouter } from 'next/navigation';
 import { useLocalStorage } from '@/hooks/use-local-storage';
 import { chatAction } from '@/app/actions';
 import type { Persona, UserDetails, ChatMessage } from '@/lib/types';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
-import { Send, Loader2, Bot, User, AlertCircle } from 'lucide-react';
+import { Send, Loader2, Bot, User, AlertCircle, Trash2 } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { cn } from '@/lib/utils';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -21,7 +32,7 @@ export default function PersonaChatPage() {
   const params = useParams();
   const { id } = params;
 
-  const [personas] = useLocalStorage<Persona[]>('personas', []);
+  const [personas, setPersonas] = useLocalStorage<Persona[]>('personas', []);
   const [userDetails] = useLocalStorage<UserDetails>('user-details', { name: '', about: '' });
   const [persona, setPersona] = useState<Persona | null>(null);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
@@ -71,6 +82,11 @@ export default function PersonaChatPage() {
     }
   };
 
+  const handleDeletePersona = () => {
+    setPersonas(prev => prev.filter(p => p.id !== id));
+    router.push('/');
+  };
+
   if (!persona) {
     return (
       <Card>
@@ -115,6 +131,33 @@ export default function PersonaChatPage() {
             <p className="text-muted-foreground">{persona.goals}</p>
           </div>
         </CardContent>
+        <CardFooter className="flex-col gap-2">
+          <AlertDialog>
+            <AlertDialogTrigger asChild>
+              <Button variant="destructive" className="w-full">
+                <Trash2 className="mr-2 h-4 w-4" /> Delete Persona
+              </Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+                <AlertDialogDescription>
+                  This action cannot be undone. This will permanently delete this
+                  persona.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                <AlertDialogAction
+                  className="bg-destructive hover:bg-destructive/90"
+                  onClick={handleDeletePersona}
+                >
+                  Delete
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+        </CardFooter>
       </Card>
       
       <div className="md:col-span-2 flex flex-col h-[calc(100vh-10rem)] bg-card rounded-lg border">
