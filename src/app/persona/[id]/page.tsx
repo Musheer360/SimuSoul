@@ -386,7 +386,7 @@ export default function PersonaChatPage() {
                     </ScrollArea>
                     <div className="p-4 border-t bg-background">
                       <div className="max-w-3xl mx-auto">
-                        <form onSubmit={handleSubmit} className="relative flex w-full items-end rounded-lg border border-input bg-secondary">
+                        <form onSubmit={handleSubmit} className="relative flex w-full items-center rounded-lg border border-input bg-secondary">
                           <Textarea
                               ref={textareaRef}
                               value={input}
