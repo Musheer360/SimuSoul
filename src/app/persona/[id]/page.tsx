@@ -407,7 +407,7 @@ export default function PersonaChatPage() {
                     </ScrollArea>
                     <div className="p-4 border-t bg-background">
                       <div className="max-w-3xl mx-auto">
-                        <form onSubmit={handleSubmit} className="relative flex w-full items-center rounded-lg border border-input bg-secondary">
+                        <form onSubmit={handleSubmit} className="relative flex w-full items-stretch rounded-lg border border-input bg-secondary">
                           <Textarea
                               ref={textareaRef}
                               value={input}
@@ -427,7 +427,7 @@ export default function PersonaChatPage() {
                               type="submit"
                               size="icon"
                               disabled={isLoading || !input.trim()}
-                              className="m-1.5 flex-shrink-0"
+                              className="m-1.5 flex-shrink-0 self-end"
                           >
                               <Send className="h-4 w-4" />
                           </Button>
