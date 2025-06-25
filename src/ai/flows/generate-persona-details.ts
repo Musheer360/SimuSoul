@@ -1,0 +1,56 @@
+'use server';
+/**
+ * @fileOverview This file defines a Genkit flow for generating persona details based on a name.
+ *
+ * - generatePersonaDetails - A function that handles the persona detail generation process.
+ * - GeneratePersonaDetailsInput - The input type for the generatePersonaDetails function.
+ * - GeneratePersonaDetailsOutput - The return type for the generatePersonaDetails function.
+ */
+
+import {ai} from '@/ai/genkit';
+import {z} from 'genkit';
+
+const GeneratePersonaDetailsInputSchema = z.object({
+  personaName: z.string().describe('The name of the persona.'),
+});
+export type GeneratePersonaDetailsInput = z.infer<typeof GeneratePersonaDetailsInputSchema>;
+
+const GeneratePersonaDetailsOutputSchema = z.object({
+  traits: z.string().describe("The persona's key traits and characteristics."),
+  backstory: z.string().describe("The persona's detailed backstory."),
+  goals: z.string().describe("The persona's primary goals and motivations."),
+});
+export type GeneratePersonaDetailsOutput = z.infer<typeof GeneratePersonaDetailsOutputSchema>;
+
+export async function generatePersonaDetails(input: GeneratePersonaDetailsInput): Promise<GeneratePersonaDetailsOutput> {
+  return generatePersonaDetailsFlow(input);
+}
+
+const prompt = ai.definePrompt({
+  name: 'generatePersonaDetailsPrompt',
+  input: {schema: GeneratePersonaDetailsInputSchema},
+  output: {schema: GeneratePersonaDetailsOutputSchema},
+  prompt: `You are an expert character designer. Based on the provided persona name, generate a compelling and creative set of traits, a backstory, and goals.
+
+Persona Name: {{personaName}}
+
+Generate the following details for this character:
+- Traits: A short, punchy list of their most defining characteristics.
+- Backstory: A concise but evocative summary of their life history.
+- Goals: What drives them forward? What do they want to achieve?
+
+Make the details creative and inspiring.
+`,
+});
+
+const generatePersonaDetailsFlow = ai.defineFlow(
+  {
+    name: 'generatePersonaDetailsFlow',
+    inputSchema: GeneratePersonaDetailsInputSchema,
+    outputSchema: GeneratePersonaDetailsOutputSchema,
+  },
+  async input => {
+    const {output} = await prompt(input);
+    return output!;
+  }
+);

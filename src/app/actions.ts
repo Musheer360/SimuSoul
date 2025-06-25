@@ -3,6 +3,8 @@
 import { z } from 'zod';
 import { generatePersonaProfilePicture } from '@/ai/flows/generate-persona-profile-picture';
 import { chatWithPersona } from '@/ai/flows/chat-with-persona';
+import { generatePersonaDetails } from '@/ai/flows/generate-persona-details';
+import { generatePersonaFromPrompt } from '@/ai/flows/generate-full-persona';
 import type { Persona, UserDetails, ChatMessage } from '@/lib/types';
 
 const createPersonaSchema = z.object({
@@ -12,10 +14,22 @@ const createPersonaSchema = z.object({
   goals: z.string().min(1, 'Goals are required'),
 });
 
+export interface CreatePersonaState {
+  message?: string | null;
+  errors?: {
+    name?: string[];
+    traits?: string[];
+    backstory?: string[];
+    goals?: string[];
+  };
+  success?: boolean;
+  persona?: Omit<Persona, 'id'> | null;
+}
+
 export async function createPersonaAction(
-  prevState: any,
+  prevState: CreatePersonaState,
   formData: FormData
-) {
+): Promise<CreatePersonaState> {
   try {
     const validatedFields = createPersonaSchema.safeParse({
       name: formData.get('name'),
@@ -26,6 +40,7 @@ export async function createPersonaAction(
 
     if (!validatedFields.success) {
       return {
+        success: false,
         message: 'Invalid form data',
         errors: validatedFields.error.flatten().fieldErrors,
       };
@@ -54,6 +69,35 @@ export async function createPersonaAction(
     console.error(error);
     const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred.';
     return { success: false, message: `Persona creation failed: ${errorMessage}` };
+  }
+}
+
+export async function generatePersonaDetailsAction(name: string) {
+  try {
+    if (!name?.trim()) {
+      return { success: false, error: 'Name is required to generate details.' };
+    }
+    const details = await generatePersonaDetails({ personaName: name });
+    return { success: true, details };
+  } catch (error) {
+    console.error(error);
+    const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred.';
+    return { success: false, error: `Details generation failed: ${errorMessage}` };
+  }
+}
+
+export async function generatePersonaFromPromptAction(prompt: string) {
+   try {
+    if (!prompt?.trim()) {
+      return { success: false, error: 'A prompt is required to generate a persona.' };
+    }
+    const personaData = await generatePersonaFromPrompt({ prompt });
+    return { success: true, personaData };
+  } catch (error)
+  {
+    console.error(error);
+    const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred.';
+    return { success: false, error: `Persona generation failed: ${errorMessage}` };
   }
 }
 

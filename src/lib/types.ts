@@ -20,3 +20,15 @@ export interface ChatMessage {
   role: 'user' | 'assistant';
   content: string;
 }
+
+export interface CreatePersonaState {
+  message?: string | null;
+  errors?: {
+    name?: string[];
+    traits?: string[];
+    backstory?: string[];
+    goals?: string[];
+  };
+  success?: boolean;
+  persona?: Omit<Persona, 'id'> | null;
+}
