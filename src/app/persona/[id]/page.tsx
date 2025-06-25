@@ -1,15 +1,16 @@
 'use client';
 
-import { useEffect, useState, useRef, FormEvent } from 'react';
+import { useEffect, useState, useRef, FormEvent, useMemo } from 'react';
 import Image from 'next/image';
-import { useParams, useRouter } from 'next/navigation';
+import Link from 'next/link';
+import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import { useLocalStorage } from '@/hooks/use-local-storage';
 import { chatAction } from '@/app/actions';
-import type { Persona, UserDetails, ChatMessage } from '@/lib/types';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
+import type { Persona, UserDetails, ChatMessage, ChatSession } from '@/lib/types';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
-import { Send, Loader2, Bot, User, AlertCircle, Trash2 } from 'lucide-react';
+import { Send, Loader2, Bot, User, AlertCircle, Trash2, MessageSquarePlus } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import {
   AlertDialog,
@@ -30,12 +31,15 @@ import { Skeleton } from '@/components/ui/skeleton';
 export default function PersonaChatPage() {
   const router = useRouter();
   const params = useParams();
+  const searchParams = useSearchParams();
   const { id } = params;
 
   const [personas, setPersonas] = useLocalStorage<Persona[]>('personas', []);
   const [userDetails] = useLocalStorage<UserDetails>('user-details', { name: '', about: '' });
+  
   const [persona, setPersona] = useState<Persona | null>(null);
-  const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const [activeChatId, setActiveChatId] = useState<string | null>(null);
+  
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -46,11 +50,32 @@ export default function PersonaChatPage() {
     const foundPersona = personas.find(p => p.id === id);
     if (foundPersona) {
       setPersona(foundPersona);
-    } else if (personas.length > 0) {
-      // If persona not found and personas exist, maybe redirect
-      // For now, we'll just show a not found state
     }
   }, [id, personas]);
+
+  useEffect(() => {
+    if (!persona) return;
+    
+    const chatIdFromQuery = searchParams.get('chat');
+    const chatExists = persona.chats.some(c => c.id === chatIdFromQuery);
+
+    if (chatIdFromQuery && chatExists) {
+      setActiveChatId(chatIdFromQuery);
+    } else if (persona.chats.length > 0) {
+      const sortedChats = [...persona.chats].sort((a, b) => b.createdAt - a.createdAt);
+      const latestChatId = sortedChats[0].id;
+      setActiveChatId(latestChatId);
+      router.replace(`/persona/${persona.id}?chat=${latestChatId}`, { scroll: false });
+    } else {
+      setActiveChatId(null);
+    }
+  }, [persona, searchParams, router]);
+
+  const activeChat = useMemo(() => {
+    return persona?.chats.find(c => c.id === activeChatId);
+  }, [persona, activeChatId]);
+
+  const messages = useMemo(() => activeChat?.messages || [], [activeChat]);
 
   useEffect(() => {
     if (scrollAreaRef.current) {
@@ -63,10 +88,25 @@ export default function PersonaChatPage() {
   
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
-    if (!input.trim() || !persona) return;
+    if (!input.trim() || !persona || !activeChatId) return;
 
     const userMessage: ChatMessage = { role: 'user', content: input };
-    setMessages(prev => [...prev, userMessage]);
+    
+    const isNewChat = messages.length === 0;
+    const newTitle = isNewChat ? (input.substring(0, 40) + (input.length > 40 ? '...' : '')) : activeChat!.title;
+
+    const updatedChatSession = {
+      ...activeChat!,
+      title: newTitle,
+      messages: [...messages, userMessage],
+    };
+
+    const updatedPersona = {
+      ...persona,
+      chats: persona.chats.map(c => c.id === activeChatId ? updatedChatSession : c),
+    };
+    
+    setPersonas(prev => prev.map(p => p.id === persona.id ? updatedPersona : p));
     setInput('');
     setIsLoading(true);
     setError(null);
@@ -76,9 +116,47 @@ export default function PersonaChatPage() {
     setIsLoading(false);
     if (res.response) {
       const assistantMessage: ChatMessage = { role: 'assistant', content: res.response };
-      setMessages(prev => [...prev, assistantMessage]);
+      const finalUpdatedSession = {
+        ...updatedChatSession,
+        messages: [...updatedChatSession.messages, assistantMessage],
+      };
+      const finalUpdatedPersona = {
+        ...persona,
+        chats: persona.chats.map(c => c.id === activeChatId ? finalUpdatedSession : c),
+      };
+      setPersonas(prev => prev.map(p => p.id === persona.id ? finalUpdatedPersona : p));
     } else if (res.error) {
       setError(res.error);
+    }
+  };
+
+  const handleNewChat = () => {
+    if (!persona) return;
+    const newChat: ChatSession = {
+      id: crypto.randomUUID(),
+      title: 'New Chat',
+      messages: [],
+      createdAt: Date.now(),
+    };
+    const updatedPersona = {
+      ...persona,
+      chats: [newChat, ...persona.chats],
+    };
+    setPersonas(prev => prev.map(p => p.id === persona.id ? updatedPersona : p));
+    router.push(`/persona/${persona.id}?chat=${newChat.id}`);
+  };
+
+  const handleDeleteChat = (e: React.MouseEvent, chatId: string) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (!persona) return;
+
+    const updatedChats = persona.chats.filter(c => c.id !== chatId);
+    const updatedPersona = { ...persona, chats: updatedChats };
+    setPersonas(prev => prev.map(p => p.id === persona.id ? updatedPersona : p));
+
+    if (activeChatId === chatId) {
+      router.replace(`/persona/${persona.id}`);
     }
   };
 
@@ -89,141 +167,181 @@ export default function PersonaChatPage() {
 
   if (!persona) {
     return (
-      <Card>
-        <CardHeader>
-          <CardTitle>Persona Not Found</CardTitle>
-          <CardDescription>
-            This persona could not be found. It might have been deleted.
-          </CardDescription>
-        </CardHeader>
-      </Card>
+      <div className="flex items-center justify-center h-full">
+        <Card>
+          <CardHeader>
+            <CardTitle>Persona Not Found</CardTitle>
+            <CardDescription>
+              This persona could not be found. It might have been deleted.
+            </CardDescription>
+          </CardHeader>
+        </Card>
+      </div>
     );
   }
 
+  const sortedChats = useMemo(() => {
+    if (!persona?.chats) return [];
+    return [...persona.chats].sort((a, b) => b.createdAt - a.createdAt);
+  }, [persona?.chats]);
+
   return (
     <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-      <Card className="md:col-span-1 h-fit sticky top-24 animate-fade-in">
-        <CardHeader className="items-center text-center">
-          <Image
-            src={persona.profilePictureUrl}
-            alt={persona.name}
-            width={128}
-            height={128}
-            className={cn(
-              "rounded-full object-cover aspect-square border-4 border-primary/50 transition-all duration-500",
-              isLoading && "animate-[glow_2s_ease-in-out_infinite]"
-            )}
-            data-ai-hint="persona portrait"
-          />
-          <CardTitle className="font-headline text-2xl pt-4">{persona.name}</CardTitle>
-        </CardHeader>
-        <CardContent className="text-sm text-center space-y-4">
-          <div>
-            <h3 className="font-semibold text-primary/80 font-headline">Traits</h3>
-            <p className="text-muted-foreground">{persona.traits}</p>
-          </div>
-          <div>
-            <h3 className="font-semibold text-primary/80 font-headline">Backstory</h3>
-            <p className="text-muted-foreground">{persona.backstory}</p>
-          </div>
-           <div>
-            <h3 className="font-semibold text-primary/80 font-headline">Goals</h3>
-            <p className="text-muted-foreground">{persona.goals}</p>
-          </div>
-        </CardContent>
-        <CardFooter className="flex-col gap-2">
-          <AlertDialog>
-            <AlertDialogTrigger asChild>
-              <Button variant="destructive" className="w-full">
-                <Trash2 className="mr-2 h-4 w-4" /> Delete Persona
-              </Button>
-            </AlertDialogTrigger>
-            <AlertDialogContent>
-              <AlertDialogHeader>
-                <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
-                <AlertDialogDescription>
-                  This action cannot be undone. This will permanently delete this
-                  persona.
-                </AlertDialogDescription>
-              </AlertDialogHeader>
-              <AlertDialogFooter>
-                <AlertDialogCancel>Cancel</AlertDialogCancel>
-                <AlertDialogAction
-                  className="bg-destructive hover:bg-destructive/90"
-                  onClick={handleDeletePersona}
-                >
-                  Delete
-                </AlertDialogAction>
-              </AlertDialogFooter>
-            </AlertDialogContent>
-          </AlertDialog>
-        </CardFooter>
-      </Card>
+      <div className="md:col-span-1 h-fit sticky top-24 animate-fade-in space-y-6">
+        <Card>
+          <CardHeader className="items-center text-center">
+            <Image
+              src={persona.profilePictureUrl}
+              alt={persona.name}
+              width={128}
+              height={128}
+              className={cn(
+                "rounded-full object-cover aspect-square border-4 border-primary/50 transition-all duration-500",
+                isLoading && "animate-[glow_2s_ease-in-out_infinite]"
+              )}
+              data-ai-hint="persona portrait"
+            />
+            <CardTitle className="font-headline text-2xl pt-4">{persona.name}</CardTitle>
+          </CardHeader>
+          <CardContent className="text-sm text-center">
+            <Button variant="destructive" className="w-full" onClick={handleDeletePersona}>
+              <Trash2 className="mr-2 h-4 w-4" /> Delete Persona
+            </Button>
+          </CardContent>
+        </Card>
+
+        <Card>
+            <CardHeader>
+                <div className="flex justify-between items-center">
+                    <CardTitle className="font-headline text-lg">Chat History</CardTitle>
+                    <Button size="sm" variant="ghost" onClick={handleNewChat}>
+                        <MessageSquarePlus className="mr-2 h-4 w-4" /> New
+                    </Button>
+                </div>
+            </CardHeader>
+            <CardContent>
+                <ScrollArea className="h-[30vh] pr-4">
+                  {sortedChats.length > 0 ? (
+                    <div className="space-y-2">
+                    {sortedChats.map(chat => (
+                      <Link key={chat.id} href={`/persona/${persona.id}?chat=${chat.id}`} className="block group">
+                        <div className={cn(
+                          "flex justify-between items-center p-2 rounded-md transition-colors",
+                          activeChatId === chat.id ? 'bg-primary/20' : 'hover:bg-secondary'
+                        )}>
+                          <p className="text-sm truncate pr-2">{chat.title}</p>
+                          <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-6 w-6 shrink-0 opacity-0 group-hover:opacity-100"
+                                onClick={(e) => { e.preventDefault(); e.stopPropagation(); }}
+                              >
+                                <Trash2 className="h-4 w-4 text-destructive/70" />
+                              </Button>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent>
+                              <AlertDialogHeader>
+                                <AlertDialogTitle>Delete Chat?</AlertDialogTitle>
+                                <AlertDialogDescription>
+                                  This will permanently delete this chat session.
+                                </AlertDialogDescription>
+                              </AlertDialogHeader>
+                              <AlertDialogFooter>
+                                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                <AlertDialogAction onClick={(e) => handleDeleteChat(e, chat.id)}>Delete</AlertDialogAction>
+                              </AlertDialogFooter>
+                            </AlertDialogContent>
+                          </AlertDialog>
+                        </div>
+                      </Link>
+                    ))}
+                    </div>
+                  ) : (
+                    <p className="text-sm text-muted-foreground text-center py-4">No chats yet.</p>
+                  )}
+                </ScrollArea>
+            </CardContent>
+        </Card>
+      </div>
       
       <div className="md:col-span-2 flex flex-col h-[calc(100vh-10rem)] bg-card rounded-lg border">
-         <CardHeader>
-            <CardTitle className="font-headline">Chat with {persona.name}</CardTitle>
-        </CardHeader>
-        <ScrollArea className="flex-1 p-4" ref={scrollAreaRef}>
-          <div className="space-y-6">
-            {messages.map((message, index) => (
-              <div key={index} className={cn("flex items-start gap-3 animate-fade-in-up", message.role === 'user' ? 'justify-end' : 'justify-start')}>
-                {message.role === 'assistant' && (
-                  <Avatar>
-                    <AvatarImage src={persona.profilePictureUrl} alt={persona.name} />
-                    <AvatarFallback><Bot /></AvatarFallback>
-                  </Avatar>
-                )}
-                <div className={cn("max-w-md p-3 rounded-lg", message.role === 'user' ? 'bg-primary text-primary-foreground' : 'bg-secondary')}>
-                  <p className="text-sm whitespace-pre-wrap">{message.content}</p>
-                </div>
-                {message.role === 'user' && (
-                  <Avatar>
-                    <AvatarFallback><User /></AvatarFallback>
-                  </Avatar>
-                )}
-              </div>
-            ))}
-            {isLoading && (
-              <div className="flex items-start gap-3 justify-start animate-fade-in-up">
-                 <Avatar>
-                    <AvatarImage src={persona.profilePictureUrl} alt={persona.name} />
-                    <AvatarFallback><Bot /></AvatarFallback>
-                  </Avatar>
-                  <div className="max-w-md p-3 rounded-lg bg-secondary flex items-center">
-                    <Loader2 className="h-5 w-5 text-muted-foreground animate-spin"/>
+        {activeChatId && activeChat ? (
+          <>
+            <CardHeader>
+              <CardTitle className="font-headline text-xl truncate">{activeChat.title}</CardTitle>
+            </CardHeader>
+            <ScrollArea className="flex-1 p-4" ref={scrollAreaRef}>
+              <div className="space-y-6">
+                {messages.map((message, index) => (
+                  <div key={index} className={cn("flex items-start gap-3 animate-fade-in-up", message.role === 'user' ? 'justify-end' : 'justify-start')}>
+                    {message.role === 'assistant' && (
+                      <Avatar>
+                        <AvatarImage src={persona.profilePictureUrl} alt={persona.name} />
+                        <AvatarFallback><Bot /></AvatarFallback>
+                      </Avatar>
+                    )}
+                    <div className={cn("max-w-md p-3 rounded-lg", message.role === 'user' ? 'bg-primary text-primary-foreground' : 'bg-secondary')}>
+                      <p className="text-sm whitespace-pre-wrap">{message.content}</p>
+                    </div>
+                    {message.role === 'user' && (
+                      <Avatar>
+                        <AvatarFallback><User /></AvatarFallback>
+                      </Avatar>
+                    )}
                   </div>
+                ))}
+                {isLoading && (
+                  <div className="flex items-start gap-3 justify-start animate-fade-in-up">
+                    <Avatar>
+                        <AvatarImage src={persona.profilePictureUrl} alt={persona.name} />
+                        <AvatarFallback><Bot /></AvatarFallback>
+                      </Avatar>
+                      <div className="max-w-md p-3 rounded-lg bg-secondary flex items-center">
+                        <Loader2 className="h-5 w-5 text-muted-foreground animate-spin"/>
+                      </div>
+                  </div>
+                )}
+                {error && (
+                  <Alert variant="destructive">
+                    <AlertCircle className="h-4 w-4" />
+                    <AlertTitle>Error</AlertTitle>
+                    <AlertDescription>{error}</AlertDescription>
+                  </Alert>
+                )}
               </div>
-            )}
-            {error && (
-              <Alert variant="destructive">
-                <AlertCircle className="h-4 w-4" />
-                <AlertTitle>Error</AlertTitle>
-                <AlertDescription>{error}</AlertDescription>
-              </Alert>
-            )}
-          </div>
-        </ScrollArea>
-        <div className="p-4 border-t">
-          <form onSubmit={handleSubmit} className="flex items-center gap-2">
-            <Textarea
-              value={input}
-              onChange={(e) => setInput(e.target.value)}
-              placeholder={`Message ${persona.name}...`}
-              className="flex-1 resize-none"
-              rows={1}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter' && !e.shiftKey) {
-                  e.preventDefault();
-                  handleSubmit(e);
-                }
-              }}
-            />
-            <Button type="submit" size="icon" disabled={isLoading || !input.trim()}>
-              <Send className="h-4 w-4" />
-            </Button>
-          </form>
-        </div>
+            </ScrollArea>
+            <div className="p-4 border-t">
+              <form onSubmit={handleSubmit} className="flex items-center gap-2">
+                <Textarea
+                  value={input}
+                  onChange={(e) => setInput(e.target.value)}
+                  placeholder={`Message ${persona.name}...`}
+                  className="flex-1 resize-none"
+                  rows={1}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' && !e.shiftKey) {
+                      e.preventDefault();
+                      handleSubmit(e);
+                    }
+                  }}
+                />
+                <Button type="submit" size="icon" disabled={isLoading || !input.trim()}>
+                  <Send className="h-4 w-4" />
+                </Button>
+              </form>
+            </div>
+          </>
+        ) : (
+           <div className="flex flex-col items-center justify-center h-full text-center">
+              <Bot className="h-16 w-16 text-muted-foreground" />
+              <h3 className="mt-4 text-xl font-medium font-headline">No Active Chat</h3>
+              <p className="mt-2 text-base text-muted-foreground">
+                Select a conversation or start a new one.
+              </p>
+            </div>
+        )}
       </div>
     </div>
   );

@@ -44,7 +44,15 @@ export default function HomePage() {
 
   useEffect(() => {
     setIsMounted(true);
-  }, []);
+    // One-time migration to add 'chats' array to existing personas
+    setPersonas(prevPersonas => {
+        const needsMigration = prevPersonas.some(p => !p.chats);
+        if (needsMigration) {
+            return prevPersonas.map(p => p.chats ? p : { ...p, chats: [] });
+        }
+        return prevPersonas;
+    });
+  }, [setPersonas]);
 
   if (!isMounted) {
     return (
@@ -90,6 +98,7 @@ export default function HomePage() {
                     size="icon"
                     className="absolute top-2 right-2 z-10 h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity"
                     aria-label={`Delete ${persona.name}`}
+                    onClick={(e) => e.stopPropagation()}
                   >
                     <Trash2 className="h-4 w-4" />
                   </Button>
