@@ -21,6 +21,7 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
+  AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { cn } from '@/lib/utils';
@@ -392,7 +393,7 @@ export default function PersonaChatPage() {
                               onChange={(e) => setInput(e.target.value)}
                               onInput={handleInput}
                               placeholder={`Message ${persona.name}...`}
-                              className="w-full flex-1 resize-none rounded-full border border-input bg-secondary py-3 pl-4 pr-12 text-sm"
+                              className="w-full flex-1 resize-none rounded-lg border border-input bg-secondary py-3 pl-4 pr-14 text-sm"
                               rows={1}
                               onKeyDown={(e) => {
                                   if (e.key === 'Enter' && !e.shiftKey) {
@@ -405,7 +406,7 @@ export default function PersonaChatPage() {
                               type="submit"
                               size="icon"
                               disabled={isLoading || !input.trim()}
-                              className="absolute bottom-2.5 right-2 h-8 w-8"
+                              className="absolute bottom-1.5 right-1.5 h-9 w-9 rounded-full"
                           >
                               <Send className="h-4 w-4" />
                           </Button>
