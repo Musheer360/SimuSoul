@@ -414,7 +414,7 @@ export default function PersonaChatPage() {
                               onChange={(e) => setInput(e.target.value)}
                               onInput={handleInput}
                               placeholder={`Message ${persona.name}...`}
-                              className="flex-1 resize-none border-0 bg-transparent p-3 text-sm shadow-none scrollbar-hide focus-visible:ring-0 focus-visible:ring-offset-0"
+                              className="grid place-content-center flex-1 resize-none border-0 bg-transparent p-3 text-sm shadow-none scrollbar-hide focus-visible:ring-0 focus-visible:ring-offset-0"
                               rows={1}
                               onKeyDown={(e) => {
                                   if (e.key === 'Enter' && !e.shiftKey) {
