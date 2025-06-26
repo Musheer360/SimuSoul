@@ -29,7 +29,7 @@ import { useToast } from '@/hooks/use-toast';
 function SubmitButton() {
   const { pending } = useFormStatus();
   return (
-    <Button type="submit" disabled={pending} className="w-full">
+    <Button type="submit" disabled={pending} size="lg" className="w-full">
       {pending ? (
         <>
           <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -138,10 +138,10 @@ export default function NewPersonaPage() {
   };
 
   return (
-    <div className="container py-8">
-        <Card className="max-w-2xl mx-auto animate-fade-in-up">
-        <CardHeader>
-            <CardTitle className="font-headline text-2xl">
+    <div className="container py-12">
+        <Card className="max-w-2xl mx-auto animate-fade-in-up bg-card/50 backdrop-blur-sm">
+        <CardHeader className="text-center">
+            <CardTitle className="font-headline text-3xl">
             Create a New Persona
             </CardTitle>
             <CardDescription>
@@ -301,13 +301,14 @@ export default function NewPersonaPage() {
                     className="w-full"
                     onClick={handleGenerateFullPersona}
                     disabled={isGeneratingFull || !prompt}
+                    size="lg"
                 >
                     {isGeneratingFull ? (
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                     ) : (
                     <Wand2 className="mr-2 h-4 w-4" />
                     )}
-                    Generate Persona
+                    Generate Persona from Prompt
                 </Button>
                 </div>
             </TabsContent>

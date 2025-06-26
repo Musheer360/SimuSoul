@@ -40,40 +40,41 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { EditPersonaSheet } from '@/components/edit-persona-sheet';
 import { FormattedMessage } from '@/components/formatted-message';
 import { useToast } from '@/hooks/use-toast';
-import { Label } from '@/components/ui/label';
 
 function PersonaChatSkeleton() {
   return (
     <div className="flex h-[calc(100dvh-4rem)]">
       {/* Left Sidebar Skeleton */}
-      <div className="w-80 bg-card border-r hidden md:flex flex-col p-4 gap-6">
-        <div className="flex items-center gap-4">
-          <Skeleton className="h-16 w-16 rounded-full" />
-          <div className="flex-1 space-y-2">
-            <Skeleton className="h-6 w-3/4" />
-            <Skeleton className="h-4 w-1/2" />
+      <div className="w-80 bg-card/50 backdrop-blur-sm border-r hidden md:flex flex-col">
+          <div className="p-4 space-y-4">
+              <div className="flex items-center gap-4">
+                  <Skeleton className="h-16 w-16 rounded-full" />
+                  <div className="flex-1 space-y-2">
+                      <Skeleton className="h-6 w-3/4" />
+                      <Skeleton className="h-4 w-1/2" />
+                  </div>
+              </div>
+              <div className="flex gap-2">
+                  <Skeleton className="h-10 w-full" />
+                  <Skeleton className="h-10 w-full" />
+              </div>
           </div>
-        </div>
-        <div className="flex gap-2">
-            <Skeleton className="h-10 w-full" />
-            <Skeleton className="h-10 w-full" />
-        </div>
-        <div className="space-y-2 flex-1">
-          <Skeleton className="h-6 w-1/2 mb-4" />
-          <Skeleton className="h-8 w-full" />
-          <Skeleton className="h-8 w-full" />
-          <Skeleton className="h-8 w-full" />
-        </div>
+          <div className="p-4 border-t"><Skeleton className="h-10 w-full" /></div>
+          <div className="p-4 flex-1 flex flex-col gap-2 border-t">
+              <div className="flex justify-between items-center mb-2">
+                  <Skeleton className="h-8 w-24" />
+                  <Skeleton className="h-8 w-20" />
+              </div>
+              <Skeleton className="h-10 w-full" />
+              <Skeleton className="h-10 w-full" />
+              <Skeleton className="h-10 w-full" />
+          </div>
       </div>
       {/* Right Chat Panel Skeleton */}
-      <div className="flex-1 flex flex-col">
-        <div className="p-4 border-b">
-          <Skeleton className="h-8 w-48" />
-        </div>
-        <div className="flex-1 p-4" />
-        <div className="p-4 border-t">
-          <Skeleton className="h-12 max-w-2xl mx-auto" />
-        </div>
+      <div className="flex-1 flex flex-col bg-background/80 backdrop-blur-sm">
+        <header className="p-2 border-b flex items-center gap-2"><Skeleton className="h-8 w-48" /></header>
+        <div className="flex-1 p-6" />
+        <div className="p-4 border-t"><Skeleton className="h-20 max-w-3xl mx-auto rounded-lg" /></div>
       </div>
     </div>
   );
@@ -338,7 +339,7 @@ export default function PersonaChatPage() {
   if (!persona) {
     return (
        <div className="container flex items-center justify-center h-[calc(100dvh-4rem)]">
-        <Card className="m-auto">
+        <Card className="m-auto bg-card/80 backdrop-blur-sm">
           <CardHeader>
             <CardTitle>Persona Not Found</CardTitle>
           </CardHeader>
@@ -358,7 +359,7 @@ export default function PersonaChatPage() {
 
   return (
     <>
-      <div className="flex h-[calc(100dvh-4rem)] bg-background">
+      <div className="flex h-[calc(100dvh-4rem)]">
           {/* Overlay for mobile drawer */}
           <div
             onClick={() => setIsSidebarOpen(false)}
@@ -369,7 +370,7 @@ export default function PersonaChatPage() {
           />
           {/* Left Sidebar */}
           <div className={cn(
-              "transition-transform duration-300 ease-in-out flex flex-col bg-card",
+              "transition-transform duration-300 ease-in-out flex flex-col bg-card/50 backdrop-blur-sm",
               "fixed inset-y-0 left-0 z-30 h-full w-80 border-r md:static md:h-auto md:w-auto md:transform-none md:transition-all",
               isSidebarOpen ? "translate-x-0" : "-translate-x-full",
               isSidebarOpen ? "md:w-80" : "md:w-0 md:p-0 md:opacity-0 md:border-r-0",
@@ -507,7 +508,7 @@ export default function PersonaChatPage() {
                         <Link key={chat.id} href={`/persona/${persona.id}?chat=${chat.id}`} className="block group" scroll={false}>
                           <div className={cn(
                             "flex justify-between items-center p-2 rounded-md transition-colors",
-                            activeChatId === chat.id ? 'bg-primary/20' : 'hover:bg-secondary'
+                            activeChatId === chat.id ? 'bg-primary/20 text-primary-foreground' : 'hover:bg-secondary'
                           )}>
                             <p className="text-sm truncate pr-2">{chat.title}</p>
                             <Button
@@ -536,58 +537,63 @@ export default function PersonaChatPage() {
           </div>
           
           {/* Right Chat Panel */}
-          <div className="flex-1 flex flex-col h-full">
+          <div className="flex-1 flex flex-col h-full bg-background/80 backdrop-blur-sm">
              <header className="flex items-center gap-2 md:gap-4 p-2 border-b flex-shrink-0">
-                <Button variant="ghost" size="icon" onClick={() => setIsSidebarOpen(!isSidebarOpen)}>
+                <Button variant="ghost" size="icon" className="md:hidden" onClick={() => setIsSidebarOpen(!isSidebarOpen)}>
                     <PanelLeft className="h-5 w-5" />
                 </Button>
                 <Button asChild variant="ghost" className="text-muted-foreground hover:text-foreground">
                     <Link href="/">
                     <ArrowLeft className="mr-2 h-4 w-4" />
-                    Back to All Personas
+                    All Personas
                     </Link>
                 </Button>
+                 <div className="ml-auto hidden md:block">
+                     <Button variant="ghost" size="icon" onClick={() => setIsSidebarOpen(!isSidebarOpen)}>
+                        <PanelLeft className="h-5 w-5" />
+                    </Button>
+                </div>
             </header>
             
             <div className="flex-1 flex flex-col min-h-0">
                 {activeChatId && activeChat ? (
                 <>
                     <ScrollArea className="flex-1" ref={scrollAreaRef}>
-                    <div className="space-y-6 p-4">
+                    <div className="space-y-8 p-4 md:p-6">
                         {messages.map((message, index) => (
-                        <div key={index} className={cn("flex items-start gap-3 animate-fade-in-up", message.role === 'user' && 'flex-row-reverse')}>
+                        <div key={index} className={cn("flex items-start gap-3 md:gap-4 animate-fade-in-up", message.role === 'user' && 'justify-end')}>
                              {message.role === 'assistant' && (
-                                <Avatar className="flex-shrink-0">
+                                <Avatar className="flex-shrink-0 h-10 w-10 border-2 border-primary/50">
                                     <AvatarImage src={persona.profilePictureUrl} alt={persona.name} className="object-cover" />
                                     <AvatarFallback><Bot /></AvatarFallback>
                                 </Avatar>
                             )}
-                            <div className={cn("max-w-xl p-3 rounded-lg", message.role === 'user' ? 'bg-primary text-primary-foreground' : 'bg-secondary')}>
+                            <div className={cn("max-w-md lg:max-w-2xl p-3 md:p-4 rounded-xl", message.role === 'user' ? 'bg-primary text-primary-foreground rounded-br-none' : 'bg-secondary rounded-bl-none')}>
                                 {message.role === 'assistant' ? 
                                     <FormattedMessage content={message.content} /> : 
-                                    <p className="text-sm whitespace-pre-wrap">{message.content}</p>
+                                    <p className="text-sm md:text-base whitespace-pre-wrap">{message.content}</p>
                                 }
                             </div>
                             {message.role === 'user' && (
-                                <Avatar className="flex-shrink-0">
+                                <Avatar className="flex-shrink-0 h-10 w-10 hidden sm:flex">
                                     <AvatarFallback><User /></AvatarFallback>
                                 </Avatar>
                             )}
                         </div>
                         ))}
                         {isLoading && (
-                        <div className="flex items-start gap-3 justify-start animate-fade-in-up">
-                            <Avatar className="flex-shrink-0">
+                        <div className="flex items-start gap-3 md:gap-4 justify-start animate-fade-in-up">
+                            <Avatar className="flex-shrink-0 h-10 w-10 border-2 border-primary/50">
                                 <AvatarImage src={persona.profilePictureUrl} alt={persona.name} className="object-cover" />
                                 <AvatarFallback><Bot /></AvatarFallback>
                             </Avatar>
-                            <div className="p-3 rounded-lg bg-secondary flex items-center">
+                            <div className="p-3 md:p-4 rounded-xl bg-secondary flex items-center">
                                 <Loader2 className="h-5 w-5 text-muted-foreground animate-spin"/>
                             </div>
                         </div>
                         )}
                         {error && (
-                        <Alert variant="destructive">
+                        <Alert variant="destructive" className="max-w-md lg:max-w-2xl mx-auto">
                             <AlertCircle className="h-4 w-4" />
                             <AlertTitle>Error</AlertTitle>
                             <AlertDescription>{error}</AlertDescription>
@@ -595,11 +601,11 @@ export default function PersonaChatPage() {
                         )}
                     </div>
                     </ScrollArea>
-                    <div className="p-4 border-t bg-background">
+                    <div className="p-4 border-t bg-background/50">
                       <div className="max-w-3xl mx-auto">
                          <form
                           onSubmit={handleSubmit}
-                          className="flex w-full items-stretch gap-2 rounded-lg border border-input bg-secondary"
+                          className="flex w-full items-stretch gap-2 rounded-lg border bg-secondary/50 p-2 focus-within:ring-2 focus-within:ring-ring transition-all"
                         >
                           <div className="flex-1 grid">
                             <Textarea
@@ -608,7 +614,7 @@ export default function PersonaChatPage() {
                               onChange={(e) => setInput(e.target.value)}
                               onInput={handleInput}
                               placeholder={`Message ${persona.name}...`}
-                              className="w-full place-self-center resize-none border-0 bg-transparent p-3 text-sm shadow-none scrollbar-hide focus-visible:ring-0 focus-visible:ring-offset-0"
+                              className="w-full place-self-center resize-none border-0 bg-transparent p-2 text-base shadow-none scrollbar-hide focus-visible:ring-0 focus-visible:ring-offset-0"
                               rows={1}
                               onKeyDown={(e) => {
                                 if (e.key === 'Enter' && !e.shiftKey) {
@@ -622,7 +628,7 @@ export default function PersonaChatPage() {
                             type="submit"
                             size="icon"
                             disabled={isLoading || !input.trim()}
-                            className="m-1.5 self-end h-11 w-11"
+                            className="self-end h-11 w-11 rounded-md"
                           >
                             <Send className="h-5 w-5" />
                           </Button>
