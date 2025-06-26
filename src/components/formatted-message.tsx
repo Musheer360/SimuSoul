@@ -25,8 +25,8 @@ export function FormattedMessage({ content }: { content: string }) {
 
       if (!inline && match) {
         return (
-          <div className="my-4 overflow-hidden rounded-lg border bg-card">
-            <div className="flex items-center justify-between bg-secondary px-4 py-1.5">
+          <div className="mt-2 overflow-hidden rounded-lg border">
+            <div className="flex items-center justify-between bg-card px-4 py-1.5">
               <span className="text-xs text-muted-foreground">{language}</span>
                <Button
                 variant="ghost"
