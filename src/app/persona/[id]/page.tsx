@@ -359,7 +359,7 @@ export default function PersonaChatPage() {
 
   return (
     <>
-      <div className="flex h-full">
+      <div className="flex h-[calc(100dvh-4rem)]">
           {/* Overlay for mobile drawer */}
           <div
             onClick={() => setIsSidebarOpen(false)}
@@ -537,7 +537,7 @@ export default function PersonaChatPage() {
           </div>
           
           {/* Right Chat Panel */}
-          <div className="flex-1 flex flex-col bg-background/80 backdrop-blur-sm">
+          <div className="flex-1 flex flex-col bg-background/80 backdrop-blur-sm min-w-0">
              <header className="flex items-center gap-2 md:gap-4 p-2 border-b flex-shrink-0">
                 <Button variant="ghost" size="icon" className="md:hidden" onClick={() => setIsSidebarOpen(!isSidebarOpen)}>
                     <PanelLeft className="h-5 w-5" />
@@ -559,7 +559,7 @@ export default function PersonaChatPage() {
                 {activeChatId && activeChat ? (
                 <>
                     <ScrollArea className="flex-1" ref={scrollAreaRef}>
-                    <div className="space-y-8 p-4 md:p-6">
+                    <div className="space-y-8 p-4 md:p-6 max-w-3xl mx-auto w-full">
                         {messages.map((message, index) => (
                         <div key={index} className={cn("flex items-start gap-3 md:gap-4 animate-fade-in-up", message.role === 'user' && 'justify-end')}>
                              {message.role === 'assistant' && (
