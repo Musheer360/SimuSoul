@@ -215,7 +215,7 @@ export default function PersonaChatPage() {
     setIsLoading(true);
     setError(null);
   
-    const res = await chatAction({ persona, userDetails, message: input });
+    const res = await chatAction({ persona, userDetails, chatHistory: messages, message: input });
   
     setIsLoading(false);
   

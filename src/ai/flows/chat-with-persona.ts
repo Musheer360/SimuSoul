@@ -11,6 +11,11 @@
 import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
 
+const ChatMessageSchema = z.object({
+  role: z.enum(['user', 'assistant']),
+  content: z.string(),
+});
+
 const ChatWithPersonaInputSchema = z.object({
   personaName: z.string().describe('The name of the persona to chat with.'),
   personaRelation: z.string().describe("The persona's relationship to the user."),
@@ -21,6 +26,7 @@ const ChatWithPersonaInputSchema = z.object({
     aboutMe: z.string().optional().describe('A short description of the user.'),
   }).optional(),
   existingMemories: z.array(z.string()).describe('Facts that the persona already knows about the user.'),
+  chatHistory: z.array(ChatMessageSchema).describe('The history of the conversation so far.'),
   message: z.string().describe('The user\'s message to the persona.'),
 });
 export type ChatWithPersonaInput = z.infer<typeof ChatWithPersonaInputSchema>;
@@ -76,7 +82,7 @@ const chatWithPersonaPrompt = ai.definePrompt({
   {{#if userDetails.aboutMe}}Here is some information about them: {{userDetails.aboutMe}}.{{/if}}
 
   ---
-  **Memories**
+  **Memories (Long-Term Facts about the user)**
 
   You have the following memories about the user. Use them to inform your response.
   {{#if existingMemories}}
@@ -88,16 +94,26 @@ const chatWithPersonaPrompt = ai.definePrompt({
   {{/if}}
 
   ---
-  **Memory Management Rules**
-  While responding, analyze the "User's message" ONLY to identify new facts about the user.
-  - Do NOT add facts you already know from the "memories" or "user information" sections above.
+  **Current Conversation History (Short-Term Context)**
+  This is the ongoing conversation you are having right now. Use it to understand follow-up questions. The 'assistant' role is you, {{personaName}}. The 'user' is the person you are talking to.
+  
+  {{#if chatHistory}}
+  {{#each chatHistory}}
+  **{{this.role}}**: {{this.content}}
+  {{/each}}
+  {{/if}}
+
+  ---
+  **Memory Management Rules & Your Task**
+  Your task is to generate a response to the user's latest message. While responding, ALSO analyze the "User's new message" ONLY to identify new facts about the user.
+  - Do NOT add facts you already know from the "Memories" or "User Information" sections above.
   - If it's a completely new fact from the message, add it to the 'newMemories' array.
   - If the user's message updates an existing memory, create a new, consolidated memory for 'newMemories' AND add the old, outdated memory's exact text to 'removedMemories'.
   - A memory MUST be a concise, self-contained sentence.
   - If there are no new facts, return empty arrays for 'newMemories' and 'removedMemories'.
 
   ---
-  **User's Message to You:**
+  **User's new message to you:**
   {{message}}`,
 });
 

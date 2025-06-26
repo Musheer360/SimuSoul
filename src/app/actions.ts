@@ -102,6 +102,10 @@ export async function generatePersonaFromPromptAction(prompt: string) {
 const chatActionSchema = z.object({
     persona: z.any(),
     userDetails: z.any(),
+    chatHistory: z.array(z.object({
+        role: z.enum(['user', 'assistant']),
+        content: z.string()
+    })),
     message: z.string(),
 });
 
@@ -109,6 +113,7 @@ export async function chatAction(
   payload: {
     persona: Persona;
     userDetails: UserDetails;
+    chatHistory: ChatMessage[];
     message: string;
   }
 ): Promise<{ response?: string; newMemories?: string[]; removedMemories?: string[]; error?: string }> {
@@ -118,7 +123,7 @@ export async function chatAction(
         return { error: 'Invalid input' };
     }
 
-    const { persona, userDetails, message } = validatedPayload.data;
+    const { persona, userDetails, chatHistory, message } = validatedPayload.data;
     
     const personaDescription = `Backstory: ${persona.backstory}\nTraits: ${persona.traits}\nGoals: ${persona.goals}`;
 
@@ -132,6 +137,7 @@ export async function chatAction(
         aboutMe: userDetails.about
       },
       existingMemories: persona.memories,
+      chatHistory: chatHistory,
       message: message
     });
 
