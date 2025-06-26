@@ -407,29 +407,34 @@ export default function PersonaChatPage() {
                     </ScrollArea>
                     <div className="p-4 border-t bg-background">
                       <div className="max-w-3xl mx-auto">
-                        <form onSubmit={handleSubmit} className="relative flex w-full items-stretch rounded-lg border border-input bg-secondary">
-                          <Textarea
+                        <form
+                          onSubmit={handleSubmit}
+                          className="flex w-full items-stretch gap-2 rounded-lg border border-input bg-secondary"
+                        >
+                          <div className="flex-1 grid">
+                            <Textarea
                               ref={textareaRef}
                               value={input}
                               onChange={(e) => setInput(e.target.value)}
                               onInput={handleInput}
                               placeholder={`Message ${persona.name}...`}
-                              className="grid place-content-center flex-1 resize-none border-0 bg-transparent p-3 text-sm shadow-none scrollbar-hide focus-visible:ring-0 focus-visible:ring-offset-0"
+                              className="w-full place-self-center resize-none border-0 bg-transparent p-3 text-sm shadow-none scrollbar-hide focus-visible:ring-0 focus-visible:ring-offset-0"
                               rows={1}
                               onKeyDown={(e) => {
-                                  if (e.key === 'Enter' && !e.shiftKey) {
+                                if (e.key === 'Enter' && !e.shiftKey) {
                                   e.preventDefault();
-                                  if(textareaRef.current) handleSubmit(e as any);
-                                  }
+                                  if (textareaRef.current) handleSubmit(e as any);
+                                }
                               }}
-                          />
+                            />
+                          </div>
                           <Button
-                              type="submit"
-                              size="icon"
-                              disabled={isLoading || !input.trim()}
-                              className="m-1.5 flex-shrink-0 self-end"
+                            type="submit"
+                            size="lg"
+                            disabled={isLoading || !input.trim()}
+                            className="m-1.5 self-end"
                           >
-                              <Send className="h-4 w-4" />
+                            <Send className="h-5 w-5" />
                           </Button>
                         </form>
                       </div>
