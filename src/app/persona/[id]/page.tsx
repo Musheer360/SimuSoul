@@ -359,19 +359,19 @@ export default function PersonaChatPage() {
 
   return (
     <>
-      <div className="flex h-[calc(100dvh-4rem)]">
+      <div className="flex h-full">
           {/* Overlay for mobile drawer */}
           <div
             onClick={() => setIsSidebarOpen(false)}
             className={cn(
-              "fixed inset-0 z-20 bg-black/60 backdrop-blur-sm md:hidden",
+              "fixed inset-x-0 top-16 bottom-0 z-20 bg-black/60 backdrop-blur-sm md:hidden",
               isSidebarOpen ? "block" : "hidden"
             )}
           />
           {/* Left Sidebar */}
           <div className={cn(
               "transition-transform duration-300 ease-in-out flex flex-col bg-card/50 backdrop-blur-sm",
-              "fixed inset-y-0 left-0 z-30 h-full w-80 border-r md:static md:h-auto md:w-auto md:transform-none md:transition-all",
+              "fixed bottom-0 left-0 top-16 z-30 w-80 border-r md:static md:bottom-auto md:top-auto md:h-auto md:w-auto md:transform-none md:transition-all",
               isSidebarOpen ? "translate-x-0" : "-translate-x-full",
               isSidebarOpen ? "md:w-80" : "md:w-0 md:p-0 md:opacity-0 md:border-r-0",
               !isSidebarOpen && "md:overflow-hidden"
@@ -568,7 +568,7 @@ export default function PersonaChatPage() {
                                     <AvatarFallback><Bot /></AvatarFallback>
                                 </Avatar>
                             )}
-                            <div className={cn("max-w-md lg:max-w-2xl p-3 md:p-4 rounded-lg", message.role === 'user' ? 'bg-primary text-primary-foreground rounded-tr-none' : 'bg-secondary rounded-tl-none')}>
+                            <div className={cn("max-w-md lg:max-w-2xl p-3 md:p-4 rounded-lg", message.role === 'user' ? 'bg-primary text-primary-foreground rounded-br-none' : 'bg-secondary rounded-bl-none')}>
                                 {message.role === 'assistant' ? 
                                     <FormattedMessage content={message.content} /> : 
                                     <p className="text-sm md:text-base whitespace-pre-wrap">{message.content}</p>
