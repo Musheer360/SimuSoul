@@ -73,6 +73,7 @@
   body {
     @apply bg-background text-foreground;
     background-image: radial-gradient(circle at 25% 25%, hsl(var(--primary) / 0.1), rgba(255,255,255,0) 35%), radial-gradient(circle at 75% 75%, hsl(var(--accent) / 0.1), rgba(255,255,255,0) 35%);
+    overscroll-behavior-y: none;
   }
 }
 
