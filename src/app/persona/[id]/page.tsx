@@ -43,7 +43,7 @@ import { useToast } from '@/hooks/use-toast';
 
 function PersonaChatSkeleton() {
   return (
-    <div className="flex h-[calc(100dvh-4rem)]">
+    <div className="flex h-full">
       {/* Left Sidebar Skeleton */}
       <div className="w-80 bg-card/50 backdrop-blur-sm border-r hidden md:flex flex-col">
           <div className="p-4 space-y-4">
@@ -338,7 +338,7 @@ export default function PersonaChatPage() {
 
   if (!persona) {
     return (
-       <div className="container flex items-center justify-center h-[calc(100dvh-4rem)]">
+       <div className="container flex items-center justify-center h-full">
         <Card className="m-auto bg-card/80 backdrop-blur-sm">
           <CardHeader>
             <CardTitle>Persona Not Found</CardTitle>
@@ -359,7 +359,7 @@ export default function PersonaChatPage() {
 
   return (
     <>
-      <div className="flex h-[calc(100dvh-4rem)]">
+      <div className="flex h-full">
           {/* Overlay for mobile drawer */}
           <div
             onClick={() => setIsSidebarOpen(false)}
