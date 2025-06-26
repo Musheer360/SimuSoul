@@ -42,3 +42,16 @@ export interface CreatePersonaState {
   success?: boolean;
   persona?: Omit<Persona, 'id' | 'chats'> | null;
 }
+
+export interface UpdatePersonaState {
+  message?: string | null;
+  errors?: {
+    name?: string[];
+    relation?: string[];
+    traits?: string[];
+    backstory?: string[];
+    goals?: string[];
+  };
+  success?: boolean;
+  persona?: Omit<Persona, 'chats'> | null;
+}

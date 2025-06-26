@@ -5,15 +5,17 @@ import { generatePersonaProfilePicture } from '@/ai/flows/generate-persona-profi
 import { chatWithPersona } from '@/ai/flows/chat-with-persona';
 import { generatePersonaDetails } from '@/ai/flows/generate-persona-details';
 import { generatePersonaFromPrompt } from '@/ai/flows/generate-full-persona';
-import type { Persona, UserDetails, ChatMessage } from '@/lib/types';
+import type { Persona, UserDetails, ChatMessage, CreatePersonaState, UpdatePersonaState } from '@/lib/types';
 
-const createPersonaSchema = z.object({
+const personaSchemaFields = {
   name: z.string().min(1, 'Name is required'),
   relation: z.string().min(1, 'Relationship is required'),
   traits: z.string().min(1, 'Traits are required'),
   backstory: z.string().min(1, 'Backstory is required'),
   goals: z.string().min(1, 'Goals are required'),
-});
+};
+
+const createPersonaSchema = z.object(personaSchemaFields);
 
 export interface CreatePersonaState {
   message?: string | null;
@@ -25,7 +27,7 @@ export interface CreatePersonaState {
     goals?: string[];
   };
   success?: boolean;
-  persona?: Omit<Persona, 'id'> | null;
+  persona?: Omit<Persona, 'id' | 'chats'> | null;
 }
 
 export async function createPersonaAction(
@@ -59,7 +61,7 @@ export async function createPersonaAction(
       throw new Error('Failed to generate profile picture.');
     }
 
-    const newPersona: Omit<Persona, 'id'> = {
+    const newPersona: Omit<Persona, 'id' | 'chats'> = {
       name,
       relation,
       traits,
@@ -145,5 +147,42 @@ export async function chatAction(
     console.error(error);
     const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred.';
     return { error: `Chat failed: ${errorMessage}` };
+  }
+}
+
+const updatePersonaSchema = z.object({
+  id: z.string().min(1),
+  ...personaSchemaFields,
+  profilePictureUrl: z.string().min(1, 'Profile picture is missing.'),
+});
+
+export async function updatePersonaAction(
+  prevState: UpdatePersonaState,
+  formData: FormData
+): Promise<UpdatePersonaState> {
+  try {
+    const validatedFields = updatePersonaSchema.safeParse({
+      id: formData.get('id'),
+      name: formData.get('name'),
+      relation: formData.get('relation'),
+      traits: formData.get('traits'),
+      backstory: formData.get('backstory'),
+      goals: formData.get('goals'),
+      profilePictureUrl: formData.get('profilePictureUrl'),
+    });
+
+    if (!validatedFields.success) {
+      return {
+        success: false,
+        message: 'Invalid form data.',
+        errors: validatedFields.error.flatten().fieldErrors,
+      };
+    }
+
+    return { success: true, persona: validatedFields.data };
+  } catch (error) {
+    console.error(error);
+    const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred.';
+    return { success: false, message: `Persona update failed: ${errorMessage}` };
   }
 }

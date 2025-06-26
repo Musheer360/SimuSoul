@@ -10,7 +10,7 @@ import type { Persona, UserDetails, ChatMessage, ChatSession } from '@/lib/types
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
-import { Send, Loader2, Bot, User, AlertCircle, Trash2, MessageSquarePlus, ArrowLeft, PanelLeft } from 'lucide-react';
+import { Send, Loader2, Bot, User, AlertCircle, Trash2, MessageSquarePlus, ArrowLeft, PanelLeft, Pencil } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import {
   AlertDialog,
@@ -27,6 +27,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { cn } from '@/lib/utils';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Skeleton } from '@/components/ui/skeleton';
+import { EditPersonaSheet } from '@/components/edit-persona-sheet';
 
 function PersonaChatSkeleton() {
   return (
@@ -37,9 +38,13 @@ function PersonaChatSkeleton() {
           <Skeleton className="h-16 w-16 rounded-full" />
           <div className="flex-1 space-y-2">
             <Skeleton className="h-6 w-3/4" />
+            <Skeleton className="h-4 w-1/2" />
           </div>
         </div>
-        <Skeleton className="h-10 w-full" />
+        <div className="flex gap-2">
+            <Skeleton className="h-10 w-full" />
+            <Skeleton className="h-10 w-full" />
+        </div>
         <div className="space-y-2 flex-1">
           <Skeleton className="h-6 w-1/2 mb-4" />
           <Skeleton className="h-8 w-full" />
@@ -54,7 +59,7 @@ function PersonaChatSkeleton() {
         </div>
         <div className="flex-1 p-4" />
         <div className="p-4 border-t">
-          <Skeleton className="h-10 max-w-2xl mx-auto" />
+          <Skeleton className="h-12 max-w-2xl mx-auto" />
         </div>
       </div>
     </div>
@@ -79,7 +84,7 @@ export default function PersonaChatPage() {
 
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [chatToDelete, setChatToDelete] = useState<ChatSession | null>(null);
-  const [isPersonaDeleteDialogOpen, setIsPersonaDeleteDialogOpen] = useState(false);
+  const [isEditSheetOpen, setIsEditSheetOpen] = useState(false);
   const [isMounted, setIsMounted] = useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
 
@@ -94,8 +99,11 @@ export default function PersonaChatPage() {
     const foundPersona = personas.find(p => p.id === id);
     if (foundPersona) {
       setPersona(foundPersona);
+    } else if (isMounted) {
+      // If persona is not found after mount, it might have been deleted.
+      setPersona(null);
     }
-  }, [id, personas]);
+  }, [id, personas, isMounted]);
 
   const handleNewChat = useCallback(() => {
     if (!persona) return;
@@ -155,10 +163,9 @@ export default function PersonaChatPage() {
 
   const handleInput = (e: React.FormEvent<HTMLTextAreaElement>) => {
     const textarea = e.currentTarget;
-    textarea.style.height = 'auto'; // Reset height
-    // max height 160px (h-40)
+    textarea.style.height = 'auto';
     const newHeight = Math.min(textarea.scrollHeight, 160);
-    textarea.style.height = `${newHeight}px`; // Set to scroll height up to a max
+    textarea.style.height = `${newHeight}px`;
   };
   
   const handleSubmit = async (e: FormEvent) => {
@@ -234,6 +241,10 @@ export default function PersonaChatPage() {
     router.push('/');
   };
 
+  const handlePersonaUpdate = (updatedPersona: Persona) => {
+    setPersonas(prev => prev.map(p => (p.id === updatedPersona.id ? updatedPersona : p)));
+  };
+
   if (!isMounted) {
     return <PersonaChatSkeleton />;
   }
@@ -280,29 +291,37 @@ export default function PersonaChatPage() {
                       )}
                       data-ai-hint="persona portrait"
                     />
-                    <h2 className="font-headline text-xl font-semibold truncate">{persona.name}</h2>
+                    <div className="flex-1 min-w-0">
+                      <h2 className="font-headline text-xl font-semibold truncate" title={persona.name}>{persona.name}</h2>
+                      <p className="text-sm text-muted-foreground truncate" title={persona.relation}>{persona.relation}</p>
+                    </div>
                 </div>
-                <AlertDialog>
-                 <AlertDialogTrigger asChild>
-                   <Button variant="destructive" className="w-full">
-                     <Trash2 className="mr-2 h-4 w-4" /> Delete Persona
-                   </Button>
-                 </AlertDialogTrigger>
-                 <AlertDialogContent>
-                   <AlertDialogHeader>
-                     <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
-                     <AlertDialogDescription>
-                       This action will permanently delete {persona?.name} and all associated chats. This cannot be undone.
-                     </AlertDialogDescription>
-                   </AlertDialogHeader>
-                   <AlertDialogFooter>
-                     <AlertDialogCancel>Cancel</AlertDialogCancel>
-                     <AlertDialogAction className="bg-destructive text-destructive-foreground hover:bg-destructive/90" onClick={handleDeletePersona}>
-                       Delete
-                     </AlertDialogAction>
-                   </AlertDialogFooter>
-                 </AlertDialogContent>
-               </AlertDialog>
+                <div className="flex gap-2">
+                    <Button variant="outline" className="flex-1" onClick={() => setIsEditSheetOpen(true)}>
+                      <Pencil className="mr-2 h-4 w-4" /> Edit
+                    </Button>
+                    <AlertDialog>
+                     <AlertDialogTrigger asChild>
+                       <Button variant="destructive" className="flex-1">
+                         <Trash2 className="mr-2 h-4 w-4" /> Delete
+                       </Button>
+                     </AlertDialogTrigger>
+                     <AlertDialogContent>
+                       <AlertDialogHeader>
+                         <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+                         <AlertDialogDescription>
+                           This action will permanently delete {persona?.name} and all associated chats. This cannot be undone.
+                         </AlertDialogDescription>
+                       </AlertDialogHeader>
+                       <AlertDialogFooter>
+                         <AlertDialogCancel>Cancel</AlertDialogCancel>
+                         <AlertDialogAction className="bg-destructive text-destructive-foreground hover:bg-destructive/90" onClick={handleDeletePersona}>
+                           Delete
+                         </AlertDialogAction>
+                       </AlertDialogFooter>
+                     </AlertDialogContent>
+                   </AlertDialog>
+                </div>
             </div>
             
             <div className="p-4 flex-1 flex flex-col min-h-0 border-t">
@@ -368,7 +387,7 @@ export default function PersonaChatPage() {
                     <ScrollArea className="flex-1" ref={scrollAreaRef}>
                     <div className="space-y-6 p-4">
                         {messages.map((message, index) => (
-                        <div key={index} className={cn("flex items-start gap-3 animate-fade-in-up", message.role === 'user' && 'justify-end')}>
+                        <div key={index} className={cn("flex items-start gap-3 animate-fade-in-up", message.role === 'user' && 'flex-row-reverse')}>
                              {message.role === 'assistant' && (
                                 <Avatar className="flex-shrink-0">
                                     <AvatarImage src={persona.profilePictureUrl} alt={persona.name} />
@@ -407,7 +426,7 @@ export default function PersonaChatPage() {
                     </ScrollArea>
                     <div className="p-4 border-t bg-background">
                       <div className="max-w-3xl mx-auto">
-                        <form
+                         <form
                           onSubmit={handleSubmit}
                           className="flex w-full items-stretch gap-2 rounded-lg border border-input bg-secondary"
                         >
@@ -453,7 +472,13 @@ export default function PersonaChatPage() {
           </div>
       </div>
 
-      {/* Dialogs */}
+      <EditPersonaSheet
+        persona={persona}
+        open={isEditSheetOpen}
+        onOpenChange={setIsEditSheetOpen}
+        onPersonaUpdate={handlePersonaUpdate}
+      />
+
       <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
@@ -465,23 +490,6 @@ export default function PersonaChatPage() {
           <AlertDialogFooter>
             <AlertDialogCancel onClick={() => setChatToDelete(null)}>Cancel</AlertDialogCancel>
             <AlertDialogAction className="bg-destructive text-destructive-foreground hover:bg-destructive/90" onClick={handleConfirmDeleteChat}>Delete</AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-
-      <AlertDialog open={isPersonaDeleteDialogOpen} onOpenChange={setIsPersonaDeleteDialogOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
-            <AlertDialogDescription>
-              This action will permanently delete {persona?.name} and all associated chats. This cannot be undone.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction className="bg-destructive text-destructive-foreground hover:bg-destructive/90" onClick={handleDeletePersona}>
-              Delete
-            </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
