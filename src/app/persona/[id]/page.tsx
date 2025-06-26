@@ -568,7 +568,7 @@ export default function PersonaChatPage() {
                                     <AvatarFallback><Bot /></AvatarFallback>
                                 </Avatar>
                             )}
-                            <div className={cn("max-w-md lg:max-w-2xl p-3 md:p-4 rounded-xl", message.role === 'user' ? 'bg-primary text-primary-foreground rounded-br-none' : 'bg-secondary rounded-bl-none')}>
+                            <div className={cn("max-w-md lg:max-w-2xl p-3 md:p-4 rounded-lg", message.role === 'user' ? 'bg-primary text-primary-foreground rounded-br-none' : 'bg-secondary rounded-bl-none')}>
                                 {message.role === 'assistant' ? 
                                     <FormattedMessage content={message.content} /> : 
                                     <p className="text-sm md:text-base whitespace-pre-wrap">{message.content}</p>
@@ -587,7 +587,7 @@ export default function PersonaChatPage() {
                                 <AvatarImage src={persona.profilePictureUrl} alt={persona.name} className="object-cover" />
                                 <AvatarFallback><Bot /></AvatarFallback>
                             </Avatar>
-                            <div className="p-3 md:p-4 rounded-xl bg-secondary flex items-center">
+                            <div className="p-3 md:p-4 rounded-lg bg-secondary flex items-center">
                                 <Loader2 className="h-5 w-5 text-muted-foreground animate-spin"/>
                             </div>
                         </div>
