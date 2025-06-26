@@ -430,9 +430,9 @@ export default function PersonaChatPage() {
                           </div>
                           <Button
                             type="submit"
-                            size="lg"
+                            size="icon"
                             disabled={isLoading || !input.trim()}
-                            className="m-1.5 self-end"
+                            className="m-1.5 self-end h-11 w-11"
                           >
                             <Send className="h-5 w-5" />
                           </Button>
