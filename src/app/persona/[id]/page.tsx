@@ -28,6 +28,7 @@ import { cn } from '@/lib/utils';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Skeleton } from '@/components/ui/skeleton';
 import { EditPersonaSheet } from '@/components/edit-persona-sheet';
+import { FormattedMessage } from '@/components/formatted-message';
 
 function PersonaChatSkeleton() {
   return (
@@ -395,7 +396,10 @@ export default function PersonaChatPage() {
                                 </Avatar>
                             )}
                             <div className={cn("max-w-xl p-3 rounded-lg", message.role === 'user' ? 'bg-primary text-primary-foreground' : 'bg-secondary')}>
-                            <p className="text-sm whitespace-pre-wrap">{message.content}</p>
+                                {message.role === 'assistant' ? 
+                                    <FormattedMessage content={message.content} /> : 
+                                    <p className="text-sm whitespace-pre-wrap">{message.content}</p>
+                                }
                             </div>
                             {message.role === 'user' && (
                                 <Avatar className="flex-shrink-0">
