@@ -19,6 +19,7 @@ export interface Persona {
   goals: string;
   profilePictureUrl: string;
   chats: ChatSession[];
+  memories: string[];
 }
 
 export interface UserDetails {
@@ -40,7 +41,7 @@ export interface CreatePersonaState {
     goals?: string[];
   };
   success?: boolean;
-  persona?: Omit<Persona, 'id' | 'chats'> | null;
+  persona?: Omit<Persona, 'id' | 'chats' | 'memories'> | null;
 }
 
 export interface UpdatePersonaState {
@@ -53,5 +54,5 @@ export interface UpdatePersonaState {
     goals?: string[];
   };
   success?: boolean;
-  persona?: Omit<Persona, 'chats'> | null;
+  persona?: Omit<Persona, 'chats' | 'memories'> | null;
 }

@@ -9,8 +9,9 @@ import { chatAction } from '@/app/actions';
 import type { Persona, UserDetails, ChatMessage, ChatSession } from '@/lib/types';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Textarea } from '@/components/ui/textarea';
+import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { Send, Loader2, Bot, User, AlertCircle, Trash2, MessageSquarePlus, ArrowLeft, PanelLeft, Pencil } from 'lucide-react';
+import { Send, Loader2, Bot, User, AlertCircle, Trash2, MessageSquarePlus, ArrowLeft, PanelLeft, Pencil, Plus } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import {
   AlertDialog,
@@ -29,6 +30,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Skeleton } from '@/components/ui/skeleton';
 import { EditPersonaSheet } from '@/components/edit-persona-sheet';
 import { FormattedMessage } from '@/components/formatted-message';
+import { useToast } from '@/hooks/use-toast';
 
 function PersonaChatSkeleton() {
   return (
@@ -72,6 +74,7 @@ export default function PersonaChatPage() {
   const params = useParams();
   const searchParams = useSearchParams();
   const { id } = params;
+  const { toast } = useToast();
 
   const [personas, setPersonas] = useLocalStorage<Persona[]>('personas', []);
   const [userDetails] = useLocalStorage<UserDetails>('user-details', { name: '', about: '' });
@@ -82,6 +85,7 @@ export default function PersonaChatPage() {
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [newMemoryInput, setNewMemoryInput] = useState('');
 
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [chatToDelete, setChatToDelete] = useState<ChatSession | null>(null);
@@ -99,9 +103,12 @@ export default function PersonaChatPage() {
   useEffect(() => {
     const foundPersona = personas.find(p => p.id === id);
     if (foundPersona) {
+      // Ensure memories array exists
+      if (!foundPersona.memories) {
+        foundPersona.memories = [];
+      }
       setPersona(foundPersona);
     } else if (isMounted) {
-      // If persona is not found after mount, it might have been deleted.
       setPersona(null);
     }
   }, [id, personas, isMounted]);
@@ -149,7 +156,6 @@ export default function PersonaChatPage() {
 
   const messages = useMemo(() => activeChat?.messages || [], [activeChat]);
 
-
   useEffect(() => {
     if (scrollAreaRef.current) {
       const scrollContainer = scrollAreaRef.current.querySelector('div');
@@ -184,7 +190,7 @@ export default function PersonaChatPage() {
       messages: [...messages, userMessage],
     };
 
-    const updatedPersona = {
+    let updatedPersona = {
       ...persona,
       chats: persona.chats.map(c => c.id === activeChatId ? updatedChatSession : c),
     };
@@ -200,19 +206,38 @@ export default function PersonaChatPage() {
     const res = await chatAction({ persona, userDetails, message: input });
 
     setIsLoading(false);
+
+    let finalMemories = persona.memories || [];
+    if (res.newMemories && res.newMemories.length > 0) {
+      const combinedMemories = [...finalMemories, ...res.newMemories];
+      finalMemories = [...new Set(combinedMemories)]; // Remove duplicates
+      toast({
+        title: 'Memory Updated',
+        description: `Your persona learned: ${res.newMemories.join(', ')}`,
+      });
+    }
+
     if (res.response) {
       const assistantMessage: ChatMessage = { role: 'assistant', content: res.response };
       const finalUpdatedSession = {
         ...updatedChatSession,
         messages: [...updatedChatSession.messages, assistantMessage],
       };
-      const finalUpdatedPersona = {
+      updatedPersona = {
         ...persona,
         chats: persona.chats.map(c => c.id === activeChatId ? finalUpdatedSession : c),
+        memories: finalMemories,
       };
-      setPersonas(prev => prev.map(p => p.id === persona.id ? finalUpdatedPersona : p));
+      setPersonas(prev => prev.map(p => p.id === persona.id ? updatedPersona : p));
     } else if (res.error) {
       setError(res.error);
+    } else {
+        // if only memories were updated but no response
+        updatedPersona = {
+            ...persona,
+            memories: finalMemories,
+        };
+        setPersonas(prev => prev.map(p => p.id === persona.id ? updatedPersona : p));
     }
   };
 
@@ -245,6 +270,22 @@ export default function PersonaChatPage() {
   const handlePersonaUpdate = (updatedPersona: Persona) => {
     setPersonas(prev => prev.map(p => (p.id === updatedPersona.id ? updatedPersona : p)));
   };
+
+  const handleManualAddMemory = (e: FormEvent) => {
+      e.preventDefault();
+      if (!persona || !newMemoryInput.trim()) return;
+
+      const updatedMemories = [...new Set([...(persona.memories || []), newMemoryInput.trim()])];
+      setPersonas(prev => prev.map(p => p.id === persona.id ? {...p, memories: updatedMemories} : p));
+      setNewMemoryInput('');
+  };
+
+  const handleDeleteMemory = (memoryToDelete: string) => {
+    if (!persona) return;
+    const updatedMemories = (persona.memories || []).filter(m => m !== memoryToDelete);
+    setPersonas(prev => prev.map(p => p.id === persona.id ? {...p, memories: updatedMemories} : p));
+  };
+
 
   if (!isMounted) {
     return <PersonaChatSkeleton />;
@@ -323,6 +364,37 @@ export default function PersonaChatPage() {
                      </AlertDialogContent>
                    </AlertDialog>
                 </div>
+            </div>
+            
+            <div className="p-4 border-t space-y-4">
+                <h3 className="font-headline text-lg">Memories</h3>
+                <form onSubmit={handleManualAddMemory} className="flex gap-2">
+                    <Input 
+                        value={newMemoryInput}
+                        onChange={(e) => setNewMemoryInput(e.target.value)}
+                        placeholder="Add a new memory..."
+                        className="h-9"
+                    />
+                    <Button type="submit" size="icon" className="h-9 w-9 flex-shrink-0">
+                        <Plus className="h-4 w-4" />
+                    </Button>
+                </form>
+                <ScrollArea className="h-32 -mx-4">
+                    <div className="px-4 space-y-2">
+                        {(persona.memories || []).length > 0 ? (
+                            persona.memories.map((memory, index) => (
+                                <div key={index} className="group flex items-center justify-between text-sm bg-secondary p-2 rounded-md">
+                                    <p className="flex-1 pr-2 break-words">{memory}</p>
+                                    <Button variant="ghost" size="icon" className="h-6 w-6 opacity-0 group-hover:opacity-100" onClick={() => handleDeleteMemory(memory)}>
+                                        <Trash2 className="h-4 w-4 text-destructive/70 hover:text-destructive" />
+                                    </Button>
+                                </div>
+                            ))
+                        ) : (
+                            <p className="text-sm text-muted-foreground text-center py-4">No memories yet.</p>
+                        )}
+                    </div>
+                </ScrollArea>
             </div>
             
             <div className="p-4 flex-1 flex flex-col min-h-0 border-t">

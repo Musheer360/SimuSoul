@@ -76,7 +76,7 @@ export default function NewPersonaPage() {
 
   useEffect(() => {
     if (state.success && state.persona) {
-      const newPersona: Persona = { ...state.persona, id: crypto.randomUUID(), chats: [] };
+      const newPersona: Persona = { ...state.persona, id: crypto.randomUUID(), chats: [], memories: [] };
       setPersonas((prev) => [...prev, newPersona]);
       router.push(`/persona/${newPersona.id}`);
     }

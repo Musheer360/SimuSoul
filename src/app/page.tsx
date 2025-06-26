@@ -44,11 +44,15 @@ export default function HomePage() {
 
   useEffect(() => {
     setIsMounted(true);
-    // One-time migration to add 'chats' array to existing personas
+    // One-time migration to add 'chats' and 'memories' array to existing personas
     setPersonas(prevPersonas => {
-        const needsMigration = prevPersonas.some(p => !p.chats);
+        const needsMigration = prevPersonas.some(p => !p.chats || !p.memories);
         if (needsMigration) {
-            return prevPersonas.map(p => p.chats ? p : { ...p, chats: [] });
+            return prevPersonas.map(p => ({
+              ...p,
+              chats: p.chats || [],
+              memories: p.memories || []
+            }));
         }
         return prevPersonas;
     });

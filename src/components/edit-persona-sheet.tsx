@@ -63,6 +63,7 @@ export function EditPersonaSheet({ persona, open, onOpenChange, onPersonaUpdate 
       const updatedPersona: Persona = {
         ...state.persona,
         chats: persona.chats, // Keep existing chats
+        memories: persona.memories, // Keep existing memories
       };
       onPersonaUpdate(updatedPersona);
       toast({

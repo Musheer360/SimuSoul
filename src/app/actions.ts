@@ -17,19 +17,6 @@ const personaSchemaFields = {
 
 const createPersonaSchema = z.object(personaSchemaFields);
 
-export interface CreatePersonaState {
-  message?: string | null;
-  errors?: {
-    name?: string[];
-    relation?: string[];
-    traits?: string[];
-    backstory?: string[];
-    goals?: string[];
-  };
-  success?: boolean;
-  persona?: Omit<Persona, 'id' | 'chats'> | null;
-}
-
 export async function createPersonaAction(
   prevState: CreatePersonaState,
   formData: FormData
@@ -61,7 +48,7 @@ export async function createPersonaAction(
       throw new Error('Failed to generate profile picture.');
     }
 
-    const newPersona: Omit<Persona, 'id' | 'chats'> = {
+    const newPersona: Omit<Persona, 'id' | 'chats' | 'memories'> = {
       name,
       relation,
       traits,
@@ -120,7 +107,7 @@ export async function chatAction(
     userDetails: UserDetails;
     message: string;
   }
-): Promise<{ response?: string; error?: string }> {
+): Promise<{ response?: string; newMemories?: string[]; error?: string }> {
   try {
     const validatedPayload = chatActionSchema.safeParse(payload);
     if (!validatedPayload.success) {
@@ -139,10 +126,11 @@ export async function chatAction(
         name: userDetails.name,
         aboutMe: userDetails.about
       },
+      existingMemories: persona.memories,
       message: message
     });
 
-    return { response: result.response };
+    return { response: result.response, newMemories: result.newMemories };
   } catch (error) {
     console.error(error);
     const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred.';
