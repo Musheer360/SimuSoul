@@ -462,36 +462,33 @@ export default function PersonaChatPage() {
             
             <div className="p-4 flex-1 flex flex-col min-h-0 border-t">
                 <div className="flex justify-between items-center mb-2">
-                    <h3 className="font-headline text-lg">Chat History</h3>
-                    <div className="flex items-center -mr-2">
-                        <AlertDialog open={isClearAllDialogOpen} onOpenChange={setIsClearAllDialogOpen}>
-                            <AlertDialogTrigger asChild>
-                                <Button variant="ghost" size="sm" className="text-destructive hover:bg-destructive/10 hover:text-destructive">
-                                    <Trash2 className="mr-2 h-4 w-4" /> Clear All
-                                </Button>
-                            </AlertDialogTrigger>
-                            <AlertDialogContent>
-                                <AlertDialogHeader>
-                                <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
-                                <AlertDialogDescription>
-                                    This will permanently delete all chat history for {persona.name}. This action cannot be undone.
-                                </AlertDialogDescription>
-                                </AlertDialogHeader>
-                                <AlertDialogFooter>
-                                <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                <AlertDialogAction
-                                    className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                                    onClick={handleClearAllChats}
-                                >
-                                    Delete All
-                                </AlertDialogAction>
-                                </AlertDialogFooter>
-                            </AlertDialogContent>
-                        </AlertDialog>
-                        <Button size="sm" variant="ghost" onClick={handleNewChat}>
-                            <MessageSquarePlus className="mr-2 h-4 w-4" /> New
-                        </Button>
-                    </div>
+                    <AlertDialog open={isClearAllDialogOpen} onOpenChange={setIsClearAllDialogOpen}>
+                        <AlertDialogTrigger asChild>
+                            <Button variant="ghost" size="sm" className="text-destructive hover:bg-destructive/10 hover:text-destructive -ml-2">
+                                <Trash2 className="mr-2 h-4 w-4" /> Clear All
+                            </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                            <AlertDialogHeader>
+                            <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+                            <AlertDialogDescription>
+                                This will permanently delete all chat history for {persona.name}. This action cannot be undone.
+                            </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                            <AlertDialogCancel>Cancel</AlertDialogCancel>
+                            <AlertDialogAction
+                                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                                onClick={handleClearAllChats}
+                            >
+                                Delete All
+                            </AlertDialogAction>
+                            </AlertDialogFooter>
+                        </AlertDialogContent>
+                    </AlertDialog>
+                    <Button size="sm" variant="ghost" onClick={handleNewChat} className="-mr-2">
+                        <MessageSquarePlus className="mr-2 h-4 w-4" /> New
+                    </Button>
                 </div>
                 <ScrollArea className="flex-1 -mx-4">
                   <div className="px-4">
