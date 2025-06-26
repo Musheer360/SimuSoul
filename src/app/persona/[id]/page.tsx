@@ -506,7 +506,7 @@ export default function PersonaChatPage() {
                         <div key={index} className={cn("flex items-start gap-3 animate-fade-in-up", message.role === 'user' && 'flex-row-reverse')}>
                              {message.role === 'assistant' && (
                                 <Avatar className="flex-shrink-0">
-                                    <AvatarImage src={persona.profilePictureUrl} alt={persona.name} />
+                                    <AvatarImage src={persona.profilePictureUrl} alt={persona.name} className="object-cover" />
                                     <AvatarFallback><Bot /></AvatarFallback>
                                 </Avatar>
                             )}
@@ -526,7 +526,7 @@ export default function PersonaChatPage() {
                         {isLoading && (
                         <div className="flex items-start gap-3 justify-start animate-fade-in-up">
                             <Avatar className="flex-shrink-0">
-                                <AvatarImage src={persona.profilePictureUrl} alt={persona.name} />
+                                <AvatarImage src={persona.profilePictureUrl} alt={persona.name} className="object-cover" />
                                 <AvatarFallback><Bot /></AvatarFallback>
                             </Avatar>
                             <div className="p-3 rounded-lg bg-secondary flex items-center">
