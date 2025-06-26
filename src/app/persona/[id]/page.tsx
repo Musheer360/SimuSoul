@@ -99,6 +99,7 @@ export default function PersonaChatPage() {
 
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [isMemoryDialogOpen, setIsMemoryDialogOpen] = useState(false);
+  const [isClearAllDialogOpen, setIsClearAllDialogOpen] = useState(false);
   const [chatToDelete, setChatToDelete] = useState<ChatSession | null>(null);
   const [isEditSheetOpen, setIsEditSheetOpen] = useState(false);
   const [isMounted, setIsMounted] = useState(false);
@@ -288,6 +289,25 @@ export default function PersonaChatPage() {
     setChatToDelete(null);
   }, [id, activeChatId, persona, chatToDelete, setPersonas, router]);
 
+  const handleClearAllChats = useCallback(() => {
+    if (!persona) return;
+
+    setPersonas(prev =>
+      prev.map(p => {
+        if (p.id === id) {
+          return { ...p, chats: [] };
+        }
+        return p;
+      })
+    );
+
+    setIsClearAllDialogOpen(false);
+    toast({
+      title: 'Chat History Cleared',
+      description: `All chats for ${persona.name} have been deleted.`,
+    });
+  }, [id, persona, setPersonas, toast]);
+
   const handleDeletePersona = () => {
     setPersonas(prev => prev.filter(p => p.id !== id));
     router.push('/');
@@ -443,9 +463,35 @@ export default function PersonaChatPage() {
             <div className="p-4 flex-1 flex flex-col min-h-0 border-t">
                 <div className="flex justify-between items-center mb-2">
                     <h3 className="font-headline text-lg">Chat History</h3>
-                    <Button size="sm" variant="ghost" onClick={handleNewChat}>
-                        <MessageSquarePlus className="mr-2 h-4 w-4" /> New
-                    </Button>
+                    <div className="flex items-center -mr-2">
+                        <AlertDialog open={isClearAllDialogOpen} onOpenChange={setIsClearAllDialogOpen}>
+                            <AlertDialogTrigger asChild>
+                                <Button variant="ghost" size="sm" className="text-destructive hover:bg-destructive/10 hover:text-destructive">
+                                    <Trash2 className="mr-2 h-4 w-4" /> Clear All
+                                </Button>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent>
+                                <AlertDialogHeader>
+                                <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+                                <AlertDialogDescription>
+                                    This will permanently delete all chat history for {persona.name}. This action cannot be undone.
+                                </AlertDialogDescription>
+                                </AlertDialogHeader>
+                                <AlertDialogFooter>
+                                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                <AlertDialogAction
+                                    className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                                    onClick={handleClearAllChats}
+                                >
+                                    Delete All
+                                </AlertDialogAction>
+                                </AlertDialogFooter>
+                            </AlertDialogContent>
+                        </AlertDialog>
+                        <Button size="sm" variant="ghost" onClick={handleNewChat}>
+                            <MessageSquarePlus className="mr-2 h-4 w-4" /> New
+                        </Button>
+                    </div>
                 </div>
                 <ScrollArea className="flex-1 -mx-4">
                   <div className="px-4">
