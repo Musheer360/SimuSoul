@@ -359,7 +359,7 @@ export default function PersonaChatPage() {
 
   return (
     <>
-      <div className="flex h-full">
+      <div className="flex h-[calc(100dvh-4rem)]">
           {/* Overlay for mobile drawer */}
           <div
             onClick={() => setIsSidebarOpen(false)}
@@ -537,7 +537,7 @@ export default function PersonaChatPage() {
           </div>
           
           {/* Right Chat Panel */}
-          <div className="flex-1 flex flex-col h-full bg-background/80 backdrop-blur-sm">
+          <div className="flex-1 flex flex-col bg-background/80 backdrop-blur-sm">
              <header className="flex items-center gap-2 md:gap-4 p-2 border-b flex-shrink-0">
                 <Button variant="ghost" size="icon" className="md:hidden" onClick={() => setIsSidebarOpen(!isSidebarOpen)}>
                     <PanelLeft className="h-5 w-5" />
@@ -568,7 +568,7 @@ export default function PersonaChatPage() {
                                     <AvatarFallback><Bot /></AvatarFallback>
                                 </Avatar>
                             )}
-                            <div className={cn("max-w-md lg:max-w-2xl p-3 md:p-4 rounded-lg", message.role === 'user' ? 'bg-primary text-primary-foreground rounded-br-none' : 'bg-secondary rounded-bl-none')}>
+                            <div className={cn("max-w-md lg:max-w-2xl p-3 md:p-4 rounded-lg", message.role === 'user' ? 'bg-primary text-primary-foreground rounded-tr-none' : 'bg-secondary rounded-tl-none')}>
                                 {message.role === 'assistant' ? 
                                     <FormattedMessage content={message.content} /> : 
                                     <p className="text-sm md:text-base whitespace-pre-wrap">{message.content}</p>
@@ -603,32 +603,30 @@ export default function PersonaChatPage() {
                     </ScrollArea>
                     <div className="p-4 border-t bg-background/50">
                       <div className="max-w-3xl mx-auto">
-                         <form
+                        <form
                           onSubmit={handleSubmit}
-                          className="flex w-full items-stretch gap-2 rounded-lg border bg-secondary/50 p-2 focus-within:ring-2 focus-within:ring-ring transition-all"
+                          className="flex w-full items-end gap-2 rounded-lg border bg-secondary/50 p-2 focus-within:ring-2 focus-within:ring-ring transition-all"
                         >
-                          <div className="flex-1 grid">
-                            <Textarea
-                              ref={textareaRef}
-                              value={input}
-                              onChange={(e) => setInput(e.target.value)}
-                              onInput={handleInput}
-                              placeholder={`Message ${persona.name}...`}
-                              className="w-full place-self-center resize-none border-0 bg-transparent p-2 text-base shadow-none scrollbar-hide focus-visible:ring-0 focus-visible:ring-offset-0"
-                              rows={1}
-                              onKeyDown={(e) => {
-                                if (e.key === 'Enter' && !e.shiftKey) {
-                                  e.preventDefault();
-                                  if (textareaRef.current) handleSubmit(e as any);
-                                }
-                              }}
-                            />
-                          </div>
+                          <Textarea
+                            ref={textareaRef}
+                            value={input}
+                            onChange={(e) => setInput(e.target.value)}
+                            onInput={handleInput}
+                            placeholder={`Message ${persona.name}...`}
+                            className="flex-1 resize-none border-0 bg-transparent p-2 text-base shadow-none scrollbar-hide focus-visible:ring-0 focus-visible:ring-offset-0"
+                            rows={1}
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter' && !e.shiftKey) {
+                                e.preventDefault();
+                                handleSubmit(e as any);
+                              }
+                            }}
+                          />
                           <Button
                             type="submit"
                             size="icon"
                             disabled={isLoading || !input.trim()}
-                            className="self-end h-11 w-11 rounded-md"
+                            className="h-10 w-10 rounded-md flex-shrink-0"
                           >
                             <Send className="h-5 w-5" />
                           </Button>
