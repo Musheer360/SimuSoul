@@ -44,9 +44,9 @@ import { Label } from '@/components/ui/label';
 
 function PersonaChatSkeleton() {
   return (
-    <div className="flex h-[calc(100vh-4rem)]">
+    <div className="flex h-[calc(100dvh-4rem)]">
       {/* Left Sidebar Skeleton */}
-      <div className="w-80 bg-card border-r flex flex-col p-4 gap-6">
+      <div className="w-80 bg-card border-r hidden md:flex flex-col p-4 gap-6">
         <div className="flex items-center gap-4">
           <Skeleton className="h-16 w-16 rounded-full" />
           <div className="flex-1 space-y-2">
@@ -115,7 +115,6 @@ export default function PersonaChatPage() {
   useEffect(() => {
     const foundPersona = personas.find(p => p.id === id);
     if (foundPersona) {
-      // Ensure memories array exists
       if (!foundPersona.memories) {
         foundPersona.memories = [];
       }
@@ -221,7 +220,6 @@ export default function PersonaChatPage() {
   
     if (res.error) {
         setError(res.error);
-        // Revert user message optimistically added
         const revertedChatSession = {
             ...updatedChatSession,
             messages: messages,
@@ -339,7 +337,7 @@ export default function PersonaChatPage() {
 
   if (!persona) {
     return (
-       <div className="container flex items-center justify-center h-[calc(100vh-4rem)]">
+       <div className="container flex items-center justify-center h-[calc(100dvh-4rem)]">
         <Card className="m-auto">
           <CardHeader>
             <CardTitle>Persona Not Found</CardTitle>
@@ -360,11 +358,22 @@ export default function PersonaChatPage() {
 
   return (
     <>
-      <div className="flex h-[calc(100vh-4rem)] bg-background">
+      <div className="flex h-[calc(100dvh-4rem)] bg-background">
+          {/* Overlay for mobile drawer */}
+          <div
+            onClick={() => setIsSidebarOpen(false)}
+            className={cn(
+              "fixed inset-0 z-20 bg-black/60 backdrop-blur-sm md:hidden",
+              isSidebarOpen ? "block" : "hidden"
+            )}
+          />
           {/* Left Sidebar */}
           <div className={cn(
-              "transition-all duration-300 ease-in-out flex flex-col bg-card border-r",
-              isSidebarOpen ? "w-80" : "w-0 opacity-0"
+              "transition-transform duration-300 ease-in-out flex flex-col bg-card",
+              "fixed inset-y-0 left-0 z-30 h-full w-80 border-r md:static md:h-auto md:w-auto md:transform-none md:transition-all",
+              isSidebarOpen ? "translate-x-0" : "-translate-x-full",
+              isSidebarOpen ? "md:w-80" : "md:w-0 md:p-0 md:opacity-0 md:border-r-0",
+              !isSidebarOpen && "md:overflow-hidden"
           )}>
             <div className="p-4 space-y-4 flex-shrink-0">
                 <div className="flex items-center gap-4">
@@ -528,7 +537,7 @@ export default function PersonaChatPage() {
           
           {/* Right Chat Panel */}
           <div className="flex-1 flex flex-col h-full">
-             <header className="flex items-center gap-4 p-2 border-b flex-shrink-0">
+             <header className="flex items-center gap-2 md:gap-4 p-2 border-b flex-shrink-0">
                 <Button variant="ghost" size="icon" onClick={() => setIsSidebarOpen(!isSidebarOpen)}>
                     <PanelLeft className="h-5 w-5" />
                 </Button>
