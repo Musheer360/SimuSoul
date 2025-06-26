@@ -30,12 +30,12 @@ export default function RootLayout({
       </head>
       <body
         className={cn(
-          'min-h-screen font-body antialiased'
+          'font-body antialiased'
         )}
       >
-        <div className="relative flex min-h-dvh flex-col">
+        <div className="relative flex h-dvh flex-col">
           <SiteHeader />
-          <main className="flex-1">{children}</main>
+          <main className="flex-1 min-h-0">{children}</main>
         </div>
         <Toaster />
       </body>

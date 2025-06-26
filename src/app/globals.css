@@ -74,18 +74,16 @@
     @apply bg-background text-foreground;
     background-image: radial-gradient(circle at 25% 25%, hsl(var(--primary) / 0.1), rgba(255,255,255,0) 35%), radial-gradient(circle at 75% 75%, hsl(var(--accent) / 0.1), rgba(255,255,255,0) 35%);
     overscroll-behavior-y: none;
+    -ms-overflow-style: none;  /* IE and Edge */
+    scrollbar-width: none;  /* Firefox */
+  }
+  body::-webkit-scrollbar {
+    display: none;
   }
 }
 
 @layer utilities {
   .text-balance {
     text-wrap: balance;
-  }
-  .scrollbar-hide::-webkit-scrollbar {
-    display: none;
-  }
-  .scrollbar-hide {
-    -ms-overflow-style: none; /* IE and Edge */
-    scrollbar-width: none; /* Firefox */
   }
 }

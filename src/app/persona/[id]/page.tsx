@@ -359,7 +359,7 @@ export default function PersonaChatPage() {
 
   return (
     <>
-      <div className="flex h-[calc(100dvh-4rem)]">
+      <div className="flex h-full">
           {/* Overlay for mobile drawer */}
           <div
             onClick={() => setIsSidebarOpen(false)}
