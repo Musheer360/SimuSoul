@@ -21,6 +21,7 @@ const GeneratePersonaFromPromptOutputSchema = z.object({
   traits: z.string().describe("The persona's key traits and characteristics."),
   backstory: z.string().describe("The persona's detailed backstory."),
   goals: z.string().describe("The persona's primary goals and motivations."),
+  responseStyle: z.string().describe("A description of the persona's communication style. Include details like their use of slang, emojis, formality, tone, and any scenario-based variations (e.g., how they talk when happy vs. angry)."),
 });
 export type GeneratePersonaFromPromptOutput = z.infer<typeof GeneratePersonaFromPromptOutputSchema>;
 
@@ -42,6 +43,7 @@ Generate all of the following details for this new character:
 - Traits: A short, punchy list of their most defining characteristics.
 - Backstory: A concise but evocative summary of their life history.
 - Goals: What drives them forward? What do they want to achieve?
+- Response Style: Define their communication habits. Are they formal or informal? Do they use emojis, slang, or curse words? How does their tone change with their mood (e.g., happy, angry, casual)? Be specific.
 
 Be creative and ensure all the generated details are consistent with each other and the original prompt.
 `,

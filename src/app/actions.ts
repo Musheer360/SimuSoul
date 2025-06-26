@@ -14,6 +14,7 @@ const personaSchemaFields = {
   traits: z.string().min(1, 'Traits are required'),
   backstory: z.string().min(1, 'Backstory is required'),
   goals: z.string().min(1, 'Goals are required'),
+  responseStyle: z.string().min(1, 'Response Style is required'),
 };
 
 const createPersonaSchema = z.object(personaSchemaFields);
@@ -29,6 +30,7 @@ export async function createPersonaAction(
       traits: formData.get('traits'),
       backstory: formData.get('backstory'),
       goals: formData.get('goals'),
+      responseStyle: formData.get('responseStyle'),
     });
 
     if (!validatedFields.success) {
@@ -39,7 +41,7 @@ export async function createPersonaAction(
       };
     }
     
-    const { name, relation, traits, backstory, goals } = validatedFields.data;
+    const { name, relation, traits, backstory, goals, responseStyle } = validatedFields.data;
 
     const profilePictureResponse = await generatePersonaProfilePicture({
       personaTraits: `A visual depiction of a character who is: ${traits}. Name: ${name}.`,
@@ -55,6 +57,7 @@ export async function createPersonaAction(
       traits,
       backstory,
       goals,
+      responseStyle,
       profilePictureUrl: profilePictureResponse.profilePictureDataUri,
     };
     
@@ -123,6 +126,7 @@ export async function chatAction(
       personaName: persona.name,
       personaRelation: persona.relation,
       personaDescription: personaDescription,
+      responseStyle: persona.responseStyle,
       userDetails: {
         name: userDetails.name,
         aboutMe: userDetails.about
@@ -157,6 +161,7 @@ export async function updatePersonaAction(
       traits: formData.get('traits'),
       backstory: formData.get('backstory'),
       goals: formData.get('goals'),
+      responseStyle: formData.get('responseStyle'),
       profilePictureUrl: formData.get('profilePictureUrl'),
     });
 

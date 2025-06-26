@@ -57,6 +57,7 @@ export default function NewPersonaPage() {
     traits: '',
     backstory: '',
     goals: '',
+    responseStyle: '',
   });
 
   const [activeTab, setActiveTab] = useState('manual');
@@ -125,7 +126,7 @@ export default function NewPersonaPage() {
       toast({
         title: 'Details Generated!',
         description:
-          'The traits, backstory and goals have been filled out for you.',
+          'The traits, backstory, goals, and response style have been filled out for you.',
       });
     } else {
       toast({
@@ -191,7 +192,7 @@ export default function NewPersonaPage() {
                 </div>
                 <div className="space-y-2">
                     <div className="flex justify-between items-center">
-                    <Label htmlFor="traits">Traits</Label>
+                    <Label htmlFor="traits">Traits & Details</Label>
                     <Button
                         type="button"
                         variant="link"
@@ -205,9 +206,10 @@ export default function NewPersonaPage() {
                         ) : (
                         <Wand2 className="mr-2 h-4 w-4" />
                         )}
-                        Generate with AI
+                        Generate Details
                     </Button>
                     </div>
+                    <Label htmlFor="traits" className="text-xs font-normal text-muted-foreground">Traits</Label>
                     <Textarea
                     id="traits"
                     name="traits"
@@ -251,6 +253,25 @@ export default function NewPersonaPage() {
                     {state.errors?.goals && (
                     <p className="text-sm font-medium text-destructive">
                         {state.errors.goals}
+                    </p>
+                    )}
+                </div>
+
+                <div className="space-y-2">
+                    <Label htmlFor="responseStyle">Response Style</Label>
+                    <Textarea
+                    id="responseStyle"
+                    name="responseStyle"
+                    defaultValue={defaultValues.responseStyle}
+                    placeholder="e.g., Talks like a Gen-Z, uses a lot of slang and emojis. Formal and professional. Gets sarcastic when annoyed."
+                    required
+                    />
+                     <p className="text-xs text-muted-foreground">
+                        Define how the persona communicates. This guides their tone, language, and personality in chat.
+                    </p>
+                    {state.errors?.responseStyle && (
+                    <p className="text-sm font-medium text-destructive">
+                        {state.errors.responseStyle}
                     </p>
                     )}
                 </div>

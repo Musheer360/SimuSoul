@@ -19,6 +19,7 @@ const GeneratePersonaDetailsOutputSchema = z.object({
   traits: z.string().describe("The persona's key traits and characteristics."),
   backstory: z.string().describe("The persona's detailed backstory."),
   goals: z.string().describe("The persona's primary goals and motivations."),
+  responseStyle: z.string().describe("A description of the persona's communication style. Include details like their use of slang, emojis, formality, tone, and any scenario-based variations (e.g., how they talk when happy vs. angry)."),
 });
 export type GeneratePersonaDetailsOutput = z.infer<typeof GeneratePersonaDetailsOutputSchema>;
 
@@ -30,7 +31,7 @@ const prompt = ai.definePrompt({
   name: 'generatePersonaDetailsPrompt',
   input: {schema: GeneratePersonaDetailsInputSchema},
   output: {schema: GeneratePersonaDetailsOutputSchema},
-  prompt: `You are an expert character designer. Based on the provided persona name, generate a compelling and creative set of traits, a backstory, and goals.
+  prompt: `You are an expert character designer. Based on the provided persona name, generate a compelling and creative set of traits, a backstory, goals, and a response style.
 
 Persona Name: {{personaName}}
 
@@ -38,8 +39,9 @@ Generate the following details for this character:
 - Traits: A short, punchy list of their most defining characteristics.
 - Backstory: A concise but evocative summary of their life history.
 - Goals: What drives them forward? What do they want to achieve?
+- Response Style: Define their communication habits. Are they formal or informal? Do they use emojis, slang, or curse words? How does their tone change with their mood (e.g., happy, angry, casual)? Be specific.
 
-Make the details creative and inspiring.
+Make the details creative, consistent, and inspiring.
 `,
 });
 

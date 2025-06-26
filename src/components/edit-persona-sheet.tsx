@@ -127,6 +127,15 @@ export function EditPersonaSheet({ persona, open, onOpenChange, onPersonaUpdate 
                         <Textarea id="edit-goals" name="goals" defaultValue={persona.goals} required rows={3} />
                         {state.errors?.goals && <p className="text-sm font-medium text-destructive">{state.errors.goals}</p>}
                     </div>
+
+                    <div className="space-y-2">
+                        <Label htmlFor="edit-responseStyle">Response Style</Label>
+                        <Textarea id="edit-responseStyle" name="responseStyle" defaultValue={persona.responseStyle} required rows={4} />
+                         <p className="text-xs text-muted-foreground">
+                            Define how the persona communicates. This guides their tone, language, and personality in chat.
+                        </p>
+                        {state.errors?.responseStyle && <p className="text-sm font-medium text-destructive">{state.errors.responseStyle}</p>}
+                    </div>
                 </div>
             </ScrollArea>
             <SheetFooter className="p-6 border-t bg-background">
