@@ -17,6 +17,7 @@ export type GeneratePersonaFromPromptInput = z.infer<typeof GeneratePersonaFromP
 
 const GeneratePersonaFromPromptOutputSchema = z.object({
   name: z.string().describe("A creative and fitting name for the persona."),
+  relation: z.string().describe("The persona's relationship to the user, like 'best friend' or 'arch-nemesis'."),
   traits: z.string().describe("The persona's key traits and characteristics."),
   backstory: z.string().describe("The persona's detailed backstory."),
   goals: z.string().describe("The persona's primary goals and motivations."),
@@ -37,6 +38,7 @@ User's Prompt: "{{prompt}}"
 
 Generate all of the following details for this new character:
 - Name: A unique and fitting name.
+- Relationship: A plausible relationship to the user (e.g., friend, mentor, rival).
 - Traits: A short, punchy list of their most defining characteristics.
 - Backstory: A concise but evocative summary of their life history.
 - Goals: What drives them forward? What do they want to achieve?

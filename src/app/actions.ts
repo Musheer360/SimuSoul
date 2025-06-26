@@ -9,6 +9,7 @@ import type { Persona, UserDetails, ChatMessage } from '@/lib/types';
 
 const createPersonaSchema = z.object({
   name: z.string().min(1, 'Name is required'),
+  relation: z.string().min(1, 'Relationship is required'),
   traits: z.string().min(1, 'Traits are required'),
   backstory: z.string().min(1, 'Backstory is required'),
   goals: z.string().min(1, 'Goals are required'),
@@ -18,6 +19,7 @@ export interface CreatePersonaState {
   message?: string | null;
   errors?: {
     name?: string[];
+    relation?: string[];
     traits?: string[];
     backstory?: string[];
     goals?: string[];
@@ -33,6 +35,7 @@ export async function createPersonaAction(
   try {
     const validatedFields = createPersonaSchema.safeParse({
       name: formData.get('name'),
+      relation: formData.get('relation'),
       traits: formData.get('traits'),
       backstory: formData.get('backstory'),
       goals: formData.get('goals'),
@@ -46,7 +49,7 @@ export async function createPersonaAction(
       };
     }
     
-    const { name, traits, backstory, goals } = validatedFields.data;
+    const { name, relation, traits, backstory, goals } = validatedFields.data;
 
     const profilePictureResponse = await generatePersonaProfilePicture({
       personaTraits: `A visual depiction of a character who is: ${traits}. Name: ${name}.`,
@@ -58,6 +61,7 @@ export async function createPersonaAction(
 
     const newPersona: Omit<Persona, 'id'> = {
       name,
+      relation,
       traits,
       backstory,
       goals,
@@ -127,6 +131,7 @@ export async function chatAction(
 
     const result = await chatWithPersona({
       personaName: persona.name,
+      personaRelation: persona.relation,
       personaDescription: personaDescription,
       userDetails: {
         name: userDetails.name,

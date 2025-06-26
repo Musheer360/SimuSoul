@@ -13,6 +13,7 @@ export interface ChatSession {
 export interface Persona {
   id: string;
   name: string;
+  relation: string;
   backstory: string;
   traits: string;
   goals: string;
@@ -33,6 +34,7 @@ export interface CreatePersonaState {
   message?: string | null;
   errors?: {
     name?: string[];
+    relation?: string[];
     traits?: string[];
     backstory?: string[];
     goals?: string[];

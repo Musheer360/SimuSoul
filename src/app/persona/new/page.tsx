@@ -53,6 +53,7 @@ export default function NewPersonaPage() {
   const [formKey, setFormKey] = useState(0);
   const [defaultValues, setDefaultValues] = useState({
     name: '',
+    relation: '',
     traits: '',
     backstory: '',
     goals: '',
@@ -169,6 +170,21 @@ export default function NewPersonaPage() {
                 {state.errors?.name && (
                   <p className="text-sm font-medium text-destructive">
                     {state.errors.name}
+                  </p>
+                )}
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="relation">Relationship</Label>
+                <Input
+                  id="relation"
+                  name="relation"
+                  defaultValue={defaultValues.relation}
+                  placeholder="e.g., Best friend, mentor, rival"
+                  required
+                />
+                {state.errors?.relation && (
+                  <p className="text-sm font-medium text-destructive">
+                    {state.errors.relation}
                   </p>
                 )}
               </div>

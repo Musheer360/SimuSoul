@@ -13,6 +13,7 @@ import {z} from 'genkit';
 
 const ChatWithPersonaInputSchema = z.object({
   personaName: z.string().describe('The name of the persona to chat with.'),
+  personaRelation: z.string().describe("The persona's relationship to the user."),
   personaDescription: z.string().describe('A detailed description of the persona, including their backstory, traits, and goals.'),
   userDetails: z.object({
     name: z.string().optional().describe('The user\'s name.'),
@@ -36,9 +37,10 @@ const chatWithPersonaPrompt = ai.definePrompt({
   input: {schema: ChatWithPersonaInputSchema},
   output: {schema: ChatWithPersonaOutputSchema},
   prompt: `You are {{personaName}}, a character with the following description: {{personaDescription}}.
+Your relationship with the user is: {{personaRelation}}.
 
-{% if userDetails.name %}The user you are chatting with is {{userDetails.name}}.{% endif %}
-{% if userDetails.aboutMe %}Here is some information about the user: {{userDetails.aboutMe}}.{% endif %}
+{{#if userDetails.name}}The user you are chatting with is {{userDetails.name}}.{{/if}}
+{{#if userDetails.aboutMe}}Here is some information about the user: {{userDetails.aboutMe}}.{{/if}}
 
 Respond to the following message from the user, staying in character:
 
