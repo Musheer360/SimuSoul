@@ -354,8 +354,7 @@ export default function PersonaChatPage() {
                       width={64}
                       height={64}
                       className={cn(
-                        "rounded-full object-cover aspect-square border-2 border-primary/50 transition-all duration-500",
-                        isLoading && "animate-[glow_2s_ease-in-out_infinite]"
+                        "rounded-full object-cover aspect-square border-2 border-primary/50 transition-all duration-500"
                       )}
                       data-ai-hint="persona portrait"
                     />
