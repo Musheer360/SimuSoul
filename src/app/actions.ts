@@ -1,5 +1,6 @@
 'use server';
 
+import 'dotenv/config';
 import { z } from 'zod';
 import { generatePersonaProfilePicture } from '@/ai/flows/generate-persona-profile-picture';
 import { chatWithPersona } from '@/ai/flows/chat-with-persona';
