@@ -107,7 +107,7 @@ export async function chatAction(
     userDetails: UserDetails;
     message: string;
   }
-): Promise<{ response?: string; newMemories?: string[]; error?: string }> {
+): Promise<{ response?: string; newMemories?: string[]; removedMemories?: string[]; error?: string }> {
   try {
     const validatedPayload = chatActionSchema.safeParse(payload);
     if (!validatedPayload.success) {
@@ -130,7 +130,7 @@ export async function chatAction(
       message: message
     });
 
-    return { response: result.response, newMemories: result.newMemories };
+    return { response: result.response, newMemories: result.newMemories, removedMemories: result.removedMemories };
   } catch (error) {
     console.error(error);
     const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred.';

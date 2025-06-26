@@ -11,7 +11,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { Send, Loader2, Bot, User, AlertCircle, Trash2, MessageSquarePlus, ArrowLeft, PanelLeft, Pencil, Plus } from 'lucide-react';
+import { Send, Loader2, Bot, User, AlertCircle, Trash2, MessageSquarePlus, ArrowLeft, PanelLeft, Pencil, Plus, Brain } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import {
   AlertDialog,
@@ -24,6 +24,15 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from '@/components/ui/dialog';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { cn } from '@/lib/utils';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -31,6 +40,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { EditPersonaSheet } from '@/components/edit-persona-sheet';
 import { FormattedMessage } from '@/components/formatted-message';
 import { useToast } from '@/hooks/use-toast';
+import { Label } from '@/components/ui/label';
 
 function PersonaChatSkeleton() {
   return (
@@ -88,6 +98,7 @@ export default function PersonaChatPage() {
   const [newMemoryInput, setNewMemoryInput] = useState('');
 
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [isMemoryDialogOpen, setIsMemoryDialogOpen] = useState(false);
   const [chatToDelete, setChatToDelete] = useState<ChatSession | null>(null);
   const [isEditSheetOpen, setIsEditSheetOpen] = useState(false);
   const [isMounted, setIsMounted] = useState(false);
@@ -178,18 +189,18 @@ export default function PersonaChatPage() {
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     if (!input.trim() || !persona || !activeChatId) return;
-
+  
     const userMessage: ChatMessage = { role: 'user', content: input };
     
     const isNewChat = messages.length === 0;
     const newTitle = isNewChat ? (input.substring(0, 40) + (input.length > 40 ? '...' : '')) : activeChat!.title;
-
+  
     const updatedChatSession = {
       ...activeChat!,
       title: newTitle,
       messages: [...messages, userMessage],
     };
-
+  
     let updatedPersona = {
       ...persona,
       chats: persona.chats.map(c => c.id === activeChatId ? updatedChatSession : c),
@@ -202,43 +213,58 @@ export default function PersonaChatPage() {
     }
     setIsLoading(true);
     setError(null);
-
+  
     const res = await chatAction({ persona, userDetails, message: input });
-
+  
     setIsLoading(false);
-
-    let finalMemories = persona.memories || [];
-    if (res.newMemories && res.newMemories.length > 0) {
-      const combinedMemories = [...finalMemories, ...res.newMemories];
-      finalMemories = [...new Set(combinedMemories)]; // Remove duplicates
-      toast({
-        title: 'Memory Updated',
-        description: `Your persona learned: ${res.newMemories.join(', ')}`,
-      });
-    }
-
-    if (res.response) {
-      const assistantMessage: ChatMessage = { role: 'assistant', content: res.response };
-      const finalUpdatedSession = {
-        ...updatedChatSession,
-        messages: [...updatedChatSession.messages, assistantMessage],
-      };
-      updatedPersona = {
-        ...persona,
-        chats: persona.chats.map(c => c.id === activeChatId ? finalUpdatedSession : c),
-        memories: finalMemories,
-      };
-      setPersonas(prev => prev.map(p => p.id === persona.id ? updatedPersona : p));
-    } else if (res.error) {
-      setError(res.error);
-    } else {
-        // if only memories were updated but no response
-        updatedPersona = {
-            ...persona,
-            memories: finalMemories,
+  
+    if (res.error) {
+        setError(res.error);
+        // Revert user message optimistically added
+        const revertedChatSession = {
+            ...updatedChatSession,
+            messages: messages,
         };
-        setPersonas(prev => prev.map(p => p.id === persona.id ? updatedPersona : p));
+        const revertedPersona = {
+            ...persona,
+            chats: persona.chats.map(c => c.id === activeChatId ? revertedChatSession : c),
+        };
+        setPersonas(prev => prev.map(p => p.id === persona.id ? revertedPersona : p));
+        return;
     }
+  
+    let finalMemories = persona.memories || [];
+    const memoriesChanged = (res.newMemories && res.newMemories.length > 0) || (res.removedMemories && res.removedMemories.length > 0);
+  
+    if (memoriesChanged) {
+        if (res.removedMemories) {
+            finalMemories = finalMemories.filter(mem => !res.removedMemories!.includes(mem));
+        }
+        if (res.newMemories) {
+            finalMemories = [...new Set([...finalMemories, ...res.newMemories])];
+        }
+        toast({
+            title: 'Memory Updated',
+            description: res.newMemories && res.newMemories.length > 0 
+                ? `Your persona learned: ${res.newMemories.join(', ')}` 
+                : 'A memory was updated or removed.',
+        });
+    }
+    
+    const assistantMessage: ChatMessage | null = res.response ? { role: 'assistant', content: res.response } : null;
+  
+    const finalUpdatedSession = {
+      ...updatedChatSession,
+      messages: assistantMessage ? [...updatedChatSession.messages, assistantMessage] : updatedChatSession.messages,
+    };
+  
+    const finalPersonaState = {
+      ...persona,
+      chats: persona.chats.map(c => c.id === activeChatId ? finalUpdatedSession : c),
+      memories: finalMemories,
+    };
+    
+    setPersonas(prev => prev.map(p => p.id === persona.id ? finalPersonaState : p));
   };
 
   const handleConfirmDeleteChat = useCallback(() => {
@@ -366,35 +392,53 @@ export default function PersonaChatPage() {
                 </div>
             </div>
             
-            <div className="p-4 border-t space-y-4">
-                <h3 className="font-headline text-lg">Memories</h3>
-                <form onSubmit={handleManualAddMemory} className="flex gap-2">
-                    <Input 
-                        value={newMemoryInput}
-                        onChange={(e) => setNewMemoryInput(e.target.value)}
-                        placeholder="Add a new memory..."
-                        className="h-9"
-                    />
-                    <Button type="submit" size="icon" className="h-9 w-9 flex-shrink-0">
-                        <Plus className="h-4 w-4" />
-                    </Button>
-                </form>
-                <ScrollArea className="h-32 -mx-4">
-                    <div className="px-4 space-y-2">
-                        {(persona.memories || []).length > 0 ? (
-                            persona.memories.map((memory, index) => (
-                                <div key={index} className="group flex items-center justify-between text-sm bg-secondary p-2 rounded-md">
-                                    <p className="flex-1 pr-2 break-words">{memory}</p>
-                                    <Button variant="ghost" size="icon" className="h-6 w-6 opacity-0 group-hover:opacity-100" onClick={() => handleDeleteMemory(memory)}>
-                                        <Trash2 className="h-4 w-4 text-destructive/70 hover:text-destructive" />
-                                    </Button>
+             <div className="p-4 border-t">
+                <Dialog open={isMemoryDialogOpen} onOpenChange={setIsMemoryDialogOpen}>
+                    <DialogTrigger asChild>
+                        <Button variant="outline" className="w-full">
+                            <Brain className="mr-2 h-4 w-4" /> View Memories
+                        </Button>
+                    </DialogTrigger>
+                    <DialogContent className="sm:max-w-md">
+                        <DialogHeader>
+                            <DialogTitle>Memories for {persona.name}</DialogTitle>
+                            <DialogDescription>
+                                View, add, or remove memories for this persona. This helps them remember things about you.
+                            </DialogDescription>
+                        </DialogHeader>
+                        <div className="space-y-4 py-4">
+                            <form onSubmit={handleManualAddMemory} className="flex gap-2">
+                                <Input 
+                                    value={newMemoryInput}
+                                    onChange={(e) => setNewMemoryInput(e.target.value)}
+                                    placeholder="Add a new memory..."
+                                />
+                                <Button type="submit" size="icon" className="flex-shrink-0">
+                                    <Plus className="h-4 w-4" />
+                                </Button>
+                            </form>
+                            <ScrollArea className="h-64 border rounded-md">
+                                <div className="p-4 space-y-2">
+                                    {(persona.memories || []).length > 0 ? (
+                                        [...persona.memories].sort().map((memory, index) => (
+                                            <div key={index} className="group flex items-center justify-between text-sm bg-secondary p-2 rounded-md">
+                                                <p className="flex-1 pr-2 break-words">{memory}</p>
+                                                <Button variant="ghost" size="icon" className="h-6 w-6 opacity-0 group-hover:opacity-100" onClick={() => handleDeleteMemory(memory)}>
+                                                    <Trash2 className="h-4 w-4 text-destructive/70 hover:text-destructive" />
+                                                </Button>
+                                            </div>
+                                        ))
+                                    ) : (
+                                        <p className="text-sm text-muted-foreground text-center py-4">No memories yet.</p>
+                                    )}
                                 </div>
-                            ))
-                        ) : (
-                            <p className="text-sm text-muted-foreground text-center py-4">No memories yet.</p>
-                        )}
-                    </div>
-                </ScrollArea>
+                            </ScrollArea>
+                        </div>
+                        <DialogFooter>
+                            <Button variant="secondary" onClick={() => setIsMemoryDialogOpen(false)}>Close</Button>
+                        </DialogFooter>
+                    </DialogContent>
+                </Dialog>
             </div>
             
             <div className="p-4 flex-1 flex flex-col min-h-0 border-t">
