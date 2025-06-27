@@ -512,7 +512,7 @@ export default function PersonaChatPage() {
                 <div className="flex justify-between items-center mb-2">
                     <AlertDialog open={isClearAllDialogOpen} onOpenChange={setIsClearAllDialogOpen}>
                         <AlertDialogTrigger asChild>
-                            <Button variant="ghost" size="sm" className="text-destructive hover:bg-destructive/10 hover:text-destructive -ml-3">
+                            <Button variant="ghost" size="sm" className="text-destructive hover:bg-destructive/10 hover:text-destructive">
                                 <Trash2 className="mr-2 h-4 w-4" /> Clear All
                             </Button>
                         </AlertDialogTrigger>
@@ -534,7 +534,7 @@ export default function PersonaChatPage() {
                             </AlertDialogFooter>
                         </AlertDialogContent>
                     </AlertDialog>
-                    <Button size="sm" variant="ghost" onClick={handleNewChat} className="-mr-3">
+                    <Button size="sm" variant="ghost" onClick={handleNewChat}>
                         <MessageSquarePlus className="mr-2 h-4 w-4" /> New
                     </Button>
                 </div>
