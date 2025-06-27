@@ -25,7 +25,7 @@ export function FormattedMessage({ content }: { content: string }) {
 
       if (!inline && match) {
         return (
-          <div className="mt-2 overflow-hidden rounded-lg border">
+          <div className="rounded-lg border">
             <div className="flex items-center justify-between bg-card px-4 py-1.5">
               <span className="text-xs text-muted-foreground">{language}</span>
                <Button
@@ -50,6 +50,7 @@ export function FormattedMessage({ content }: { content: string }) {
               }}
               language={language}
               PreTag="div"
+              wrapLongLines={true}
               {...props}
             >
               {String(children).replace(/\n$/, '')}
@@ -73,7 +74,7 @@ export function FormattedMessage({ content }: { content: string }) {
   };
 
   return (
-    <div className="text-sm leading-relaxed whitespace-pre-wrap">
+    <div className="text-sm leading-relaxed whitespace-pre-wrap break-words">
       <ReactMarkdown
         remarkPlugins={[remarkGfm]}
         components={components}
