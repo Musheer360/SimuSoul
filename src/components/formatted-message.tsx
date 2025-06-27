@@ -15,7 +15,6 @@ export function FormattedMessage({ content }: { content: string }) {
     pre: ({ node, children, ...props }: any) => {
       const [isCopied, setIsCopied] = useState(false);
       
-      // The 'children' of 'pre' is expected to be a 'code' element
       const codeElement = React.Children.toArray(children)[0] as React.ReactElement;
       
       if (!React.isValidElement(codeElement)) {
@@ -33,8 +32,8 @@ export function FormattedMessage({ content }: { content: string }) {
       };
 
       return (
-        <div className="relative mt-2 rounded-md overflow-hidden bg-[#0d1117]">
-            <div className="flex items-center justify-between px-4 py-1.5">
+        <div className="relative rounded-md overflow-hidden bg-[#0d1117]">
+            <div className="flex items-center justify-between px-4 py-2">
                 <span className="text-xs text-muted-foreground">{language === 'text' ? 'code' : language}</span>
                 <Button
                     variant="ghost"
