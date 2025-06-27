@@ -12,7 +12,7 @@ import {genkit} from 'genkit';
 import {googleAI} from '@genkit-ai/googleai';
 import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
-import {selectApiKey} from '@/lib/api-key-manager';
+import { callWithFailover } from '@/lib/api-key-manager';
 
 const ChatMessageSchema = z.object({
   role: z.enum(['user', 'assistant']),
@@ -122,25 +122,25 @@ const chatWithPersonaFlow = ai.defineFlow(
     inputSchema: ChatWithPersonaInputSchema,
     outputSchema: ChatWithPersonaOutputSchema,
   },
-  async input => {
-    const apiKey = selectApiKey(input.apiKey);
-    if (!apiKey) {
-      throw new Error("Gemini API key not found. Please configure it on the server or provide a custom key.");
-    }
-    
-    const dynamicAi = genkit({
-      plugins: [googleAI({apiKey})],
-      model: 'googleai/gemini-2.0-flash',
-    });
+  async (input) => {
+    return callWithFailover(async (apiKey) => {
+      const dynamicAi = genkit({
+        plugins: [googleAI({ apiKey })],
+        model: 'googleai/gemini-2.0-flash',
+      });
 
-    const chatWithPersonaPrompt = dynamicAi.definePrompt({
-      name: 'chatWithPersonaPrompt_dynamic',
-      input: {schema: ChatWithPersonaInputSchema},
-      output: {schema: ChatWithPersonaOutputSchema},
-      prompt: promptText,
-    });
+      const chatWithPersonaPrompt = dynamicAi.definePrompt({
+        name: 'chatWithPersonaPrompt_dynamic',
+        input: { schema: ChatWithPersonaInputSchema },
+        output: { schema: ChatWithPersonaOutputSchema },
+        prompt: promptText,
+      });
 
-    const {output} = await chatWithPersonaPrompt(input);
-    return output!;
+      const { output } = await chatWithPersonaPrompt(input);
+      if (!output) {
+        throw new Error('The AI model returned no output.');
+      }
+      return output;
+    }, input.apiKey);
   }
 );

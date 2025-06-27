@@ -11,7 +11,7 @@ import {genkit} from 'genkit';
 import {googleAI} from '@genkit-ai/googleai';
 import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
-import {selectApiKey} from '@/lib/api-key-manager';
+import { callWithFailover } from '@/lib/api-key-manager';
 
 const GeneratePersonaProfilePictureInputSchema = z.object({
   personaTraits: z
@@ -40,29 +40,26 @@ const generatePersonaProfilePictureFlow = ai.defineFlow(
     inputSchema: GeneratePersonaProfilePictureInputSchema,
     outputSchema: GeneratePersonaProfilePictureOutputSchema,
   },
-  async input => {
-    const apiKey = selectApiKey(input.apiKey);
-    if (!apiKey) {
-      throw new Error("Gemini API key not found. Please configure it on the server or provide a custom key.");
-    }
-    
-    const dynamicAi = genkit({
-      plugins: [googleAI({apiKey})],
-      model: 'googleai/gemini-2.0-flash',
-    });
+  async (input) => {
+    return callWithFailover(async (apiKey) => {
+      const dynamicAi = genkit({
+        plugins: [googleAI({ apiKey })],
+        model: 'googleai/gemini-2.0-flash',
+      });
 
-    const {media} = await dynamicAi.generate({
-      model: 'googleai/gemini-2.0-flash-preview-image-generation',
-      prompt: `A profile picture of a character described as: ${input.personaTraits}`,
-      config: {
-        responseModalities: ['TEXT', 'IMAGE'],
-      },
-    });
+      const {media} = await dynamicAi.generate({
+        model: 'googleai/gemini-2.0-flash-preview-image-generation',
+        prompt: `A profile picture of a character described as: ${input.personaTraits}`,
+        config: {
+          responseModalities: ['TEXT', 'IMAGE'],
+        },
+      });
 
-    if (!media?.url) {
-      throw new Error('No profile picture was generated.');
-    }
+      if (!media?.url) {
+        throw new Error('No profile picture was generated.');
+      }
 
-    return {profilePictureDataUri: media.url};
+      return {profilePictureDataUri: media.url};
+    }, input.apiKey);
   }
 );

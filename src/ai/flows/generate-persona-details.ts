@@ -11,7 +11,7 @@ import {genkit} from 'genkit';
 import {googleAI} from '@genkit-ai/googleai';
 import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
-import {selectApiKey} from '@/lib/api-key-manager';
+import { callWithFailover } from '@/lib/api-key-manager';
 
 const GeneratePersonaDetailsInputSchema = z.object({
   personaName: z.string().describe('The name of the persona.'),
@@ -50,25 +50,25 @@ const generatePersonaDetailsFlow = ai.defineFlow(
     inputSchema: GeneratePersonaDetailsInputSchema,
     outputSchema: GeneratePersonaDetailsOutputSchema,
   },
-  async input => {
-    const apiKey = selectApiKey(input.apiKey);
-    if (!apiKey) {
-      throw new Error("Gemini API key not found. Please configure it on the server or provide a custom key.");
-    }
-    
-    const dynamicAi = genkit({
-      plugins: [googleAI({apiKey})],
-      model: 'googleai/gemini-2.0-flash',
-    });
+  async (input) => {
+    return callWithFailover(async (apiKey) => {
+      const dynamicAi = genkit({
+        plugins: [googleAI({ apiKey })],
+        model: 'googleai/gemini-2.0-flash',
+      });
 
-    const prompt = dynamicAi.definePrompt({
-      name: 'generatePersonaDetailsPrompt_dynamic',
-      input: {schema: GeneratePersonaDetailsInputSchema},
-      output: {schema: GeneratePersonaDetailsOutputSchema},
-      prompt: promptText,
-    });
+      const prompt = dynamicAi.definePrompt({
+        name: 'generatePersonaDetailsPrompt_dynamic',
+        input: {schema: GeneratePersonaDetailsInputSchema},
+        output: {schema: GeneratePersonaDetailsOutputSchema},
+        prompt: promptText,
+      });
 
-    const {output} = await prompt(input);
-    return output!;
+      const { output } = await prompt(input);
+      if (!output) {
+        throw new Error('The AI model returned no output.');
+      }
+      return output;
+    }, input.apiKey);
   }
 );
