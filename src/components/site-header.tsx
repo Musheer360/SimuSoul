@@ -6,7 +6,7 @@ import { Button } from './ui/button';
 export function SiteHeader() {
   return (
     <header className="sticky top-0 z-50 w-full border-b border-border bg-background/95 backdrop-blur-sm">
-      <div className="flex h-16 items-center justify-between px-4">
+      <div className="container flex h-16 items-center justify-between">
         <Link href="/" className="flex items-center space-x-2 group">
           <span className="font-bold text-2xl font-headline text-primary group-hover:text-white transition-colors duration-300">
             PersonaForge

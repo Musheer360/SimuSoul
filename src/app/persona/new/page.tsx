@@ -24,7 +24,7 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Loader2, Sparkles, Wand2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { getApiKeys, getAllPersonas, savePersona } from '@/lib/db';
+import { getApiKeys, savePersona } from '@/lib/db';
 
 function SubmitButton() {
   const { pending } = useFormStatus();
@@ -48,10 +48,8 @@ function SubmitButton() {
 export default function NewPersonaPage() {
   const router = useRouter();
   const { toast } = useToast();
-  const [personasCount, setPersonasCount] = useState(0);
   const [apiKeys, setApiKeys] = useState<ApiKeys>({ gemini: '' });
   const [isLoading, setIsLoading] = useState(true);
-  const maxPersonas = 3;
 
   const [formKey, setFormKey] = useState(0);
   const [defaultValues, setDefaultValues] = useState({
@@ -82,11 +80,7 @@ export default function NewPersonaPage() {
   useEffect(() => {
     async function loadInitialData() {
       setIsLoading(true);
-      const [storedPersonas, storedKeys] = await Promise.all([
-        getAllPersonas(),
-        getApiKeys(),
-      ]);
-      setPersonasCount(storedPersonas.length);
+      const storedKeys = await getApiKeys();
       setApiKeys(storedKeys);
       setIsLoading(false);
     }
@@ -102,23 +96,12 @@ export default function NewPersonaPage() {
     }
   }, [state, router]);
 
-  useEffect(() => {
-    if (!isLoading && personasCount >= maxPersonas) {
-      toast({
-        variant: 'destructive',
-        title: 'Persona Limit Reached',
-        description: `You can only create a maximum of ${maxPersonas} personas.`,
-      });
-      router.push('/');
-    }
-  }, [isLoading, personasCount, router, toast, maxPersonas]);
-
-  if (isLoading || (!isLoading && personasCount >= maxPersonas)) {
+  if (isLoading) {
     return (
       <div className="container py-12 flex items-center justify-center min-h-[calc(100vh-10rem)]">
         <div className="text-center">
           <Loader2 className="mx-auto h-12 w-12 animate-spin text-primary" />
-          <p className="mt-4 text-muted-foreground">{isLoading ? 'Loading...' : 'Persona limit reached. Redirecting...'}</p>
+          <p className="mt-4 text-muted-foreground">Loading...</p>
         </div>
       </div>
     );

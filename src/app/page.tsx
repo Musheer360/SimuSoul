@@ -19,12 +19,6 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from '@/components/ui/tooltip';
 import { getAllPersonas, deletePersona } from '@/lib/db';
 
 function PersonaCardSkeleton() {
@@ -42,8 +36,6 @@ function PersonaCardSkeleton() {
 export default function HomePage() {
   const [personas, setPersonas] = useState<Persona[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const maxPersonas = 3;
-  const canCreatePersona = personas.length < maxPersonas;
 
   useEffect(() => {
     async function loadPersonas() {
@@ -86,30 +78,13 @@ export default function HomePage() {
           <h1 className="text-4xl font-bold font-headline tracking-tight">Your Personas</h1>
           <p className="text-muted-foreground mt-1">Create and manage your AI companions.</p>
         </div>
-        <TooltipProvider>
-          <Tooltip delayDuration={100}>
-            <TooltipTrigger asChild>
-              <div tabIndex={canCreatePersona ? -1 : 0}>
-                <Button asChild={canCreatePersona} disabled={!canCreatePersona} size="lg">
-                  {canCreatePersona ? (
-                    <Link href="/persona/new">
-                      <PlusCircle className="mr-2" /> Create Persona
-                    </Link>
-                  ) : (
-                    <span>
-                      <PlusCircle className="mr-2" /> Create Persona
-                    </span>
-                  )}
-                </Button>
-              </div>
-            </TooltipTrigger>
-            {!canCreatePersona && (
-              <TooltipContent>
-                <p>You can create a maximum of {maxPersonas} personas.</p>
-              </TooltipContent>
-            )}
-          </Tooltip>
-        </TooltipProvider>
+        {personas.length > 0 && (
+          <Button asChild size="lg">
+            <Link href="/persona/new">
+              <PlusCircle className="mr-2" /> Create Persona
+            </Link>
+          </Button>
+        )}
       </div>
 
       {personas.length > 0 ? (
@@ -125,7 +100,7 @@ export default function HomePage() {
                   <Button
                     variant="destructive"
                     size="icon"
-                    className="absolute top-4 right-4 z-10 h-8 w-8 opacity-0 group-hover:opacity-100 transition-all duration-300 group-hover:scale-100 scale-90"
+                    className="absolute top-2 right-2 z-10 h-8 w-8 opacity-0 group-hover:opacity-100 transition-all duration-300"
                     aria-label={`Delete ${persona.name}`}
                     onClick={(e) => e.stopPropagation()}
                   >
