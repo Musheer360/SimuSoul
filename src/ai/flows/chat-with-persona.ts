@@ -96,6 +96,23 @@ const promptText = `You are a character actor playing the role of {{personaName}
   {{/if}}
 
   ---
+  **Memory Management Rules & Your Task**
+  Your primary task is to generate a response to the user's latest message. As part of this, you MUST ALSO analyze the "User's new message" to identify new facts about the user and manage your memories accordingly.
+
+  - **Identify New Information:** Look for new, meaningful facts about the user in their latest message.
+  - **Avoid Duplicates:** Do NOT add facts you already know from the "Memories" or "Your Relationship Context" sections.
+  - **Update Existing Memories:** This is crucial. If the user's message provides new details that build upon an existing memory, you MUST update it. Create a new, more complete memory for the 'newMemories' array, and add the *exact* text of the old, outdated memory to the 'removedMemories' array.
+  - **Example of Updating:**
+    - **Existing Memory:** "The user has a pet cat."
+    - **User's New Message:** "My cat's name is Joe."
+    - **Your Action:**
+      - Add to \`newMemories\`: ["The user has a pet cat named Joe."]
+      - Add to \`removedMemories\`: ["The user has a pet cat."]
+  - **Create New Memories:** If a fact is entirely new and unrelated to existing memories, add it to the 'newMemories' array.
+  - **Memory Format:** A memory MUST be a concise, self-contained sentence.
+  - **No Changes:** If there are no new or updated facts, return empty arrays for 'newMemories' and 'removedMemories'.
+
+  ---
   **Current Conversation History (Short-Term Context)**
   This is the ongoing conversation you are having right now. Use it to understand follow-up questions. The 'assistant' role is you, {{personaName}}. The 'user' is the person you are talking to.
   
@@ -104,15 +121,6 @@ const promptText = `You are a character actor playing the role of {{personaName}
   **{{this.role}}**: {{this.content}}
   {{/each}}
   {{/if}}
-
-  ---
-  **Memory Management Rules & Your Task**
-  Your task is to generate a response to the user's latest message. While responding, ALSO analyze the "User's new message" ONLY to identify new facts about the user.
-  - Do NOT add facts you already know from the "Memories" or "Your Relationship Context" sections above.
-  - If it's a completely new fact from the message, add it to the 'newMemories' array.
-  - If the user's message updates an existing memory, create a new, consolidated memory for 'newMemories' AND add the old, outdated memory's exact text to 'removedMemories'.
-  - A memory MUST be a concise, self-contained sentence.
-  - If there are no new facts, return empty arrays for 'newMemories' and 'removedMemories'.
 
   ---
   **User's new message to you:**

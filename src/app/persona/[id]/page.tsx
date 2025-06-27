@@ -462,7 +462,7 @@ export default function PersonaChatPage() {
              <div className="p-4 border-t">
                 <Dialog open={isMemoryDialogOpen} onOpenChange={handleMemoryDialogChange}>
                     <DialogTrigger asChild>
-                        <Button variant="outline" className={cn("w-full", isMemoryButtonGlowing && "animate-glow-once")}>
+                        <Button variant="outline" className={cn("w-full", isMemoryButtonGlowing && "animate-shine-once")}>
                             <Brain className="mr-2 h-4 w-4" /> View Memories
                         </Button>
                     </DialogTrigger>
@@ -512,7 +512,7 @@ export default function PersonaChatPage() {
                 <div className="flex justify-between items-center mb-2">
                     <AlertDialog open={isClearAllDialogOpen} onOpenChange={setIsClearAllDialogOpen}>
                         <AlertDialogTrigger asChild>
-                            <Button variant="ghost" size="sm" className="text-destructive hover:bg-destructive/10 hover:text-destructive">
+                            <Button variant="ghost" size="sm" className="text-destructive hover:bg-destructive/10 hover:text-destructive -ml-3">
                                 <Trash2 className="mr-2 h-4 w-4" /> Clear All
                             </Button>
                         </AlertDialogTrigger>
@@ -534,7 +534,7 @@ export default function PersonaChatPage() {
                             </AlertDialogFooter>
                         </AlertDialogContent>
                     </AlertDialog>
-                    <Button size="sm" variant="ghost" onClick={handleNewChat}>
+                    <Button size="sm" variant="ghost" onClick={handleNewChat} className="-mr-3">
                         <MessageSquarePlus className="mr-2 h-4 w-4" /> New
                     </Button>
                 </div>
@@ -613,7 +613,7 @@ export default function PersonaChatPage() {
                             <div className={cn(
                                 "max-w-md lg:max-w-2xl rounded-lg px-4 py-3", 
                                 message.role === 'user' ? 'bg-primary text-primary-foreground rounded-tr-none' : 'bg-secondary rounded-tl-none',
-                                glowingMessageIndex === index && 'animate-glow-once'
+                                glowingMessageIndex === index && 'animate-shine-once'
                             )}>
                                 <FormattedMessage content={message.content} />
                             </div>
