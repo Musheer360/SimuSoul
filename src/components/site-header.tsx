@@ -12,13 +12,11 @@ export function SiteHeader() {
             PersonaForge
           </span>
         </Link>
-        <div className="flex items-center space-x-2">
-          <SettingsDialog>
-            <Button variant="ghost" size="icon" aria-label="Settings">
-              <Settings className="h-5 w-5" />
-            </Button>
-          </SettingsDialog>
-        </div>
+        <SettingsDialog>
+          <Button variant="ghost" size="icon" aria-label="Settings">
+            <Settings className="h-5 w-5" />
+          </Button>
+        </SettingsDialog>
       </div>
     </header>
   );
