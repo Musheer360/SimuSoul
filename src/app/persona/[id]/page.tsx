@@ -579,7 +579,7 @@ export default function PersonaChatPage() {
                                     <AvatarFallback><Bot /></AvatarFallback>
                                 </Avatar>
                             )}
-                            <div className={cn("max-w-md lg:max-w-2xl px-3 py-3 md:px-4 md:py-2 rounded-lg", message.role === 'user' ? 'bg-primary text-primary-foreground rounded-tr-none' : 'bg-secondary rounded-tl-none')}>
+                            <div className={cn("max-w-md lg:max-w-2xl px-4 py-2 rounded-lg flex items-center", message.role === 'user' ? 'bg-primary text-primary-foreground rounded-tr-none' : 'bg-secondary rounded-tl-none', messages.length === 1 && 'min-h-10')}>
                                 {message.role === 'assistant' ? 
                                     <FormattedMessage content={message.content} /> : 
                                     <p className="text-sm md:text-base whitespace-pre-wrap">{message.content}</p>
@@ -618,7 +618,7 @@ export default function PersonaChatPage() {
                       <div className="max-w-3xl mx-auto">
                         <form
                           onSubmit={handleSubmit}
-                          className="flex w-full items-end gap-2 rounded-lg border bg-secondary/50 p-2 focus-within:ring-2 focus-within:ring-ring transition-all"
+                          className="flex w-full items-end gap-2 rounded-lg border bg-secondary/50 p-2 transition-all"
                         >
                           <Textarea
                             ref={textareaRef}
