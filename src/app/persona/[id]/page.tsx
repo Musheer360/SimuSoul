@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useEffect, useState, useRef, FormEvent, useMemo, useCallback } from 'react';
@@ -513,7 +514,7 @@ export default function PersonaChatPage() {
                     <AlertDialog open={isClearAllDialogOpen} onOpenChange={setIsClearAllDialogOpen}>
                         <AlertDialogTrigger asChild>
                             <Button variant="ghost" size="sm" className="text-destructive hover:bg-destructive/10 hover:text-destructive">
-                                <Trash2 className="mr-2 h-4 w-4" /> Clear All
+                                <Trash2 className="mr-2 h-4 w-4" /> Clear
                             </Button>
                         </AlertDialogTrigger>
                         <AlertDialogContent>
@@ -535,7 +536,7 @@ export default function PersonaChatPage() {
                         </AlertDialogContent>
                     </AlertDialog>
                     <Button size="sm" variant="ghost" onClick={handleNewChat}>
-                        <MessageSquarePlus className="mr-2 h-4 w-4" /> New
+                        <MessageSquarePlus className="mr-2 h-4 w-4" /> New Chat
                     </Button>
                 </div>
                 <ScrollArea className="flex-1 -mx-4">
