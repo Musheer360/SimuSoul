@@ -318,14 +318,14 @@ export default function PersonaChatPage() {
     router.push('/');
   };
 
-  const handlePersonaUpdate = (updatedPersona: Persona) => {
+  const handlePersonaUpdate = useCallback((updatedPersona: Persona) => {
     setPersonas(prev => prev.map(p => (p.id === updatedPersona.id ? updatedPersona : p)));
     toast({
         title: 'Persona Updated!',
         description: `${updatedPersona.name} has been saved.`,
     });
     setIsEditSheetOpen(false);
-  };
+  }, [setPersonas, toast]);
 
   const handleManualAddMemory = (e: FormEvent) => {
       e.preventDefault();
@@ -579,7 +579,7 @@ export default function PersonaChatPage() {
                                     <AvatarFallback><Bot /></AvatarFallback>
                                 </Avatar>
                             )}
-                            <div className={cn("max-w-md lg:max-w-2xl p-3 md:p-4 rounded-lg", message.role === 'user' ? 'bg-primary text-primary-foreground rounded-tr-none' : 'bg-secondary rounded-tl-none')}>
+                            <div className={cn("max-w-md lg:max-w-2xl px-3 py-3 md:px-4 md:py-2 rounded-lg", message.role === 'user' ? 'bg-primary text-primary-foreground rounded-tr-none' : 'bg-secondary rounded-tl-none')}>
                                 {message.role === 'assistant' ? 
                                     <FormattedMessage content={message.content} /> : 
                                     <p className="text-sm md:text-base whitespace-pre-wrap">{message.content}</p>
@@ -598,8 +598,8 @@ export default function PersonaChatPage() {
                                 <AvatarImage src={persona.profilePictureUrl} alt={persona.name} className="object-cover" />
                                 <AvatarFallback><Bot /></AvatarFallback>
                             </Avatar>
-                             <div className="p-3 md:p-4 rounded-lg bg-secondary flex items-center">
-                                <div className="flex items-center justify-center space-x-1.5 h-5">
+                             <div className="h-10 w-10 rounded-lg bg-secondary flex items-center justify-center">
+                                <div className="flex items-center justify-center space-x-1.5">
                                     <div className="w-2 h-2 rounded-full bg-muted-foreground animate-typing-dot-1"></div>
                                     <div className="w-2 h-2 rounded-full bg-muted-foreground animate-typing-dot-2"></div>
                                     <div className="w-2 h-2 rounded-full bg-muted-foreground animate-typing-dot-3"></div>
