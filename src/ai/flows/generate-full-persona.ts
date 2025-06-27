@@ -7,11 +7,15 @@
  * - GeneratePersonaFromPromptOutput - The return type for the function.
  */
 
+import {genkit} from 'genkit';
+import {googleAI} from '@genkit-ai/googleai';
 import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
+import {selectApiKey} from '@/lib/api-key-manager';
 
 const GeneratePersonaFromPromptInputSchema = z.object({
   prompt: z.string().describe('A prompt or idea for a character.'),
+  apiKey: z.string().optional().describe('An optional custom Gemini API key.'),
 });
 export type GeneratePersonaFromPromptInput = z.infer<typeof GeneratePersonaFromPromptInputSchema>;
 
@@ -29,11 +33,7 @@ export async function generatePersonaFromPrompt(input: GeneratePersonaFromPrompt
   return generatePersonaFromPromptFlow(input);
 }
 
-const prompt = ai.definePrompt({
-  name: 'generatePersonaFromPromptPrompt',
-  input: {schema: GeneratePersonaFromPromptInputSchema},
-  output: {schema: GeneratePersonaFromPromptOutputSchema},
-  prompt: `You are a world-class creative writer and character designer. Based on the user's prompt, generate a complete, ready-to-use fictional persona.
+const promptText = `You are a world-class creative writer and character designer. Based on the user's prompt, generate a complete, ready-to-use fictional persona.
 
 User's Prompt: "{{prompt}}"
 
@@ -46,8 +46,7 @@ Generate all of the following details for this new character:
 - Response Style: Define their communication habits. Are they formal or informal? Do they use emojis, slang, or curse words? How does their tone change with their mood (e.g., happy, angry, casual)? Be specific.
 
 Be creative and ensure all the generated details are consistent with each other and the original prompt.
-`,
-});
+`;
 
 const generatePersonaFromPromptFlow = ai.defineFlow(
   {
@@ -56,6 +55,23 @@ const generatePersonaFromPromptFlow = ai.defineFlow(
     outputSchema: GeneratePersonaFromPromptOutputSchema,
   },
   async input => {
+    const apiKey = selectApiKey(input.apiKey);
+    if (!apiKey) {
+      throw new Error("Gemini API key not found. Please configure it on the server or provide a custom key.");
+    }
+    
+    const dynamicAi = genkit({
+      plugins: [googleAI({apiKey})],
+      model: 'googleai/gemini-2.0-flash',
+    });
+    
+    const prompt = dynamicAi.definePrompt({
+      name: 'generatePersonaFromPromptPrompt_dynamic',
+      input: {schema: GeneratePersonaFromPromptInputSchema},
+      output: {schema: GeneratePersonaFromPromptOutputSchema},
+      prompt: promptText,
+    });
+
     const {output} = await prompt(input);
     return output!;
   }

@@ -86,9 +86,12 @@ export function SettingsDialog({ children }: { children: React.ReactNode }) {
                 value={apiKeys.gemini}
                 onChange={handleApiKeyChange}
                 className="col-span-3"
+                placeholder="Enter your custom Gemini key"
               />
             </div>
-             <p className="text-xs text-muted-foreground px-1 text-center col-span-4">Note: The AI currently uses the server's environment variables. This input is for future use.</p>
+             <p className="text-xs text-muted-foreground px-1 text-center col-span-4">
+               Your key is stored locally and used for all AI requests. If left empty, a server-provided key will be used.
+             </p>
           </div>
         </div>
         <DialogFooter>

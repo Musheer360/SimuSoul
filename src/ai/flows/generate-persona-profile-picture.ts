@@ -7,13 +7,17 @@
  * - GeneratePersonaProfilePictureOutput - The return type for the generatePersonaProfilePicture function.
  */
 
+import {genkit} from 'genkit';
+import {googleAI} from '@genkit-ai/googleai';
 import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
+import {selectApiKey} from '@/lib/api-key-manager';
 
 const GeneratePersonaProfilePictureInputSchema = z.object({
   personaTraits: z
     .string()
     .describe('A description of the persona, including traits, backstory, and appearance.'),
+  apiKey: z.string().optional().describe('An optional custom Gemini API key.'),
 });
 export type GeneratePersonaProfilePictureInput = z.infer<typeof GeneratePersonaProfilePictureInputSchema>;
 
@@ -30,22 +34,6 @@ export async function generatePersonaProfilePicture(input: GeneratePersonaProfil
   return generatePersonaProfilePictureFlow(input);
 }
 
-const generateProfilePicturePrompt = ai.definePrompt({
-  name: 'generateProfilePicturePrompt',
-  input: {schema: GeneratePersonaProfilePictureInputSchema},
-  output: {schema: GeneratePersonaProfilePictureOutputSchema},
-  prompt: `You are an AI that generates profile pictures for fictional personas.
-
-  Based on the following persona traits, generate a profile picture that visually represents the persona.
-  Ensure the generated image accurately reflects the described traits and backstory.
-
-  Persona Traits: {{{personaTraits}}}
-
-  Output:
-  A data URI containing the generated profile picture image.
-  `,
-});
-
 const generatePersonaProfilePictureFlow = ai.defineFlow(
   {
     name: 'generatePersonaProfilePictureFlow',
@@ -53,9 +41,19 @@ const generatePersonaProfilePictureFlow = ai.defineFlow(
     outputSchema: GeneratePersonaProfilePictureOutputSchema,
   },
   async input => {
-    const {media} = await ai.generate({
+    const apiKey = selectApiKey(input.apiKey);
+    if (!apiKey) {
+      throw new Error("Gemini API key not found. Please configure it on the server or provide a custom key.");
+    }
+    
+    const dynamicAi = genkit({
+      plugins: [googleAI({apiKey})],
+      model: 'googleai/gemini-2.0-flash',
+    });
+
+    const {media} = await dynamicAi.generate({
       model: 'googleai/gemini-2.0-flash-preview-image-generation',
-      prompt: input.personaTraits,
+      prompt: `A profile picture of a character described as: ${input.personaTraits}`,
       config: {
         responseModalities: ['TEXT', 'IMAGE'],
       },

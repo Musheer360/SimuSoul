@@ -8,8 +8,11 @@
  * - ChatWithPersonaOutput - The return type for the chatWithPersona function.
  */
 
+import {genkit} from 'genkit';
+import {googleAI} from '@genkit-ai/googleai';
 import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
+import {selectApiKey} from '@/lib/api-key-manager';
 
 const ChatMessageSchema = z.object({
   role: z.enum(['user', 'assistant']),
@@ -28,6 +31,7 @@ const ChatWithPersonaInputSchema = z.object({
   existingMemories: z.array(z.string()).describe('Facts that the persona already knows about the user.'),
   chatHistory: z.array(ChatMessageSchema).describe('The history of the conversation so far.'),
   message: z.string().describe('The user\'s message to the persona.'),
+  apiKey: z.string().optional().describe('An optional custom Gemini API key.'),
 });
 export type ChatWithPersonaInput = z.infer<typeof ChatWithPersonaInputSchema>;
 
@@ -52,11 +56,7 @@ export async function chatWithPersona(input: ChatWithPersonaInput): Promise<Chat
   return chatWithPersonaFlow(input);
 }
 
-const chatWithPersonaPrompt = ai.definePrompt({
-  name: 'chatWithPersonaPrompt',
-  input: {schema: ChatWithPersonaInputSchema},
-  output: {schema: ChatWithPersonaOutputSchema},
-  prompt: `You are a character actor playing the role of {{personaName}}. You MUST strictly adhere to the persona's character, knowledge, and communication style.
+const promptText = `You are a character actor playing the role of {{personaName}}. You MUST strictly adhere to the persona's character, knowledge, and communication style.
 
   **Core Instructions:**
   1.  **Stay In Character:** Embody the persona completely. Your knowledge is strictly limited to what is defined in the Persona Description.
@@ -114,8 +114,7 @@ const chatWithPersonaPrompt = ai.definePrompt({
 
   ---
   **User's new message to you:**
-  {{message}}`,
-});
+  {{message}}`;
 
 const chatWithPersonaFlow = ai.defineFlow(
   {
@@ -124,6 +123,23 @@ const chatWithPersonaFlow = ai.defineFlow(
     outputSchema: ChatWithPersonaOutputSchema,
   },
   async input => {
+    const apiKey = selectApiKey(input.apiKey);
+    if (!apiKey) {
+      throw new Error("Gemini API key not found. Please configure it on the server or provide a custom key.");
+    }
+    
+    const dynamicAi = genkit({
+      plugins: [googleAI({apiKey})],
+      model: 'googleai/gemini-2.0-flash',
+    });
+
+    const chatWithPersonaPrompt = dynamicAi.definePrompt({
+      name: 'chatWithPersonaPrompt_dynamic',
+      input: {schema: ChatWithPersonaInputSchema},
+      output: {schema: ChatWithPersonaOutputSchema},
+      prompt: promptText,
+    });
+
     const {output} = await chatWithPersonaPrompt(input);
     return output!;
   }

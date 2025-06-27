@@ -17,7 +17,10 @@ const personaSchemaFields = {
   responseStyle: z.string().min(1, 'Response Style is required'),
 };
 
-const createPersonaSchema = z.object(personaSchemaFields);
+const createPersonaSchema = z.object({
+  ...personaSchemaFields,
+  apiKey: z.string().optional(),
+});
 
 export async function createPersonaAction(
   prevState: CreatePersonaState,
@@ -31,6 +34,7 @@ export async function createPersonaAction(
       backstory: formData.get('backstory'),
       goals: formData.get('goals'),
       responseStyle: formData.get('responseStyle'),
+      apiKey: formData.get('apiKey'),
     });
 
     if (!validatedFields.success) {
@@ -41,10 +45,11 @@ export async function createPersonaAction(
       };
     }
     
-    const { name, relation, traits, backstory, goals, responseStyle } = validatedFields.data;
+    const { name, relation, traits, backstory, goals, responseStyle, apiKey } = validatedFields.data;
 
     const profilePictureResponse = await generatePersonaProfilePicture({
       personaTraits: `A visual depiction of a character who is: ${traits}. Name: ${name}.`,
+      apiKey: apiKey,
     });
 
     if (!profilePictureResponse.profilePictureDataUri) {
@@ -69,12 +74,12 @@ export async function createPersonaAction(
   }
 }
 
-export async function generatePersonaDetailsAction(name: string) {
+export async function generatePersonaDetailsAction(name: string, apiKey?: string) {
   try {
     if (!name?.trim()) {
       return { success: false, error: 'Name is required to generate details.' };
     }
-    const details = await generatePersonaDetails({ personaName: name });
+    const details = await generatePersonaDetails({ personaName: name, apiKey });
     return { success: true, details };
   } catch (error) {
     console.error(error);
@@ -83,12 +88,12 @@ export async function generatePersonaDetailsAction(name: string) {
   }
 }
 
-export async function generatePersonaFromPromptAction(prompt: string) {
+export async function generatePersonaFromPromptAction(prompt: string, apiKey?: string) {
    try {
     if (!prompt?.trim()) {
       return { success: false, error: 'A prompt is required to generate a persona.' };
     }
-    const personaData = await generatePersonaFromPrompt({ prompt });
+    const personaData = await generatePersonaFromPrompt({ prompt, apiKey });
     return { success: true, personaData };
   } catch (error)
   {
@@ -107,6 +112,7 @@ const chatActionSchema = z.object({
         content: z.string()
     })),
     message: z.string(),
+    apiKey: z.string().optional(),
 });
 
 export async function chatAction(
@@ -115,6 +121,7 @@ export async function chatAction(
     userDetails: UserDetails;
     chatHistory: ChatMessage[];
     message: string;
+    apiKey?: string;
   }
 ): Promise<{ response?: string; newMemories?: string[]; removedMemories?: string[]; error?: string }> {
   try {
@@ -123,7 +130,7 @@ export async function chatAction(
         return { error: 'Invalid input' };
     }
 
-    const { persona, userDetails, chatHistory, message } = validatedPayload.data;
+    const { persona, userDetails, chatHistory, message, apiKey } = validatedPayload.data;
     
     const personaDescription = `Backstory: ${persona.backstory}\nTraits: ${persona.traits}\nGoals: ${persona.goals}`;
 
@@ -138,7 +145,8 @@ export async function chatAction(
       },
       existingMemories: persona.memories,
       chatHistory: chatHistory,
-      message: message
+      message: message,
+      apiKey: apiKey,
     });
 
     return { response: result.response, newMemories: result.newMemories, removedMemories: result.removedMemories };

@@ -6,7 +6,7 @@ import Link from 'next/link';
 import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import { useLocalStorage } from '@/hooks/use-local-storage';
 import { chatAction } from '@/app/actions';
-import type { Persona, UserDetails, ChatMessage, ChatSession } from '@/lib/types';
+import type { Persona, UserDetails, ChatMessage, ChatSession, ApiKeys } from '@/lib/types';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
@@ -89,8 +89,20 @@ export default function PersonaChatPage() {
 
   const [personas, setPersonas] = useLocalStorage<Persona[]>('personas', []);
   const [userDetails] = useLocalStorage<UserDetails>('user-details', { name: '', about: '' });
+  const [apiKeys] = useLocalStorage<ApiKeys>('api-keys', { gemini: '' });
   
-  const [persona, setPersona] = useState<Persona | null>(null);
+  const persona = useMemo(() => {
+    const p = personas.find(p => p.id === id);
+    if (p) {
+        return {
+            ...p,
+            chats: p.chats || [],
+            memories: p.memories || [],
+        };
+    }
+    return null;
+  }, [id, personas]);
+
   const [activeChatId, setActiveChatId] = useState<string | null>(null);
   
   const [input, setInput] = useState('');
@@ -112,18 +124,6 @@ export default function PersonaChatPage() {
   useEffect(() => {
     setIsMounted(true);
   }, []);
-
-  useEffect(() => {
-    const foundPersona = personas.find(p => p.id === id);
-    if (foundPersona) {
-      if (!foundPersona.memories) {
-        foundPersona.memories = [];
-      }
-      setPersona(foundPersona);
-    } else if (isMounted) {
-      setPersona(null);
-    }
-  }, [id, personas, isMounted]);
 
   const handleNewChat = useCallback(() => {
     if (!persona) return;
@@ -215,7 +215,13 @@ export default function PersonaChatPage() {
     setIsLoading(true);
     setError(null);
   
-    const res = await chatAction({ persona, userDetails, chatHistory: messages, message: input });
+    const res = await chatAction({
+      persona,
+      userDetails,
+      chatHistory: messages,
+      message: input,
+      apiKey: apiKeys.gemini,
+    });
   
     setIsLoading(false);
   
@@ -314,6 +320,11 @@ export default function PersonaChatPage() {
 
   const handlePersonaUpdate = (updatedPersona: Persona) => {
     setPersonas(prev => prev.map(p => (p.id === updatedPersona.id ? updatedPersona : p)));
+    toast({
+        title: 'Persona Updated!',
+        description: `${updatedPersona.name} has been saved.`,
+    });
+    setIsEditSheetOpen(false);
   };
 
   const handleManualAddMemory = (e: FormEvent) => {
@@ -647,12 +658,14 @@ export default function PersonaChatPage() {
           </div>
       </div>
 
-      <EditPersonaSheet
-        persona={persona}
-        open={isEditSheetOpen}
-        onOpenChange={setIsEditSheetOpen}
-        onPersonaUpdate={handlePersonaUpdate}
-      />
+      {persona && (
+        <EditPersonaSheet
+          persona={persona}
+          open={isEditSheetOpen}
+          onOpenChange={setIsEditSheetOpen}
+          onPersonaUpdate={handlePersonaUpdate}
+        />
+      )}
 
       <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
         <AlertDialogContent>

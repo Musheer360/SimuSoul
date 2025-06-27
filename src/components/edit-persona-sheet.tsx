@@ -1,7 +1,7 @@
 'use client';
 
 import { useFormStatus } from 'react-dom';
-import { useEffect, useActionState } from 'react';
+import { useEffect, useActionState, useRef } from 'react';
 import type { Persona, UpdatePersonaState } from '@/lib/types';
 import { updatePersonaAction } from '@/app/actions';
 import { Button } from '@/components/ui/button';
@@ -58,27 +58,28 @@ export function EditPersonaSheet({ persona, open, onOpenChange, onPersonaUpdate 
   };
   const [state, dispatch] = useActionState(updatePersonaAction, initialState);
 
+  // Use a ref to track if the toast has been shown for this save action
+  const stateRef = useRef(state);
+
   useEffect(() => {
-    if (state.success && state.persona) {
+    // Only act if the state has genuinely changed to a new successful save.
+    if (state.success && state.persona && state !== stateRef.current) {
       const updatedPersona: Persona = {
         ...state.persona,
         chats: persona.chats, // Keep existing chats
         memories: persona.memories, // Keep existing memories
       };
       onPersonaUpdate(updatedPersona);
-      toast({
-        title: 'Persona Updated!',
-        description: `${persona.name} has been saved.`,
-      });
-      onOpenChange(false);
-    } else if (state.message && !state.success) {
+      // No toast or onOpenChange(false) here, parent component handles it.
+    } else if (state.message && !state.success && state !== stateRef.current) {
         toast({
             variant: 'destructive',
             title: 'Update Failed',
             description: state.message,
         });
     }
-  }, [state, persona, onPersonaUpdate, onOpenChange, toast]);
+    stateRef.current = state;
+  }, [state, persona, onPersonaUpdate, toast]);
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>

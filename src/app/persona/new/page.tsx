@@ -9,7 +9,7 @@ import {
   generatePersonaDetailsAction,
   generatePersonaFromPromptAction,
 } from '@/app/actions';
-import type { Persona, CreatePersonaState } from '@/lib/types';
+import type { Persona, CreatePersonaState, ApiKeys } from '@/lib/types';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -49,6 +49,7 @@ export default function NewPersonaPage() {
   const router = useRouter();
   const { toast } = useToast();
   const [personas, setPersonas] = useLocalStorage<Persona[]>('personas', []);
+  const [apiKeys] = useLocalStorage<ApiKeys>('api-keys', { gemini: '' });
 
   const [formKey, setFormKey] = useState(0);
   const [defaultValues, setDefaultValues] = useState({
@@ -86,7 +87,7 @@ export default function NewPersonaPage() {
   const handleGenerateFullPersona = async () => {
     if (!prompt) return;
     setIsGeneratingFull(true);
-    const result = await generatePersonaFromPromptAction(prompt);
+    const result = await generatePersonaFromPromptAction(prompt, apiKeys.gemini);
     setIsGeneratingFull(false);
 
     if (result.success && result.personaData) {
@@ -117,7 +118,7 @@ export default function NewPersonaPage() {
       return;
     }
     setIsGeneratingDetails(true);
-    const result = await generatePersonaDetailsAction(name);
+    const result = await generatePersonaDetailsAction(name, apiKeys.gemini);
     setIsGeneratingDetails(false);
 
     if (result.success && result.details) {
@@ -159,6 +160,7 @@ export default function NewPersonaPage() {
             </TabsList>
             <TabsContent value="manual" className="pt-6">
                 <form action={dispatch} className="space-y-6" key={formKey}>
+                  <input type="hidden" name="apiKey" value={apiKeys.gemini} />
                 <div className="space-y-2">
                     <Label htmlFor="name">Name</Label>
                     <Input
