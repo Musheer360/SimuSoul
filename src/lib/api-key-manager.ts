@@ -1,8 +1,5 @@
 'use server';
 
-import { genkit } from 'genkit';
-import { googleAI } from '@genkit-ai/googleai';
-
 // Added the two new keys to a hardcoded list as requested.
 const hardcodedKeys = [
   'AIzaSyBW9E2ki_FYhM7utlaBV3oxCTcECjM0M-8',
@@ -26,19 +23,6 @@ function getRoundRobinKey(): string | undefined {
   const key = serverApiKeys[keyIndex];
   keyIndex = (keyIndex + 1) % serverApiKeys.length;
   return key;
-}
-
-/**
- * Selects an API key for a request.
- * 1. Prioritizes the custom key if provided by the user.
- * 2. Falls back to a round-robin selection from server-side keys.
- * 3. Returns undefined if no keys are available.
- */
-export function selectApiKey(customKey?: string): string | undefined {
-  if (customKey) {
-    return customKey;
-  }
-  return getRoundRobinKey();
 }
 
 /**
