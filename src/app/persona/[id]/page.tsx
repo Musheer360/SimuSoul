@@ -598,8 +598,12 @@ export default function PersonaChatPage() {
                                 <AvatarImage src={persona.profilePictureUrl} alt={persona.name} className="object-cover" />
                                 <AvatarFallback><Bot /></AvatarFallback>
                             </Avatar>
-                            <div className="p-3 md:p-4 rounded-lg bg-secondary flex items-center">
-                                <Loader2 className="h-5 w-5 text-muted-foreground animate-spin"/>
+                             <div className="p-3 md:p-4 rounded-lg bg-secondary flex items-center">
+                                <div className="flex items-center justify-center space-x-1.5 h-5">
+                                    <div className="w-2 h-2 rounded-full bg-muted-foreground animate-typing-dot-1"></div>
+                                    <div className="w-2 h-2 rounded-full bg-muted-foreground animate-typing-dot-2"></div>
+                                    <div className="w-2 h-2 rounded-full bg-muted-foreground animate-typing-dot-3"></div>
+                                </div>
                             </div>
                         </div>
                         )}

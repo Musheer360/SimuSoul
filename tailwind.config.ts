@@ -113,6 +113,10 @@ export default {
               '0 0 20px -3px hsl(var(--primary)/0.6)',
           },
         },
+        'typing-bounce': {
+          '0%, 100%': { transform: 'translateY(0)' },
+          '50%': { transform: 'translateY(-6px)' },
+        },
       },
       animation: {
         'accordion-down': 'accordion-down 0.2s ease-out',
@@ -120,6 +124,9 @@ export default {
         'fade-in': 'fade-in 0.5s ease-out forwards',
         'fade-in-up': 'fade-in-up 0.5s ease-out forwards',
         'glow-once': 'glow 1s ease-in-out forwards',
+        'typing-dot-1': 'typing-bounce 1.2s infinite ease-in-out',
+        'typing-dot-2': 'typing-bounce 1.2s infinite ease-in-out 0.2s',
+        'typing-dot-3': 'typing-bounce 1.2s infinite ease-in-out 0.4s',
       },
     },
   },
