@@ -32,8 +32,8 @@ export function FormattedMessage({ content }: { content: string }) {
       };
 
       return (
-        <div className="relative rounded-md overflow-hidden bg-[#0d1117]">
-            <div className="flex items-center justify-between px-4 py-2">
+        <div className="relative my-2 rounded-md bg-[#0d1117]">
+            <div className="flex items-center justify-between px-4 py-1.5">
                 <span className="text-xs text-muted-foreground">{language === 'text' ? 'code' : language}</span>
                 <Button
                     variant="ghost"
@@ -80,13 +80,13 @@ export function FormattedMessage({ content }: { content: string }) {
     p: (props: any) => <p className="mb-2 last:mb-0" {...props} />,
     strong: (props: any) => <strong className="font-bold" {...props} />,
     em: (props: any) => <em className="italic" {...props} />,
-    ul: (props: any) => <ul className="list-disc pl-5 mb-2" {...props} />,
-    ol: (props: any) => <ol className="list-decimal pl-5 mb-2" {...props} />,
+    ul: (props: any) => <ul className="list-disc pl-5 mb-2 last:mb-0" {...props} />,
+    ol: (props: any) => <ol className="list-decimal pl-5 mb-2 last:mb-0" {...props} />,
     li: (props: any) => <li className="mb-1" {...props} />,
   };
 
   return (
-    <div className="text-sm leading-relaxed whitespace-pre-wrap">
+    <div className="text-sm leading-relaxed whitespace-pre-wrap break-words">
       <ReactMarkdown
         remarkPlugins={[remarkGfm]}
         components={components}
