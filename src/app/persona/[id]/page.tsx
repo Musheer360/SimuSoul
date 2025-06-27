@@ -612,7 +612,7 @@ export default function PersonaChatPage() {
                                 </Avatar>
                             )}
                             <div className={cn(
-                                "max-w-md lg:max-w-2xl rounded-lg px-4 py-3", 
+                                "max-w-md lg:max-w-xl rounded-lg px-4 py-3", 
                                 message.role === 'user' ? 'bg-primary text-primary-foreground rounded-tr-none' : 'bg-secondary rounded-tl-none',
                                 glowingMessageIndex === index && 'animate-shine-once'
                             )}>
