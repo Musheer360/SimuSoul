@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useState } from 'react';
@@ -10,27 +11,26 @@ import remarkGfm from 'remark-gfm';
 
 export function FormattedMessage({ content }: { content: string }) {
   const components = {
-    code({ node, inline, className, children, ...props }: any) {
+    // Override 'pre' for fenced code blocks
+    pre: ({ node, children, ...props }: any) => {
       const [isCopied, setIsCopied] = useState(false);
       
+      // The 'children' of 'pre' is expected to be a 'code' element
+      const codeElement = React.Children.toArray(children)[0] as React.ReactElement;
+      
+      if (!React.isValidElement(codeElement)) {
+        return <pre {...props}>{children}</pre>;
+      }
+
+      const codeString = String(codeElement.props.children).replace(/\n$/, '');
+      const language = codeElement.props.className?.replace('language-', '') || 'text';
+
       const handleCopy = () => {
-        const codeString = String(children).replace(/\n$/, '');
         navigator.clipboard.writeText(codeString).then(() => {
           setIsCopied(true);
           setTimeout(() => setIsCopied(false), 2000);
         });
       };
-
-      if (inline) {
-        return (
-          <code className="rounded bg-card px-1.5 py-1 font-mono text-sm" {...props}>
-            {children}
-          </code>
-        );
-      }
-
-      const match = /language-(\w+)/.exec(className || '');
-      const language = match ? match[1] : 'text';
 
       return (
         <div className="relative my-2 rounded-md overflow-hidden bg-[#0d1117]">
@@ -59,12 +59,24 @@ export function FormattedMessage({ content }: { content: string }) {
                 language={language}
                 PreTag="div"
                 wrapLongLines={true}
-                {...props}
             >
-                {String(children).replace(/\n$/, '')}
+                {codeString}
             </SyntaxHighlighter>
         </div>
       )
+    },
+    // Override 'code' for inline code
+    code({ node, inline, className, children, ...props }: any) {
+      if (inline) {
+        return (
+          <code className="rounded bg-card px-1.5 py-1 font-mono text-sm" {...props}>
+            {children}
+          </code>
+        );
+      }
+      // For code blocks, the 'pre' renderer above will handle it. 
+      // This part renders the `code` element that the `pre` renderer receives as children.
+      return <code className={className} {...props}>{children}</code>
     },
     p: (props: any) => <p className="mb-2 last:mb-0" {...props} />,
     strong: (props: any) => <strong className="font-bold" {...props} />,
