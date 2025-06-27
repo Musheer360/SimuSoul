@@ -554,7 +554,7 @@ export default function PersonaChatPage() {
                       {sortedChats.map(chat => (
                         <Link key={chat.id} href={`/persona/${persona.id}?chat=${chat.id}`} className="block group" scroll={false}>
                           <div className={cn(
-                            "flex justify-between items-center px-3 py-2 rounded-md transition-colors",
+                            "flex justify-between items-center px-4 py-2 rounded-md transition-colors",
                             activeChatId === chat.id ? 'bg-primary/20 text-primary-foreground' : 'hover:bg-secondary'
                           )}>
                             <p className="text-sm truncate pr-2">
@@ -617,10 +617,10 @@ export default function PersonaChatPage() {
                                     <AvatarFallback><Bot /></AvatarFallback>
                                 </Avatar>
                             )}
-                            <div className={cn("flex max-w-md lg:max-w-2xl items-center rounded-lg px-4 py-2 min-h-10", message.role === 'user' ? 'bg-primary text-primary-foreground rounded-tr-none' : 'bg-secondary rounded-tl-none')}>
+                            <div className={cn("max-w-md lg:max-w-2xl rounded-lg px-4 py-3 break-all", message.role === 'user' ? 'bg-primary text-primary-foreground rounded-tr-none' : 'bg-secondary rounded-tl-none')}>
                                 {message.role === 'assistant' ? 
                                     <FormattedMessage content={message.content} /> : 
-                                    <p className="text-sm md:text-base whitespace-pre-wrap break-words">{message.content}</p>
+                                    <p className="text-sm md:text-base whitespace-pre-wrap">{message.content}</p>
                                 }
                             </div>
                             {message.role === 'user' && (
