@@ -39,6 +39,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { EditPersonaSheet } from '@/components/edit-persona-sheet';
 import { FormattedMessage } from '@/components/formatted-message';
 import { useToast } from '@/hooks/use-toast';
+import { useIsMobile } from '@/hooks/use-mobile';
 import { AnimatedChatTitle } from '@/components/animated-chat-title';
 import { getPersona, savePersona, deletePersona, getUserDetails, getApiKeys } from '@/lib/db';
 
@@ -87,6 +88,7 @@ export default function PersonaChatPage() {
   const searchParams = useSearchParams();
   const { id } = params;
   const { toast } = useToast();
+  const isMobile = useIsMobile();
 
   const [persona, setPersona] = useState<Persona | null | undefined>(undefined);
   const [userDetails, setUserDetails] = useState<UserDetails>({ name: '', about: '' });
@@ -105,6 +107,9 @@ export default function PersonaChatPage() {
   const [chatToDelete, setChatToDelete] = useState<ChatSession | null>(null);
   const [isEditSheetOpen, setIsEditSheetOpen] = useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+
+  const [glowingMessageIndex, setGlowingMessageIndex] = useState<number | null>(null);
+  const [isMemoryButtonGlowing, setIsMemoryButtonGlowing] = useState(false);
 
   const scrollAreaRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -200,6 +205,7 @@ export default function PersonaChatPage() {
     const userInput = input;
     const isNewChat = messages.length === 0;
 
+    const userMessageIndex = messages.length;
     const optimisticPersona = {
       ...persona,
       chats: persona.chats.map(c => 
@@ -232,13 +238,19 @@ export default function PersonaChatPage() {
     }
 
     let finalMemories = persona.memories || [];
-    if ((res.newMemories?.length || 0) > 0 || (res.removedMemories?.length || 0) > 0) {
+    const memoryWasUpdated = (res.newMemories?.length || 0) > 0 || (res.removedMemories?.length || 0) > 0;
+    
+    if (memoryWasUpdated) {
       finalMemories = finalMemories.filter(mem => !res.removedMemories?.includes(mem));
       finalMemories = [...new Set([...finalMemories, ...(res.newMemories || [])])];
-      toast({
-        title: 'Memory Updated',
-        description: res.newMemories?.length ? `Your persona learned: ${res.newMemories.join(', ')}` : 'A memory was updated or removed.',
-      });
+      
+      setGlowingMessageIndex(userMessageIndex);
+      setTimeout(() => setGlowingMessageIndex(null), 1500);
+
+      if (!isMobile) {
+        setIsMemoryButtonGlowing(true);
+        setTimeout(() => setIsMemoryButtonGlowing(false), 1500);
+      }
     }
 
     const assistantMessage: ChatMessage | null = res.response ? { role: 'assistant', content: res.response } : null;
@@ -350,6 +362,13 @@ export default function PersonaChatPage() {
     setPersona(updatedPersona);
     await savePersona(updatedPersona);
   };
+  
+  const handleMemoryDialogChange = (open: boolean) => {
+      if (open) {
+          setIsMemoryButtonGlowing(false);
+      }
+      setIsMemoryDialogOpen(open);
+  }
 
   if (persona === undefined) {
     return <PersonaChatSkeleton />;
@@ -441,9 +460,9 @@ export default function PersonaChatPage() {
             </div>
             
              <div className="p-4 border-t">
-                <Dialog open={isMemoryDialogOpen} onOpenChange={setIsMemoryDialogOpen}>
+                <Dialog open={isMemoryDialogOpen} onOpenChange={handleMemoryDialogChange}>
                     <DialogTrigger asChild>
-                        <Button variant="outline" className="w-full">
+                        <Button variant="outline" className={cn("w-full", isMemoryButtonGlowing && "animate-glow-once")}>
                             <Brain className="mr-2 h-4 w-4" /> View Memories
                         </Button>
                     </DialogTrigger>
@@ -559,18 +578,20 @@ export default function PersonaChatPage() {
           
           {/* Right Chat Panel */}
           <div className="flex-1 flex flex-col bg-background/80 backdrop-blur-sm min-w-0">
-             <header className="flex items-center gap-2 md:gap-4 p-2 border-b flex-shrink-0">
-                <Button variant="ghost" size="icon" className="md:hidden" onClick={() => setIsSidebarOpen(!isSidebarOpen)}>
-                    <PanelLeft className="h-5 w-5" />
-                </Button>
-                <Button asChild variant="ghost" className="text-muted-foreground hover:text-foreground">
-                    <Link href="/">
-                    <ArrowLeft className="mr-2 h-4 w-4" />
-                    All Personas
-                    </Link>
-                </Button>
-                 <div className="ml-auto hidden md:block">
-                     <Button variant="ghost" size="icon" onClick={() => setIsSidebarOpen(!isSidebarOpen)}>
+             <header className="flex items-center justify-between h-16 gap-2 md:gap-4 px-4 border-b flex-shrink-0">
+                <div className="flex items-center gap-2">
+                  <Button variant="ghost" size="icon" className="md:hidden" onClick={() => setIsSidebarOpen(!isSidebarOpen)}>
+                      <PanelLeft className="h-5 w-5" />
+                  </Button>
+                  <Button asChild variant="ghost" className="text-muted-foreground hover:text-foreground">
+                      <Link href="/">
+                      <ArrowLeft className="mr-2 h-4 w-4" />
+                      All Personas
+                      </Link>
+                  </Button>
+                </div>
+                 <div className="flex items-center gap-2">
+                     <Button variant="ghost" size="icon" className="hidden md:flex" onClick={() => setIsSidebarOpen(!isSidebarOpen)}>
                         <PanelLeft className="h-5 w-5" />
                     </Button>
                 </div>
@@ -589,7 +610,11 @@ export default function PersonaChatPage() {
                                     <AvatarFallback><Bot /></AvatarFallback>
                                 </Avatar>
                             )}
-                            <div className={cn("max-w-md lg:max-w-2xl rounded-lg px-4 py-3", message.role === 'user' ? 'bg-primary text-primary-foreground rounded-tr-none' : 'bg-secondary rounded-tl-none')}>
+                            <div className={cn(
+                                "max-w-md lg:max-w-2xl rounded-lg px-4 py-3", 
+                                message.role === 'user' ? 'bg-primary text-primary-foreground rounded-tr-none' : 'bg-secondary rounded-tl-none',
+                                glowingMessageIndex === index && 'animate-glow-once'
+                            )}>
                                 <FormattedMessage content={message.content} />
                             </div>
                             {message.role === 'user' && (
