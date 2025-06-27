@@ -50,6 +50,8 @@ export default function NewPersonaPage() {
   const { toast } = useToast();
   const [personas, setPersonas] = useLocalStorage<Persona[]>('personas', []);
   const [apiKeys] = useLocalStorage<ApiKeys>('api-keys', { gemini: '' });
+  const maxPersonas = 3;
+  const [isMounted, setIsMounted] = useState(false);
 
   const [formKey, setFormKey] = useState(0);
   const [defaultValues, setDefaultValues] = useState({
@@ -77,12 +79,38 @@ export default function NewPersonaPage() {
   const nameRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
+    setIsMounted(true);
+  }, []);
+
+  useEffect(() => {
     if (state.success && state.persona) {
       const newPersona: Persona = { ...state.persona, id: crypto.randomUUID(), chats: [], memories: [] };
       setPersonas((prev) => [...prev, newPersona]);
       router.push(`/persona/${newPersona.id}`);
     }
   }, [state, setPersonas, router]);
+
+  useEffect(() => {
+    if (isMounted && personas.length >= maxPersonas) {
+      toast({
+        variant: 'destructive',
+        title: 'Persona Limit Reached',
+        description: `You can only create a maximum of ${maxPersonas} personas.`,
+      });
+      router.push('/');
+    }
+  }, [isMounted, personas, router, toast, maxPersonas]);
+
+  if (!isMounted || (isMounted && personas.length >= maxPersonas)) {
+    return (
+      <div className="container py-12 flex items-center justify-center min-h-[calc(100vh-10rem)]">
+        <div className="text-center">
+          <Loader2 className="mx-auto h-12 w-12 animate-spin text-primary" />
+          <p className="mt-4 text-muted-foreground">{!isMounted ? 'Loading...' : 'Persona limit reached. Redirecting...'}</p>
+        </div>
+      </div>
+    );
+  }
 
   const handleGenerateFullPersona = async () => {
     if (!prompt) return;

@@ -20,6 +20,12 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
 
 function PersonaCardSkeleton() {
   return (
@@ -36,6 +42,8 @@ function PersonaCardSkeleton() {
 export default function HomePage() {
   const [personas, setPersonas] = useLocalStorage<Persona[]>('personas', []);
   const [isMounted, setIsMounted] = useState(false);
+  const maxPersonas = 3;
+  const canCreatePersona = personas.length < maxPersonas;
 
   useEffect(() => {
     setIsMounted(true);
@@ -61,9 +69,7 @@ export default function HomePage() {
                 <h1 className="text-4xl font-bold font-headline tracking-tight">Your Personas</h1>
                 <p className="text-muted-foreground mt-1">Create and manage your AI companions.</p>
             </div>
-          <Button disabled size="lg">
-            <PlusCircle className="mr-2" /> Create Persona
-          </Button>
+          <Skeleton className="h-11 w-44 rounded-md" />
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-8">
           {[...Array(4)].map((_, i) => (
@@ -81,11 +87,30 @@ export default function HomePage() {
             <h1 className="text-4xl font-bold font-headline tracking-tight">Your Personas</h1>
             <p className="text-muted-foreground mt-1">Create and manage your AI companions.</p>
         </div>
-        <Button asChild size="lg">
-          <Link href="/persona/new">
-            <PlusCircle className="mr-2" /> Create Persona
-          </Link>
-        </Button>
+        <TooltipProvider>
+          <Tooltip delayDuration={100}>
+            <TooltipTrigger asChild>
+              <div tabIndex={canCreatePersona ? -1 : 0}>
+                <Button asChild={canCreatePersona} disabled={!canCreatePersona} size="lg">
+                  {canCreatePersona ? (
+                    <Link href="/persona/new">
+                      <PlusCircle className="mr-2" /> Create Persona
+                    </Link>
+                  ) : (
+                    <span>
+                      <PlusCircle className="mr-2" /> Create Persona
+                    </span>
+                  )}
+                </Button>
+              </div>
+            </TooltipTrigger>
+            {!canCreatePersona && (
+              <TooltipContent>
+                <p>You can create a maximum of {maxPersonas} personas.</p>
+              </TooltipContent>
+            )}
+          </Tooltip>
+        </TooltipProvider>
       </div>
 
       {personas.length > 0 ? (
