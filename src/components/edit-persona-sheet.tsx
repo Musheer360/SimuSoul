@@ -45,7 +45,7 @@ interface EditPersonaSheetProps {
   persona: Persona;
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onPersonaUpdate: (updatedPersona: Persona) => void;
+  onPersonaUpdate: (updatedPersonaData: Omit<Persona, 'chats' | 'memories'>) => void;
 }
 
 export function EditPersonaSheet({ persona, open, onOpenChange, onPersonaUpdate }: EditPersonaSheetProps) {
@@ -57,20 +57,11 @@ export function EditPersonaSheet({ persona, open, onOpenChange, onPersonaUpdate 
     persona: null,
   };
   const [state, dispatch] = useActionState(updatePersonaAction, initialState);
-
-  // Use a ref to track if the toast has been shown for this save action
   const stateRef = useRef(state);
 
   useEffect(() => {
-    // Only act if the state has genuinely changed to a new successful save.
     if (state.success && state.persona && state !== stateRef.current) {
-      const updatedPersona: Persona = {
-        ...state.persona,
-        chats: persona.chats, // Keep existing chats
-        memories: persona.memories, // Keep existing memories
-      };
-      onPersonaUpdate(updatedPersona);
-      // No toast or onOpenChange(false) here, parent component handles it.
+      onPersonaUpdate(state.persona);
     } else if (state.message && !state.success && state !== stateRef.current) {
         toast({
             variant: 'destructive',
@@ -79,7 +70,7 @@ export function EditPersonaSheet({ persona, open, onOpenChange, onPersonaUpdate 
         });
     }
     stateRef.current = state;
-  }, [state, persona, onPersonaUpdate, toast]);
+  }, [state, onPersonaUpdate, toast]);
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>

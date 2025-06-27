@@ -6,7 +6,6 @@ import Image from 'next/image';
 import { PlusCircle, Bot, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardTitle } from '@/components/ui/card';
-import { useLocalStorage } from '@/hooks/use-local-storage';
 import type { Persona } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
 import {
@@ -26,6 +25,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip';
+import { getAllPersonas, deletePersona } from '@/lib/db';
 
 function PersonaCardSkeleton() {
   return (
@@ -40,35 +40,34 @@ function PersonaCardSkeleton() {
 }
 
 export default function HomePage() {
-  const [personas, setPersonas] = useLocalStorage<Persona[]>('personas', []);
-  const [isMounted, setIsMounted] = useState(false);
+  const [personas, setPersonas] = useState<Persona[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const maxPersonas = 3;
   const canCreatePersona = personas.length < maxPersonas;
 
   useEffect(() => {
-    setIsMounted(true);
-    // One-time migration to add 'chats' and 'memories' array to existing personas
-    setPersonas(prevPersonas => {
-        const needsMigration = prevPersonas.some(p => !p.chats || !p.memories);
-        if (needsMigration) {
-            return prevPersonas.map(p => ({
-              ...p,
-              chats: p.chats || [],
-              memories: p.memories || []
-            }));
-        }
-        return prevPersonas;
-    });
-  }, [setPersonas]);
+    async function loadPersonas() {
+      setIsLoading(true);
+      const storedPersonas = await getAllPersonas();
+      setPersonas(storedPersonas);
+      setIsLoading(false);
+    }
+    loadPersonas();
+  }, []);
 
-  if (!isMounted) {
+  const handleDelete = async (personaId: string) => {
+    await deletePersona(personaId);
+    setPersonas((prev) => prev.filter((p) => p.id !== personaId));
+  };
+
+  if (isLoading) {
     return (
       <div className="container py-12">
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-10">
-            <div className="mb-4 sm:mb-0">
-                <h1 className="text-4xl font-bold font-headline tracking-tight">Your Personas</h1>
-                <p className="text-muted-foreground mt-1">Create and manage your AI companions.</p>
-            </div>
+          <div className="mb-4 sm:mb-0">
+            <h1 className="text-4xl font-bold font-headline tracking-tight">Your Personas</h1>
+            <p className="text-muted-foreground mt-1">Create and manage your AI companions.</p>
+          </div>
           <Skeleton className="h-11 w-44 rounded-md" />
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-8">
@@ -84,8 +83,8 @@ export default function HomePage() {
     <div className="container py-12">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-10 animate-fade-in-up">
         <div className="mb-4 sm:mb-0">
-            <h1 className="text-4xl font-bold font-headline tracking-tight">Your Personas</h1>
-            <p className="text-muted-foreground mt-1">Create and manage your AI companions.</p>
+          <h1 className="text-4xl font-bold font-headline tracking-tight">Your Personas</h1>
+          <p className="text-muted-foreground mt-1">Create and manage your AI companions.</p>
         </div>
         <TooltipProvider>
           <Tooltip delayDuration={100}>
@@ -144,9 +143,7 @@ export default function HomePage() {
                     <AlertDialogCancel>Cancel</AlertDialogCancel>
                     <AlertDialogAction
                       className="bg-destructive hover:bg-destructive/90"
-                      onClick={() => {
-                        setPersonas((prev) => prev.filter((p) => p.id !== persona.id));
-                      }}
+                      onClick={() => handleDelete(persona.id)}
                     >
                       Delete
                     </AlertDialogAction>
@@ -154,29 +151,26 @@ export default function HomePage() {
                 </AlertDialogContent>
               </AlertDialog>
 
-              <Link
-                href={`/persona/${persona.id}`}
-                className="block"
-              >
+              <Link href={`/persona/${persona.id}`} className="block">
                 <Card className="h-full overflow-hidden border-2 border-transparent group-hover:border-primary transition-all duration-300 group-hover:shadow-2xl group-hover:shadow-primary/20 bg-card/50 backdrop-blur-sm group-hover:-translate-y-2">
-                    <div className="aspect-[3/4] relative overflow-hidden">
-                      <Image
-                        src={persona.profilePictureUrl}
-                        alt={persona.name}
-                        fill
-                        className="object-cover group-hover:scale-105 transition-transform duration-500 ease-in-out"
-                        data-ai-hint="persona portrait"
-                      />
-                      <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent" />
-                    </div>
-                    <div className="p-4">
-                      <CardTitle className="font-headline text-xl text-white group-hover:text-primary transition-colors">
-                        {persona.name}
-                      </CardTitle>
-                      <p className="text-sm text-muted-foreground line-clamp-2 mt-1">
-                        {persona.traits}
-                      </p>
-                    </div>
+                  <div className="aspect-[3/4] relative overflow-hidden">
+                    <Image
+                      src={persona.profilePictureUrl}
+                      alt={persona.name}
+                      fill
+                      className="object-cover group-hover:scale-105 transition-transform duration-500 ease-in-out"
+                      data-ai-hint="persona portrait"
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent" />
+                  </div>
+                  <div className="p-4">
+                    <CardTitle className="font-headline text-xl text-white group-hover:text-primary transition-colors">
+                      {persona.name}
+                    </CardTitle>
+                    <p className="text-sm text-muted-foreground line-clamp-2 mt-1">
+                      {persona.traits}
+                    </p>
+                  </div>
                 </Card>
               </Link>
             </div>

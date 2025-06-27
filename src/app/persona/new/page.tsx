@@ -3,7 +3,6 @@
 import { useFormStatus } from 'react-dom';
 import { useEffect, useState, useRef, useActionState } from 'react';
 import { useRouter } from 'next/navigation';
-import { useLocalStorage } from '@/hooks/use-local-storage';
 import {
   createPersonaAction,
   generatePersonaDetailsAction,
@@ -25,6 +24,7 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Loader2, Sparkles, Wand2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { getApiKeys, getAllPersonas, savePersona } from '@/lib/db';
 
 function SubmitButton() {
   const { pending } = useFormStatus();
@@ -48,10 +48,10 @@ function SubmitButton() {
 export default function NewPersonaPage() {
   const router = useRouter();
   const { toast } = useToast();
-  const [personas, setPersonas] = useLocalStorage<Persona[]>('personas', []);
-  const [apiKeys] = useLocalStorage<ApiKeys>('api-keys', { gemini: '' });
+  const [personasCount, setPersonasCount] = useState(0);
+  const [apiKeys, setApiKeys] = useState<ApiKeys>({ gemini: '' });
+  const [isLoading, setIsLoading] = useState(true);
   const maxPersonas = 3;
-  const [isMounted, setIsMounted] = useState(false);
 
   const [formKey, setFormKey] = useState(0);
   const [defaultValues, setDefaultValues] = useState({
@@ -79,19 +79,30 @@ export default function NewPersonaPage() {
   const nameRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    setIsMounted(true);
+    async function loadInitialData() {
+      setIsLoading(true);
+      const [storedPersonas, storedKeys] = await Promise.all([
+        getAllPersonas(),
+        getApiKeys(),
+      ]);
+      setPersonasCount(storedPersonas.length);
+      setApiKeys(storedKeys);
+      setIsLoading(false);
+    }
+    loadInitialData();
   }, []);
 
   useEffect(() => {
     if (state.success && state.persona) {
       const newPersona: Persona = { ...state.persona, id: crypto.randomUUID(), chats: [], memories: [] };
-      setPersonas((prev) => [...prev, newPersona]);
-      router.push(`/persona/${newPersona.id}`);
+      savePersona(newPersona).then(() => {
+        router.push(`/persona/${newPersona.id}`);
+      });
     }
-  }, [state, setPersonas, router]);
+  }, [state, router]);
 
   useEffect(() => {
-    if (isMounted && personas.length >= maxPersonas) {
+    if (!isLoading && personasCount >= maxPersonas) {
       toast({
         variant: 'destructive',
         title: 'Persona Limit Reached',
@@ -99,14 +110,14 @@ export default function NewPersonaPage() {
       });
       router.push('/');
     }
-  }, [isMounted, personas, router, toast, maxPersonas]);
+  }, [isLoading, personasCount, router, toast, maxPersonas]);
 
-  if (!isMounted || (isMounted && personas.length >= maxPersonas)) {
+  if (isLoading || (!isLoading && personasCount >= maxPersonas)) {
     return (
       <div className="container py-12 flex items-center justify-center min-h-[calc(100vh-10rem)]">
         <div className="text-center">
           <Loader2 className="mx-auto h-12 w-12 animate-spin text-primary" />
-          <p className="mt-4 text-muted-foreground">{!isMounted ? 'Loading...' : 'Persona limit reached. Redirecting...'}</p>
+          <p className="mt-4 text-muted-foreground">{isLoading ? 'Loading...' : 'Persona limit reached. Redirecting...'}</p>
         </div>
       </div>
     );

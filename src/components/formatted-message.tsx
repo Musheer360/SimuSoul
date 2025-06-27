@@ -11,7 +11,7 @@ import remarkGfm from 'remark-gfm';
 
 export function FormattedMessage({ content }: { content: string }) {
   const components = {
-    // Override 'pre' for fenced code blocks
+    p: (props: any) => <p className="mb-3 last:mb-0" {...props} />,
     pre: ({ node, children, ...props }: any) => {
       const [isCopied, setIsCopied] = useState(false);
       
@@ -32,7 +32,7 @@ export function FormattedMessage({ content }: { content: string }) {
       };
 
       return (
-        <div className="relative rounded-md bg-[#0d1117] p-3">
+        <div className="relative rounded-md bg-[#0d1117]">
             <div className="absolute top-1.5 right-1.5 flex items-center gap-x-2">
                 <span className="text-xs text-muted-foreground">{language === 'text' ? 'code' : language}</span>
                 <Button
@@ -48,7 +48,7 @@ export function FormattedMessage({ content }: { content: string }) {
             <SyntaxHighlighter
                 style={vscDarkPlus}
                 customStyle={{
-                    padding: '0',
+                    padding: '0.75rem',
                     margin: '0',
                     backgroundColor: 'transparent',
                     fontSize: '0.875rem',
@@ -63,7 +63,6 @@ export function FormattedMessage({ content }: { content: string }) {
         </div>
       )
     },
-    // Override 'code' for inline code
     code({ node, inline, className, children, ...props }: any) {
       if (inline) {
         return (
@@ -72,20 +71,17 @@ export function FormattedMessage({ content }: { content: string }) {
           </code>
         );
       }
-      // For code blocks, the 'pre' renderer above will handle it. 
-      // This part renders the `code` element that the `pre` renderer receives as children.
       return <code className={className} {...props}>{children}</code>
     },
-    p: (props: any) => <p {...props} />,
     strong: (props: any) => <strong className="font-bold" {...props} />,
     em: (props: any) => <em className="italic" {...props} />,
-    ul: (props: any) => <ul className="list-disc pl-5" {...props} />,
-    ol: (props: any) => <ol className="list-decimal pl-5" {...props} />,
+    ul: (props: any) => <ul className="list-disc pl-5 mb-3 last:mb-0" {...props} />,
+    ol: (props: any) => <ol className="list-decimal pl-5 mb-3 last:mb-0" {...props} />,
     li: (props: any) => <li className="mb-1" {...props} />,
   };
 
   return (
-    <div className="text-sm leading-relaxed whitespace-pre-wrap break-words space-y-3">
+    <div className="text-sm leading-relaxed break-words">
       <ReactMarkdown
         remarkPlugins={[remarkGfm]}
         components={components}

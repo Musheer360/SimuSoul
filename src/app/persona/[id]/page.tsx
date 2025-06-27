@@ -4,7 +4,6 @@ import { useEffect, useState, useRef, FormEvent, useMemo, useCallback } from 're
 import Image from 'next/image';
 import Link from 'next/link';
 import { useParams, useRouter, useSearchParams } from 'next/navigation';
-import { useLocalStorage } from '@/hooks/use-local-storage';
 import { chatAction, generateChatTitleAction } from '@/app/actions';
 import type { Persona, UserDetails, ChatMessage, ChatSession, ApiKeys } from '@/lib/types';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -41,6 +40,7 @@ import { EditPersonaSheet } from '@/components/edit-persona-sheet';
 import { FormattedMessage } from '@/components/formatted-message';
 import { useToast } from '@/hooks/use-toast';
 import { AnimatedChatTitle } from '@/components/animated-chat-title';
+import { getPersona, savePersona, deletePersona, getUserDetails, getApiKeys } from '@/lib/db';
 
 function PersonaChatSkeleton() {
   return (
@@ -88,22 +88,10 @@ export default function PersonaChatPage() {
   const { id } = params;
   const { toast } = useToast();
 
-  const [personas, setPersonas] = useLocalStorage<Persona[]>('personas', []);
-  const [userDetails] = useLocalStorage<UserDetails>('user-details', { name: '', about: '' });
-  const [apiKeys] = useLocalStorage<ApiKeys>('api-keys', { gemini: '' });
+  const [persona, setPersona] = useState<Persona | null | undefined>(undefined);
+  const [userDetails, setUserDetails] = useState<UserDetails>({ name: '', about: '' });
+  const [apiKeys, setApiKeys] = useState<ApiKeys>({ gemini: '' });
   
-  const persona = useMemo(() => {
-    const p = personas.find(p => p.id === id);
-    if (p) {
-        return {
-            ...p,
-            chats: p.chats || [],
-            memories: p.memories || [],
-        };
-    }
-    return null;
-  }, [id, personas]);
-
   const [activeChatId, setActiveChatId] = useState<string | null>(null);
   
   const [input, setInput] = useState('');
@@ -116,17 +104,30 @@ export default function PersonaChatPage() {
   const [isClearAllDialogOpen, setIsClearAllDialogOpen] = useState(false);
   const [chatToDelete, setChatToDelete] = useState<ChatSession | null>(null);
   const [isEditSheetOpen, setIsEditSheetOpen] = useState(false);
-  const [isMounted, setIsMounted] = useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
 
   const scrollAreaRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   useEffect(() => {
-    setIsMounted(true);
-  }, []);
+    async function loadPageData() {
+      if (!id || typeof id !== 'string') {
+        setPersona(null);
+        return;
+      }
+      const [p, ud, ak] = await Promise.all([
+        getPersona(id),
+        getUserDetails(),
+        getApiKeys(),
+      ]);
+      setPersona(p || null);
+      setUserDetails(ud);
+      setApiKeys(ak);
+    }
+    loadPageData();
+  }, [id]);
 
-  const handleNewChat = useCallback(() => {
+  const handleNewChat = useCallback(async () => {
     if (!persona) return;
     const newChat: ChatSession = {
       id: crypto.randomUUID(),
@@ -136,11 +137,12 @@ export default function PersonaChatPage() {
     };
     const updatedPersona = {
       ...persona,
-      chats: [newChat, ...persona.chats],
+      chats: [newChat, ...(persona.chats || [])],
     };
-    setPersonas(prev => prev.map(p => p.id === persona.id ? updatedPersona : p));
+    setPersona(updatedPersona);
+    await savePersona(updatedPersona);
     router.push(`/persona/${persona.id}?chat=${newChat.id}`);
-  }, [persona, router, setPersonas]);
+  }, [persona, router]);
   
   const sortedChats = useMemo(() => {
     if (!persona?.chats) return [];
@@ -155,9 +157,11 @@ export default function PersonaChatPage() {
 
     if (chatIdFromQuery && chatExists) {
       setActiveChatId(chatIdFromQuery);
-    } else if (persona.chats.length > 0) {
+    } else if (sortedChats.length > 0) {
       const latestChatId = sortedChats[0].id;
-      router.replace(`/persona/${persona.id}?chat=${latestChatId}`, { scroll: false });
+      if (latestChatId !== chatIdFromQuery) {
+        router.replace(`/persona/${persona.id}?chat=${latestChatId}`, { scroll: false });
+      }
     } else {
       handleNewChat();
     }
@@ -191,33 +195,26 @@ export default function PersonaChatPage() {
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     if (!input.trim() || !persona || !activeChatId) return;
-  
+
     const userMessage: ChatMessage = { role: 'user', content: input };
-    const userInput = input; // Capture for later use
-    
+    const userInput = input;
     const isNewChat = messages.length === 0;
-  
-    const updatedChatSession = {
-      ...activeChat!,
-      messages: [...messages, userMessage],
+
+    const optimisticPersona = {
+      ...persona,
+      chats: persona.chats.map(c => 
+        c.id === activeChatId ? { ...c, messages: [...c.messages, userMessage] } : c
+      ),
     };
-  
-    // Update UI immediately with user's message
-    setPersonas(prev => prev.map(p => {
-      if (p.id !== persona.id) return p;
-      return {
-        ...p,
-        chats: p.chats.map(c => c.id === activeChatId ? updatedChatSession : c),
-      }
-    }));
+    setPersona(optimisticPersona);
 
     setInput('');
-    if(textareaRef.current) {
-        textareaRef.current.style.height = 'auto';
+    if (textareaRef.current) {
+      textareaRef.current.style.height = 'auto';
     }
     setIsLoading(true);
     setError(null);
-  
+
     const res = await chatAction({
       persona,
       userDetails,
@@ -225,102 +222,68 @@ export default function PersonaChatPage() {
       message: userInput,
       apiKey: apiKeys.gemini,
     });
-  
-    setIsLoading(false);
-  
-    if (res.error) {
-        setError(res.error);
-        // Revert adding user message
-        const revertedChatSession = {
-            ...updatedChatSession,
-            messages: messages,
-        };
-        setPersonas(prev => prev.map(p => {
-           if (p.id !== persona.id) return p;
-           return {
-             ...p,
-             chats: p.chats.map(c => c.id === activeChatId ? revertedChatSession : c),
-           }
-        }));
-        return;
-    }
-  
-    let finalMemories = persona.memories || [];
-    const memoriesChanged = (res.newMemories && res.newMemories.length > 0) || (res.removedMemories && res.removedMemories.length > 0);
-  
-    if (memoriesChanged) {
-        if (res.removedMemories) {
-            finalMemories = finalMemories.filter(mem => !res.removedMemories!.includes(mem));
-        }
-        if (res.newMemories) {
-            finalMemories = [...new Set([...finalMemories, ...res.newMemories])];
-        }
-        toast({
-            title: 'Memory Updated',
-            description: res.newMemories && res.newMemories.length > 0 
-                ? `Your persona learned: ${res.newMemories.join(', ')}` 
-                : 'A memory was updated or removed.',
-        });
-    }
-    
-    const assistantMessage: ChatMessage | null = res.response ? { role: 'assistant', content: res.response } : null;
-  
-    const finalUpdatedSession = {
-      ...updatedChatSession,
-      messages: assistantMessage ? [...updatedChatSession.messages, assistantMessage] : updatedChatSession.messages,
-    };
-  
-    // Update state with assistant message and memories
-    setPersonas(prev => prev.map(p => {
-        if (p.id !== persona.id) return p;
-        return {
-            ...p,
-            chats: p.chats.map(c => c.id === activeChatId ? finalUpdatedSession : c),
-            memories: finalMemories,
-        }
-    }));
 
-    // If it was a new chat and we got a response, generate the title in the background
+    setIsLoading(false);
+
+    if (res.error) {
+      setError(res.error);
+      setPersona(persona); // Revert optimistic update
+      return;
+    }
+
+    let finalMemories = persona.memories || [];
+    if ((res.newMemories?.length || 0) > 0 || (res.removedMemories?.length || 0) > 0) {
+      finalMemories = finalMemories.filter(mem => !res.removedMemories?.includes(mem));
+      finalMemories = [...new Set([...finalMemories, ...(res.newMemories || [])])];
+      toast({
+        title: 'Memory Updated',
+        description: res.newMemories?.length ? `Your persona learned: ${res.newMemories.join(', ')}` : 'A memory was updated or removed.',
+      });
+    }
+
+    const assistantMessage: ChatMessage | null = res.response ? { role: 'assistant', content: res.response } : null;
+
+    let personaToSave = {
+      ...persona,
+      chats: persona.chats.map(c => {
+        if (c.id !== activeChatId) return c;
+        const updatedMessages = assistantMessage ? [...c.messages, userMessage, assistantMessage] : [...c.messages, userMessage];
+        return { ...c, messages: updatedMessages };
+      }),
+      memories: finalMemories,
+    };
+    setPersona(personaToSave);
+    await savePersona(personaToSave);
+
     if (isNewChat && assistantMessage) {
-      generateChatTitleAction({
+      const titleResult = await generateChatTitleAction({
         userMessage: userInput,
         assistantResponse: assistantMessage.content,
         apiKey: apiKeys.gemini,
-      }).then(titleResult => {
-        if (titleResult.title) {
-          // Update the state one last time with the new title
-          setPersonas(prev => prev.map(p => {
-            if (p.id !== persona.id) return p;
-            return {
-              ...p,
-              chats: p.chats.map(c => {
-                if (c.id === activeChatId) {
-                  return { ...c, title: titleResult.title! };
-                }
-                return c;
-              }),
-            }
-          }));
-        } else if (titleResult.error) {
-          console.error('Title generation failed:', titleResult.error);
-          // Don't show a toast for this, it's a non-critical failure.
-        }
       });
+
+      if (titleResult.title) {
+        personaToSave = {
+          ...personaToSave,
+          chats: personaToSave.chats.map(c => c.id === activeChatId ? { ...c, title: titleResult.title! } : c),
+        };
+        setPersona(personaToSave);
+        await savePersona(personaToSave);
+      } else if (titleResult.error) {
+        console.error('Title generation failed:', titleResult.error);
+      }
     }
   };
-
-  const handleConfirmDeleteChat = useCallback(() => {
+  
+  const handleConfirmDeleteChat = useCallback(async () => {
     if (!persona || !chatToDelete) return;
 
-    setPersonas(prev =>
-      prev.map(p => {
-        if (p.id === id) {
-          const updatedChats = p.chats.filter(c => c.id !== chatToDelete.id);
-          return { ...p, chats: updatedChats };
-        }
-        return p;
-      })
-    );
+    const updatedPersona = {
+        ...persona,
+        chats: persona.chats.filter(c => c.id !== chatToDelete.id)
+    };
+    setPersona(updatedPersona);
+    await savePersona(updatedPersona);
 
     if (activeChatId === chatToDelete.id) {
       router.replace(`/persona/${id}`);
@@ -328,62 +291,71 @@ export default function PersonaChatPage() {
     
     setIsDeleteDialogOpen(false);
     setChatToDelete(null);
-  }, [id, activeChatId, persona, chatToDelete, setPersonas, router]);
+  }, [id, activeChatId, persona, chatToDelete, router]);
 
-  const handleClearAllChats = useCallback(() => {
+  const handleClearAllChats = useCallback(async () => {
     if (!persona) return;
 
-    setPersonas(prev =>
-      prev.map(p => {
-        if (p.id === id) {
-          return { ...p, chats: [] };
-        }
-        return p;
-      })
-    );
+    const updatedPersona = { ...persona, chats: [] };
+    setPersona(updatedPersona);
+    await savePersona(updatedPersona);
 
     setIsClearAllDialogOpen(false);
     toast({
       title: 'Chat History Cleared',
       description: `All chats for ${persona.name} have been deleted.`,
     });
-  }, [id, persona, setPersonas, toast]);
+  }, [persona, toast]);
 
-  const handleDeletePersona = () => {
-    setPersonas(prev => prev.filter(p => p.id !== id));
+  const handleDeletePersona = async () => {
+    if (!id || typeof id !== 'string') return;
+    await deletePersona(id);
     router.push('/');
   };
 
-  const handlePersonaUpdate = useCallback((updatedPersona: Persona) => {
-    setPersonas(prev => prev.map(p => (p.id === updatedPersona.id ? updatedPersona : p)));
+  const handlePersonaUpdate = useCallback(async (updatedPersonaData: Omit<Persona, 'chats' | 'memories'>) => {
+    if (!persona) return;
+    const updatedPersona = { 
+        ...persona,
+        ...updatedPersonaData,
+     };
+    setPersona(updatedPersona);
+    await savePersona(updatedPersona);
     setIsEditSheetOpen(false);
     toast({
         title: 'Persona Updated!',
         description: `${updatedPersona.name} has been saved.`,
     });
-  }, [setPersonas, toast]);
+  }, [persona, toast]);
 
-  const handleManualAddMemory = (e: FormEvent) => {
+  const handleManualAddMemory = async (e: FormEvent) => {
       e.preventDefault();
       if (!persona || !newMemoryInput.trim()) return;
 
-      const updatedMemories = [...new Set([...(persona.memories || []), newMemoryInput.trim()])];
-      setPersonas(prev => prev.map(p => p.id === persona.id ? {...p, memories: updatedMemories} : p));
+      const updatedPersona = {
+          ...persona,
+          memories: [...new Set([...(persona.memories || []), newMemoryInput.trim()])]
+      };
+      setPersona(updatedPersona);
+      await savePersona(updatedPersona);
       setNewMemoryInput('');
   };
 
-  const handleDeleteMemory = (memoryToDelete: string) => {
+  const handleDeleteMemory = async (memoryToDelete: string) => {
     if (!persona) return;
-    const updatedMemories = (persona.memories || []).filter(m => m !== memoryToDelete);
-    setPersonas(prev => prev.map(p => p.id === persona.id ? {...p, memories: updatedMemories} : p));
+    const updatedPersona = {
+        ...persona,
+        memories: (persona.memories || []).filter(m => m !== memoryToDelete)
+    };
+    setPersona(updatedPersona);
+    await savePersona(updatedPersona);
   };
 
-
-  if (!isMounted) {
+  if (persona === undefined) {
     return <PersonaChatSkeleton />;
   }
 
-  if (!persona) {
+  if (persona === null) {
     return (
        <div className="container flex items-center justify-center h-full">
         <Card className="m-auto bg-card/80 backdrop-blur-sm">
@@ -608,7 +580,7 @@ export default function PersonaChatPage() {
                 {activeChatId && activeChat ? (
                 <>
                     <ScrollArea className="flex-1" ref={scrollAreaRef}>
-                    <div className="space-y-8 p-4 md:p-6 max-w-3xl mx-auto w-full">
+                    <div className="space-y-3 p-4 md:p-6 max-w-3xl mx-auto w-full">
                         {messages.map((message, index) => (
                         <div key={index} className={cn("flex items-start gap-3 md:gap-4 animate-fade-in-up", message.role === 'user' && 'justify-end')}>
                              {message.role === 'assistant' && (
@@ -618,10 +590,7 @@ export default function PersonaChatPage() {
                                 </Avatar>
                             )}
                             <div className={cn("max-w-md lg:max-w-2xl rounded-lg px-4 py-3", message.role === 'user' ? 'bg-primary text-primary-foreground rounded-tr-none' : 'bg-secondary rounded-tl-none')}>
-                                {message.role === 'assistant' ? 
-                                    <FormattedMessage content={message.content} /> : 
-                                    <p className="text-sm md:text-base whitespace-pre-wrap break-words">{message.content}</p>
-                                }
+                                <FormattedMessage content={message.content} />
                             </div>
                             {message.role === 'user' && (
                                 <Avatar className="flex-shrink-0 h-10 w-10 hidden sm:flex">

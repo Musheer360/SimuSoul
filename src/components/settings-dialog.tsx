@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -14,17 +14,26 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { useLocalStorage } from '@/hooks/use-local-storage';
 import type { UserDetails, ApiKeys } from '@/lib/types';
+import { getUserDetails, saveUserDetails, getApiKeys, saveApiKeys } from '@/lib/db';
+import { useToast } from '@/hooks/use-toast';
 
 export function SettingsDialog({ children }: { children: React.ReactNode }) {
-  const [userDetails, setUserDetails] = useLocalStorage<UserDetails>('user-details', {
-    name: '',
-    about: '',
-  });
-  const [apiKeys, setApiKeys] = useLocalStorage<ApiKeys>('api-keys', {
-    gemini: '',
-  });
+  const { toast } = useToast();
+  const [open, setOpen] = useState(false);
+  const [userDetails, setUserDetails] = useState<UserDetails>({ name: '', about: '' });
+  const [apiKeys, setApiKeys] = useState<ApiKeys>({ gemini: '' });
+
+  useEffect(() => {
+    if (open) {
+      async function loadSettings() {
+        const [details, keys] = await Promise.all([getUserDetails(), getApiKeys()]);
+        setUserDetails(details);
+        setApiKeys(keys);
+      }
+      loadSettings();
+    }
+  }, [open]);
 
   const handleUserDetailsChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     setUserDetails(prev => ({ ...prev, [e.target.name]: e.target.value }));
@@ -34,14 +43,32 @@ export function SettingsDialog({ children }: { children: React.ReactNode }) {
     setApiKeys(prev => ({ ...prev, [e.target.name]: e.target.value }));
   };
 
+  const handleSave = async () => {
+    try {
+      await Promise.all([saveUserDetails(userDetails), saveApiKeys(apiKeys)]);
+      toast({
+        title: 'Settings Saved',
+        description: 'Your details and API keys have been updated.',
+      });
+      setOpen(false);
+    } catch (error) {
+      console.error('Failed to save settings:', error);
+      toast({
+        variant: 'destructive',
+        title: 'Save Failed',
+        description: 'Could not save your settings. Please try again.',
+      });
+    }
+  };
+
   return (
-    <Dialog>
+    <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>{children}</DialogTrigger>
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
           <DialogTitle className="font-headline">Settings</DialogTitle>
           <DialogDescription>
-            Customize your experience. Your details are saved locally on your device.
+            Customize your experience. Your details are saved locally in your browser's database.
           </DialogDescription>
         </DialogHeader>
         <div className="grid gap-6 py-4">
@@ -95,9 +122,7 @@ export function SettingsDialog({ children }: { children: React.ReactNode }) {
           </div>
         </div>
         <DialogFooter>
-          <DialogTrigger asChild>
-            <Button type="button">Save changes</Button>
-          </DialogTrigger>
+          <Button type="button" onClick={handleSave}>Save changes</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
