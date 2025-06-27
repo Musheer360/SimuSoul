@@ -5,7 +5,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import { useLocalStorage } from '@/hooks/use-local-storage';
-import { chatAction } from '@/app/actions';
+import { chatAction, generateChatTitleAction } from '@/app/actions';
 import type { Persona, UserDetails, ChatMessage, ChatSession, ApiKeys } from '@/lib/types';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Textarea } from '@/components/ui/textarea';
@@ -74,7 +74,7 @@ function PersonaChatSkeleton() {
       <div className="flex-1 flex flex-col bg-background/80 backdrop-blur-sm">
         <header className="p-2 border-b flex items-center gap-2"><Skeleton className="h-8 w-48" /></header>
         <div className="flex-1 p-6" />
-        <div className="p-4 border-t"><Skeleton className="h-20 max-w-3xl mx-auto rounded-lg" /></div>
+        <div className="p-4 border-t"><Skeleton className="h-10 max-w-3xl mx-auto rounded-lg" /></div>
       </div>
     </div>
   );
@@ -192,22 +192,24 @@ export default function PersonaChatPage() {
     if (!input.trim() || !persona || !activeChatId) return;
   
     const userMessage: ChatMessage = { role: 'user', content: input };
+    const userInput = input; // Capture for later use
     
     const isNewChat = messages.length === 0;
-    const newTitle = isNewChat ? (input.substring(0, 40) + (input.length > 40 ? '...' : '')) : activeChat!.title;
   
     const updatedChatSession = {
       ...activeChat!,
-      title: newTitle,
       messages: [...messages, userMessage],
     };
   
-    let updatedPersona = {
-      ...persona,
-      chats: persona.chats.map(c => c.id === activeChatId ? updatedChatSession : c),
-    };
-    
-    setPersonas(prev => prev.map(p => p.id === persona.id ? updatedPersona : p));
+    // Update UI immediately with user's message
+    setPersonas(prev => prev.map(p => {
+      if (p.id !== persona.id) return p;
+      return {
+        ...p,
+        chats: p.chats.map(c => c.id === activeChatId ? updatedChatSession : c),
+      }
+    }));
+
     setInput('');
     if(textareaRef.current) {
         textareaRef.current.style.height = 'auto';
@@ -219,7 +221,7 @@ export default function PersonaChatPage() {
       persona,
       userDetails,
       chatHistory: messages,
-      message: input,
+      message: userInput,
       apiKey: apiKeys.gemini,
     });
   
@@ -227,15 +229,18 @@ export default function PersonaChatPage() {
   
     if (res.error) {
         setError(res.error);
+        // Revert adding user message
         const revertedChatSession = {
             ...updatedChatSession,
             messages: messages,
         };
-        const revertedPersona = {
-            ...persona,
-            chats: persona.chats.map(c => c.id === activeChatId ? revertedChatSession : c),
-        };
-        setPersonas(prev => prev.map(p => p.id === persona.id ? revertedPersona : p));
+        setPersonas(prev => prev.map(p => {
+           if (p.id !== persona.id) return p;
+           return {
+             ...p,
+             chats: p.chats.map(c => c.id === activeChatId ? revertedChatSession : c),
+           }
+        }));
         return;
     }
   
@@ -264,13 +269,43 @@ export default function PersonaChatPage() {
       messages: assistantMessage ? [...updatedChatSession.messages, assistantMessage] : updatedChatSession.messages,
     };
   
-    const finalPersonaState = {
-      ...persona,
-      chats: persona.chats.map(c => c.id === activeChatId ? finalUpdatedSession : c),
-      memories: finalMemories,
-    };
-    
-    setPersonas(prev => prev.map(p => p.id === persona.id ? finalPersonaState : p));
+    // Update state with assistant message and memories
+    setPersonas(prev => prev.map(p => {
+        if (p.id !== persona.id) return p;
+        return {
+            ...p,
+            chats: p.chats.map(c => c.id === activeChatId ? finalUpdatedSession : c),
+            memories: finalMemories,
+        }
+    }));
+
+    // If it was a new chat and we got a response, generate the title in the background
+    if (isNewChat && assistantMessage) {
+      generateChatTitleAction({
+        userMessage: userInput,
+        assistantResponse: assistantMessage.content,
+        apiKey: apiKeys.gemini,
+      }).then(titleResult => {
+        if (titleResult.title) {
+          // Update the state one last time with the new title
+          setPersonas(prev => prev.map(p => {
+            if (p.id !== persona.id) return p;
+            return {
+              ...p,
+              chats: p.chats.map(c => {
+                if (c.id === activeChatId) {
+                  return { ...c, title: titleResult.title! };
+                }
+                return c;
+              }),
+            }
+          }));
+        } else if (titleResult.error) {
+          console.error('Title generation failed:', titleResult.error);
+          // Don't show a toast for this, it's a non-critical failure.
+        }
+      });
+    }
   };
 
   const handleConfirmDeleteChat = useCallback(() => {
@@ -320,11 +355,11 @@ export default function PersonaChatPage() {
 
   const handlePersonaUpdate = useCallback((updatedPersona: Persona) => {
     setPersonas(prev => prev.map(p => (p.id === updatedPersona.id ? updatedPersona : p)));
+    setIsEditSheetOpen(false);
     toast({
         title: 'Persona Updated!',
         description: `${updatedPersona.name} has been saved.`,
     });
-    setIsEditSheetOpen(false);
   }, [setPersonas, toast]);
 
   const handleManualAddMemory = (e: FormEvent) => {
@@ -618,7 +653,7 @@ export default function PersonaChatPage() {
                       <div className="max-w-3xl mx-auto">
                         <form
                           onSubmit={handleSubmit}
-                          className="flex w-full items-end gap-2 rounded-lg border bg-secondary/50 p-2 transition-all"
+                          className="flex w-full items-end gap-2 rounded-lg border bg-secondary/50 p-2"
                         >
                           <Textarea
                             ref={textareaRef}
@@ -626,7 +661,7 @@ export default function PersonaChatPage() {
                             onChange={(e) => setInput(e.target.value)}
                             onInput={handleInput}
                             placeholder={`Message ${persona.name}...`}
-                            className="flex-1 resize-none border-0 bg-transparent p-2 text-base shadow-none scrollbar-hide focus-visible:ring-0 focus-visible:ring-offset-0"
+                            className="flex-1 resize-none border-0 bg-transparent p-2 text-base shadow-none focus-visible:ring-0 focus-visible:ring-offset-0"
                             rows={1}
                             onKeyDown={(e) => {
                               if (e.key === 'Enter' && !e.shiftKey) {

@@ -6,6 +6,7 @@ import { generatePersonaProfilePicture } from '@/ai/flows/generate-persona-profi
 import { chatWithPersona } from '@/ai/flows/chat-with-persona';
 import { generatePersonaDetails } from '@/ai/flows/generate-persona-details';
 import { generatePersonaFromPrompt } from '@/ai/flows/generate-full-persona';
+import { generateChatTitle } from '@/ai/flows/generate-chat-title';
 import type { Persona, UserDetails, ChatMessage, CreatePersonaState, UpdatePersonaState } from '@/lib/types';
 
 const personaSchemaFields = {
@@ -193,4 +194,22 @@ export async function updatePersonaAction(
     const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred.';
     return { success: false, message: `Persona update failed: ${errorMessage}` };
   }
+}
+
+export async function generateChatTitleAction(payload: { userMessage: string; assistantResponse: string, apiKey?: string }): Promise<{ title?: string; error?: string }> {
+    try {
+        if (!payload.userMessage || !payload.assistantResponse) {
+            return { error: 'Both user message and assistant response are required.' };
+        }
+        const result = await generateChatTitle({
+            userMessage: payload.userMessage,
+            assistantResponse: payload.assistantResponse,
+            apiKey: payload.apiKey,
+        });
+        return { title: result.title };
+    } catch (error) {
+        console.error(error);
+        const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred.';
+        return { error: `Title generation failed: ${errorMessage}` };
+    }
 }
