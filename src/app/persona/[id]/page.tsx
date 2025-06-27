@@ -490,7 +490,7 @@ export default function PersonaChatPage() {
                                     {(persona.memories || []).length > 0 ? (
                                         [...persona.memories].sort().map((memory, index) => (
                                             <div key={index} className="group flex items-center justify-between text-sm p-2 rounded-md transition-colors hover:bg-secondary">
-                                                <p className="flex-1 pr-2 break-words">{memory}</p>
+                                                <p className="flex-1 pr-2 break-words pl-8">{memory}</p>
                                                 <Button variant="ghost" size="icon" className="h-6 w-6 shrink-0 opacity-0 group-hover:opacity-100 hover:bg-transparent hover:text-inherit" onClick={() => handleDeleteMemory(memory)}>
                                                     <Trash2 className="h-4 w-4 text-destructive/70 hover:text-destructive" />
                                                 </Button>
@@ -549,7 +549,7 @@ export default function PersonaChatPage() {
                             "flex justify-between items-center p-2 rounded-md transition-colors",
                             activeChatId === chat.id ? 'bg-primary/20 text-primary-foreground' : 'hover:bg-secondary'
                           )}>
-                            <p className="text-sm truncate pr-2">
+                            <p className="text-sm truncate pr-2 pl-8">
                                 <AnimatedChatTitle title={chat.title} />
                             </p>
                             <Button
