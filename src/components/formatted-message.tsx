@@ -12,8 +12,6 @@ export function FormattedMessage({ content }: { content: string }) {
   const components = {
     code({ node, inline, className, children, ...props }: any) {
       const [isCopied, setIsCopied] = useState(false);
-      const match = /language-(\w+)/.exec(className || '');
-      const language = match ? match[1] : '';
       
       const handleCopy = () => {
         const codeString = String(children).replace(/\n$/, '');
@@ -23,47 +21,50 @@ export function FormattedMessage({ content }: { content: string }) {
         });
       };
 
-      if (!inline && match) {
+      if (inline) {
         return (
-          <div className="rounded-lg border">
-            <div className="flex items-center justify-between bg-card px-4 py-1.5">
-              <span className="text-xs text-muted-foreground">{language}</span>
-               <Button
-                variant="ghost"
-                size="icon"
-                className="h-7 w-7 text-muted-foreground"
-                onClick={handleCopy}
-                aria-label="Copy code"
-              >
-                {isCopied ? <Check className="h-4 w-4 text-green-500" /> : <Copy className="h-4 w-4" />}
-              </Button>
-            </div>
-            <SyntaxHighlighter
-              style={vscDarkPlus}
-              customStyle={{
-                padding: '1rem',
-                margin: 0,
-                backgroundColor: '#0d1117',
-                borderRadius: '0',
-                fontSize: '0.875rem',
-                lineHeight: '1.5rem',
-              }}
-              language={language}
-              PreTag="div"
-              wrapLongLines={true}
-              {...props}
-            >
-              {String(children).replace(/\n$/, '')}
-            </SyntaxHighlighter>
-          </div>
-        )
+          <code className="rounded bg-card px-1.5 py-1 font-mono text-sm" {...props}>
+            {children}
+          </code>
+        );
       }
 
+      const match = /language-(\w+)/.exec(className || '');
+      const language = match ? match[1] : 'text';
+
       return (
-        <code className="rounded bg-card px-1.5 py-1 font-mono text-sm" {...props}>
-          {children}
-        </code>
-      );
+        <div className="relative my-2 rounded-md overflow-hidden bg-[#0d1117]">
+            <div className="flex items-center justify-between px-4 py-1.5">
+                <span className="text-xs text-muted-foreground">{language === 'text' ? 'code' : language}</span>
+                <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-7 w-7 text-muted-foreground hover:bg-white/20"
+                    onClick={handleCopy}
+                    aria-label="Copy code"
+                >
+                    {isCopied ? <Check className="h-4 w-4 text-green-500" /> : <Copy className="h-4 w-4" />}
+                </Button>
+            </div>
+            <SyntaxHighlighter
+                style={vscDarkPlus}
+                customStyle={{
+                    padding: '1rem',
+                    paddingTop: '0.5rem',
+                    margin: 0,
+                    backgroundColor: 'transparent',
+                    fontSize: '0.875rem',
+                    lineHeight: '1.5rem',
+                }}
+                language={language}
+                PreTag="div"
+                wrapLongLines={true}
+                {...props}
+            >
+                {String(children).replace(/\n$/, '')}
+            </SyntaxHighlighter>
+        </div>
+      )
     },
     p: (props: any) => <p className="mb-2 last:mb-0" {...props} />,
     strong: (props: any) => <strong className="font-bold" {...props} />,
