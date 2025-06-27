@@ -6,15 +6,13 @@ import { Button } from './ui/button';
 export function SiteHeader() {
   return (
     <header className="sticky top-0 z-50 w-full border-b border-border bg-background/95 backdrop-blur-sm">
-      <div className="flex h-16 items-center px-4">
-        <div className="mr-4 flex">
-          <Link href="/" className="mr-6 flex items-center space-x-2 group">
-            <span className="font-bold text-2xl font-headline text-primary group-hover:text-white transition-colors duration-300">
-              PersonaForge
-            </span>
-          </Link>
-        </div>
-        <div className="flex flex-1 items-center justify-end space-x-2">
+      <div className="flex h-16 items-center justify-between px-4">
+        <Link href="/" className="flex items-center space-x-2 group">
+          <span className="font-bold text-2xl font-headline text-primary group-hover:text-white transition-colors duration-300">
+            PersonaForge
+          </span>
+        </Link>
+        <div className="flex items-center space-x-2">
           <SettingsDialog>
             <Button variant="ghost" size="icon" aria-label="Settings">
               <Settings className="h-5 w-5" />

@@ -521,7 +521,7 @@ export default function PersonaChatPage() {
                 <div className="flex justify-between items-center mb-2">
                     <AlertDialog open={isClearAllDialogOpen} onOpenChange={setIsClearAllDialogOpen}>
                         <AlertDialogTrigger asChild>
-                            <Button variant="ghost" size="sm" className="text-destructive hover:bg-destructive/10 hover:text-destructive -ml-2">
+                            <Button variant="ghost" size="sm" className="text-destructive hover:bg-destructive/10 hover:text-destructive">
                                 <Trash2 className="mr-2 h-4 w-4" /> Clear All
                             </Button>
                         </AlertDialogTrigger>
@@ -543,7 +543,7 @@ export default function PersonaChatPage() {
                             </AlertDialogFooter>
                         </AlertDialogContent>
                     </AlertDialog>
-                    <Button size="sm" variant="ghost" onClick={handleNewChat} className="-mr-2">
+                    <Button size="sm" variant="ghost" onClick={handleNewChat}>
                         <MessageSquarePlus className="mr-2 h-4 w-4" /> New
                     </Button>
                 </div>
@@ -617,10 +617,10 @@ export default function PersonaChatPage() {
                                     <AvatarFallback><Bot /></AvatarFallback>
                                 </Avatar>
                             )}
-                            <div className={cn("max-w-md lg:max-w-2xl rounded-lg px-4 py-3 break-words", message.role === 'user' ? 'bg-primary text-primary-foreground rounded-tr-none' : 'bg-secondary rounded-tl-none')}>
+                            <div className={cn("max-w-md lg:max-w-2xl rounded-lg px-4 py-3", message.role === 'user' ? 'bg-primary text-primary-foreground rounded-tr-none' : 'bg-secondary rounded-tl-none')}>
                                 {message.role === 'assistant' ? 
                                     <FormattedMessage content={message.content} /> : 
-                                    <p className="text-sm md:text-base whitespace-pre-wrap">{message.content}</p>
+                                    <p className="text-sm md:text-base whitespace-pre-wrap break-words">{message.content}</p>
                                 }
                             </div>
                             {message.role === 'user' && (
