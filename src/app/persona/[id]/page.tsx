@@ -617,7 +617,7 @@ export default function PersonaChatPage() {
                                     <AvatarFallback><Bot /></AvatarFallback>
                                 </Avatar>
                             )}
-                            <div className={cn("flex h-10 max-w-md lg:max-w-2xl items-center rounded-lg px-4 py-2", message.role === 'user' ? 'bg-primary text-primary-foreground rounded-tr-none' : 'bg-secondary rounded-tl-none', messages.length === 1 && 'min-h-10')}>
+                            <div className={cn("flex max-w-md lg:max-w-2xl items-center rounded-lg px-4 py-2 min-h-10", message.role === 'user' ? 'bg-primary text-primary-foreground rounded-tr-none' : 'bg-secondary rounded-tl-none')}>
                                 {message.role === 'assistant' ? 
                                     <FormattedMessage content={message.content} /> : 
                                     <p className="text-sm md:text-base whitespace-pre-wrap">{message.content}</p>
