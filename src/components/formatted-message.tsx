@@ -32,7 +32,7 @@ export function FormattedMessage({ content }: { content: string }) {
       };
 
       return (
-        <div className="relative my-2 rounded-md bg-[#0d1117]">
+        <div className="relative rounded-md bg-[#0d1117]">
             <div className="flex items-center justify-between px-4 py-1.5">
                 <span className="text-xs text-muted-foreground">{language === 'text' ? 'code' : language}</span>
                 <Button
@@ -49,7 +49,6 @@ export function FormattedMessage({ content }: { content: string }) {
                 style={vscDarkPlus}
                 customStyle={{
                     padding: '1rem',
-                    paddingTop: '0.5rem',
                     margin: 0,
                     backgroundColor: 'transparent',
                     fontSize: '0.875rem',
@@ -77,16 +76,16 @@ export function FormattedMessage({ content }: { content: string }) {
       // This part renders the `code` element that the `pre` renderer receives as children.
       return <code className={className} {...props}>{children}</code>
     },
-    p: (props: any) => <p className="mb-2 last:mb-0" {...props} />,
+    p: (props: any) => <p {...props} />,
     strong: (props: any) => <strong className="font-bold" {...props} />,
     em: (props: any) => <em className="italic" {...props} />,
-    ul: (props: any) => <ul className="list-disc pl-5 mb-2 last:mb-0" {...props} />,
-    ol: (props: any) => <ol className="list-decimal pl-5 mb-2 last:mb-0" {...props} />,
+    ul: (props: any) => <ul className="list-disc pl-5" {...props} />,
+    ol: (props: any) => <ol className="list-decimal pl-5" {...props} />,
     li: (props: any) => <li className="mb-1" {...props} />,
   };
 
   return (
-    <div className="text-sm leading-relaxed whitespace-pre-wrap break-words">
+    <div className="text-sm leading-relaxed whitespace-pre-wrap break-words space-y-4">
       <ReactMarkdown
         remarkPlugins={[remarkGfm]}
         components={components}
