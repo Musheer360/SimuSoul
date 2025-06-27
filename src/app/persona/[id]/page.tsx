@@ -40,6 +40,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { EditPersonaSheet } from '@/components/edit-persona-sheet';
 import { FormattedMessage } from '@/components/formatted-message';
 import { useToast } from '@/hooks/use-toast';
+import { AnimatedChatTitle } from '@/components/animated-chat-title';
 
 function PersonaChatSkeleton() {
   return (
@@ -553,14 +554,16 @@ export default function PersonaChatPage() {
                       {sortedChats.map(chat => (
                         <Link key={chat.id} href={`/persona/${persona.id}?chat=${chat.id}`} className="block group" scroll={false}>
                           <div className={cn(
-                            "flex justify-between items-center p-2 rounded-md transition-colors",
+                            "flex justify-between items-center px-3 py-2 rounded-md transition-colors",
                             activeChatId === chat.id ? 'bg-primary/20 text-primary-foreground' : 'hover:bg-secondary'
                           )}>
-                            <p className="text-sm truncate pr-2">{chat.title}</p>
+                            <p className="text-sm truncate pr-2">
+                                <AnimatedChatTitle title={chat.title} />
+                            </p>
                             <Button
                               variant="ghost"
                               size="icon"
-                              className="h-6 w-6 shrink-0 opacity-0 group-hover:opacity-100"
+                              className="h-6 w-6 shrink-0 opacity-0 group-hover:opacity-100 hover:bg-transparent hover:text-inherit"
                               onClick={(e) => { 
                                 e.preventDefault(); 
                                 e.stopPropagation();
@@ -614,7 +617,7 @@ export default function PersonaChatPage() {
                                     <AvatarFallback><Bot /></AvatarFallback>
                                 </Avatar>
                             )}
-                            <div className={cn("max-w-md lg:max-w-2xl px-4 py-2 rounded-lg flex items-center", message.role === 'user' ? 'bg-primary text-primary-foreground rounded-tr-none' : 'bg-secondary rounded-tl-none', messages.length === 1 && 'min-h-10')}>
+                            <div className={cn("flex h-10 max-w-md lg:max-w-2xl items-center rounded-lg px-4 py-2", message.role === 'user' ? 'bg-primary text-primary-foreground rounded-tr-none' : 'bg-secondary rounded-tl-none', messages.length === 1 && 'min-h-10')}>
                                 {message.role === 'assistant' ? 
                                     <FormattedMessage content={message.content} /> : 
                                     <p className="text-sm md:text-base whitespace-pre-wrap">{message.content}</p>
@@ -633,7 +636,7 @@ export default function PersonaChatPage() {
                                 <AvatarImage src={persona.profilePictureUrl} alt={persona.name} className="object-cover" />
                                 <AvatarFallback><Bot /></AvatarFallback>
                             </Avatar>
-                             <div className="flex h-10 items-center justify-center space-x-1.5 rounded-lg bg-secondary rounded-tl-none px-4">
+                             <div className="flex h-10 w-10 items-center justify-center space-x-1.5 rounded-lg bg-secondary rounded-tl-none px-4">
                                 <div className="w-2 h-2 rounded-full bg-muted-foreground animate-typing-dot-1"></div>
                                 <div className="w-2 h-2 rounded-full bg-muted-foreground animate-typing-dot-2"></div>
                                 <div className="w-2 h-2 rounded-full bg-muted-foreground animate-typing-dot-3"></div>
@@ -661,7 +664,7 @@ export default function PersonaChatPage() {
                             onChange={(e) => setInput(e.target.value)}
                             onInput={handleInput}
                             placeholder={`Message ${persona.name}...`}
-                            className="flex-1 resize-none border-0 bg-transparent p-2 text-base shadow-none focus-visible:ring-0 focus-visible:ring-offset-0"
+                            className="flex-1 resize-none border-0 bg-transparent p-2 text-base shadow-none focus-visible:ring-0"
                             rows={1}
                             onKeyDown={(e) => {
                               if (e.key === 'Enter' && !e.shiftKey) {
