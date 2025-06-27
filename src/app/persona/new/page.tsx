@@ -77,6 +77,7 @@ export default function NewPersonaPage() {
   const [state, dispatch] = useActionState(createPersonaAction, initialState);
 
   const nameRef = useRef<HTMLInputElement>(null);
+  const relationRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     async function loadInitialData() {
@@ -148,6 +149,7 @@ export default function NewPersonaPage() {
 
   const handleGenerateDetails = async () => {
     const name = nameRef.current?.value;
+    const relation = relationRef.current?.value;
     if (!name) {
       toast({
         variant: 'destructive',
@@ -156,12 +158,20 @@ export default function NewPersonaPage() {
       });
       return;
     }
+    if (!relation) {
+      toast({
+        variant: 'destructive',
+        title: 'Relationship is required',
+        description: 'Please enter a relationship to generate details.',
+      });
+      return;
+    }
     setIsGeneratingDetails(true);
-    const result = await generatePersonaDetailsAction(name, apiKeys.gemini);
+    const result = await generatePersonaDetailsAction(name, relation, apiKeys.gemini);
     setIsGeneratingDetails(false);
 
     if (result.success && result.details) {
-      setDefaultValues((prev) => ({ ...prev, name, ...result.details }));
+      setDefaultValues((prev) => ({ ...prev, name, relation, ...result.details }));
       setFormKey((k) => k + 1);
       toast({
         title: 'Details Generated!',
@@ -221,6 +231,7 @@ export default function NewPersonaPage() {
                     <Input
                     id="relation"
                     name="relation"
+                    ref={relationRef}
                     defaultValue={defaultValues.relation}
                     placeholder="e.g., Best friend, mentor, rival"
                     required

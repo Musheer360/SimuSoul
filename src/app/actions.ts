@@ -75,12 +75,15 @@ export async function createPersonaAction(
   }
 }
 
-export async function generatePersonaDetailsAction(name: string, apiKey?: string) {
+export async function generatePersonaDetailsAction(name: string, relation: string, apiKey?: string) {
   try {
     if (!name?.trim()) {
       return { success: false, error: 'Name is required to generate details.' };
     }
-    const details = await generatePersonaDetails({ personaName: name, apiKey });
+     if (!relation?.trim()) {
+      return { success: false, error: 'Relationship is required to generate details.' };
+    }
+    const details = await generatePersonaDetails({ personaName: name, personaRelation: relation, apiKey });
     return { success: true, details };
   } catch (error) {
     console.error(error);

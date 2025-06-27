@@ -15,6 +15,7 @@ import { callWithFailover } from '@/lib/api-key-manager';
 
 const GeneratePersonaDetailsInputSchema = z.object({
   personaName: z.string().describe('The name of the persona.'),
+  personaRelation: z.string().describe("The persona's relationship to the user."),
   apiKey: z.string().optional().describe('An optional custom Gemini API key.'),
 });
 export type GeneratePersonaDetailsInput = z.infer<typeof GeneratePersonaDetailsInputSchema>;
@@ -31,11 +32,12 @@ export async function generatePersonaDetails(input: GeneratePersonaDetailsInput)
   return generatePersonaDetailsFlow(input);
 }
 
-const promptText = `You are an expert character designer. Based on the provided persona name, generate a compelling and creative set of traits, a backstory, goals, and a response style.
+const promptText = `You are an expert character designer. Based on the provided persona name and relationship, generate a compelling and creative set of traits, a backstory, goals, and a response style that fit the context.
 
 Persona Name: {{personaName}}
+Relationship to User: {{personaRelation}}
 
-Generate the following details for this character:
+Generate the following details for this character, keeping the relationship in mind:
 - Traits: A short, punchy list of their most defining characteristics.
 - Backstory: A concise but evocative summary of their life history.
 - Goals: What drives them forward? What do they want to achieve?
