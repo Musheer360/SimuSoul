@@ -32,8 +32,8 @@ export function FormattedMessage({ content }: { content: string }) {
       };
 
       return (
-        <div className="relative rounded-md bg-[#0d1117]">
-            <div className="flex items-center justify-between px-4 py-1.5">
+        <div className="relative rounded-md bg-[#0d1117] p-3">
+            <div className="absolute top-1.5 right-1.5 flex items-center gap-x-2">
                 <span className="text-xs text-muted-foreground">{language === 'text' ? 'code' : language}</span>
                 <Button
                     variant="ghost"
@@ -48,8 +48,8 @@ export function FormattedMessage({ content }: { content: string }) {
             <SyntaxHighlighter
                 style={vscDarkPlus}
                 customStyle={{
-                    padding: '1rem',
-                    margin: 0,
+                    padding: '0',
+                    margin: '0',
                     backgroundColor: 'transparent',
                     fontSize: '0.875rem',
                     lineHeight: '1.5rem',
@@ -85,7 +85,7 @@ export function FormattedMessage({ content }: { content: string }) {
   };
 
   return (
-    <div className="text-sm leading-relaxed whitespace-pre-wrap break-words space-y-4">
+    <div className="text-sm leading-relaxed whitespace-pre-wrap break-words space-y-3">
       <ReactMarkdown
         remarkPlugins={[remarkGfm]}
         components={components}
