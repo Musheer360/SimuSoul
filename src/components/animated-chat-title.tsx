@@ -27,7 +27,7 @@ export function AnimatedChatTitle({ title }: AnimatedChatTitleProps) {
                     typeInterval = setInterval(() => {
                         setDisplayedTitle(title.slice(0, j + 1));
                         j++;
-                        if (j > title.length) {
+                        if (j >= title.length) {
                             clearInterval(typeInterval);
                         }
                     }, 75);

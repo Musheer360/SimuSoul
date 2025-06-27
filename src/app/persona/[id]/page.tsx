@@ -636,10 +636,12 @@ export default function PersonaChatPage() {
                                 <AvatarImage src={persona.profilePictureUrl} alt={persona.name} className="object-cover" />
                                 <AvatarFallback><Bot /></AvatarFallback>
                             </Avatar>
-                             <div className="flex h-10 w-10 items-center justify-center space-x-1.5 rounded-lg bg-secondary rounded-tl-none px-4">
-                                <div className="w-2 h-2 rounded-full bg-muted-foreground animate-typing-dot-1"></div>
-                                <div className="w-2 h-2 rounded-full bg-muted-foreground animate-typing-dot-2"></div>
-                                <div className="w-2 h-2 rounded-full bg-muted-foreground animate-typing-dot-3"></div>
+                             <div className="flex h-10 items-center rounded-lg bg-secondary rounded-tl-none px-4">
+                                <div className="flex items-center justify-center space-x-1.5 h-full">
+                                    <div className="w-2 h-2 rounded-full bg-muted-foreground animate-typing-dot-1"></div>
+                                    <div className="w-2 h-2 rounded-full bg-muted-foreground animate-typing-dot-2"></div>
+                                    <div className="w-2 h-2 rounded-full bg-muted-foreground animate-typing-dot-3"></div>
+                                </div>
                             </div>
                         </div>
                         )}
