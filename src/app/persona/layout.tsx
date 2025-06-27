@@ -3,5 +3,5 @@ export default function PersonaLayout({
 }: {
   children: React.ReactNode;
 }) {
-  return <div className="h-full">{children}</div>;
+  return <div className="h-[calc(100dvh-4rem)]">{children}</div>;
 }
