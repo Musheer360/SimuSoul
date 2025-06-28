@@ -117,6 +117,7 @@ const chatActionSchema = z.object({
     })),
     message: z.string(),
     apiKey: z.string().optional(),
+    currentDateTime: z.string(),
 });
 
 export async function chatAction(
@@ -126,6 +127,7 @@ export async function chatAction(
     chatHistory: ChatMessage[];
     message: string;
     apiKey?: string;
+    currentDateTime: string;
   }
 ): Promise<{ response?: string; newMemories?: string[]; removedMemories?: string[]; error?: string }> {
   try {
@@ -134,18 +136,9 @@ export async function chatAction(
         return { error: 'Invalid input' };
     }
 
-    const { persona, userDetails, chatHistory, message, apiKey } = validatedPayload.data;
+    const { persona, userDetails, chatHistory, message, apiKey, currentDateTime } = validatedPayload.data;
     
     const personaDescription = `Backstory: ${persona.backstory}\nTraits: ${persona.traits}\nGoals: ${persona.goals}`;
-
-    const currentDateTime = new Date().toLocaleString('en-US', {
-        year: 'numeric',
-        month: 'long',
-        day: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit',
-        hour12: true,
-    });
 
     const result = await chatWithPersona({
       personaName: persona.name,
