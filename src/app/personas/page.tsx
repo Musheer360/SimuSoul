@@ -24,7 +24,7 @@ import { getAllPersonas, deletePersona } from '@/lib/db';
 function PersonaCardSkeleton() {
   return (
     <div className="space-y-4">
-      <Skeleton className="aspect-[1/1] w-full rounded-lg" />
+      <Skeleton className="aspect-[3/4] w-full rounded-lg" />
       <div className="space-y-2">
         <Skeleton className="h-6 w-3/4" />
         <Skeleton className="h-4 w-5/6" />
@@ -113,7 +113,7 @@ export default function PersonasPage() {
 
                 <Link href={`/persona/${persona.id}`} className="block">
                   <Card className="h-full overflow-hidden border-2 border-transparent group-hover:border-primary transition-all duration-300 group-hover:shadow-2xl group-hover:shadow-primary/20 bg-card group-hover:-translate-y-2">
-                      <div className="aspect-[1/1] relative overflow-hidden">
+                      <div className="aspect-[3/4] relative overflow-hidden">
                         <Image
                           src={persona.profilePictureUrl}
                           alt={persona.name}

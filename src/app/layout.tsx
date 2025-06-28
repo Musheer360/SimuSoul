@@ -3,6 +3,7 @@ import './globals.css';
 import { SiteHeader } from '@/components/site-header';
 import { Toaster } from '@/components/ui/toaster';
 import { cn } from '@/lib/utils';
+import { ThemeProvider } from '@/components/theme-provider';
 
 export const metadata: Metadata = {
   title: 'PersonaForge',
@@ -15,7 +16,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className="dark" suppressHydrationWarning>
+    <html lang="en" suppressHydrationWarning>
       <head>
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link
@@ -30,14 +31,21 @@ export default function RootLayout({
       </head>
       <body
         className={cn(
-          'font-body antialiased'
+          'font-body antialiased animate-fade-in-up'
         )}
       >
-        <div className="relative flex h-screen flex-col overflow-hidden">
-          <SiteHeader />
-          <main className="flex-1 overflow-y-hidden">{children}</main>
-        </div>
-        <Toaster />
+        <ThemeProvider
+          attribute="class"
+          defaultTheme="dark"
+          enableSystem
+          disableTransitionOnChange
+        >
+            <div className="relative flex h-screen flex-col overflow-hidden">
+              <SiteHeader />
+              <main className="flex-1 overflow-y-hidden">{children}</main>
+            </div>
+            <Toaster />
+        </ThemeProvider>
       </body>
     </html>
   );

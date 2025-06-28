@@ -9,7 +9,7 @@ import { getAllPersonas } from '@/lib/db';
 
 function FeatureCard({ icon: Icon, title, description }: { icon: React.ElementType, title: string, description: string }) {
   return (
-    <div className="flex flex-col items-center text-center p-6 bg-card/30 rounded-lg backdrop-blur-sm border border-border/20">
+    <div className="flex flex-col items-center text-center p-6 bg-card/80 backdrop-blur-sm rounded-lg border border-border/20 transition-all duration-300 hover:scale-105 hover:shadow-xl hover:shadow-primary/10">
       <div className="flex items-center justify-center w-16 h-16 mb-4 rounded-full bg-primary/10 text-primary">
         <Icon className="w-8 h-8" />
       </div>
@@ -39,7 +39,7 @@ export default function HomePage() {
       {/* Hero Section */}
       <section className="h-full snap-start flex items-center justify-center">
         <div className="container text-center">
-          <h1 className="text-4xl md:text-6xl font-bold font-headline tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-primary via-accent to-white">
+          <h1 className="text-4xl md:text-6xl font-bold font-headline tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-primary via-accent to-foreground">
             Create, Converse, Connect.
           </h1>
           <p className="max-w-2xl mx-auto mt-4 text-lg md:text-xl text-muted-foreground">
