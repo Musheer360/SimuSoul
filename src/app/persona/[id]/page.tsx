@@ -502,11 +502,11 @@ export default function PersonaChatPage() {
             </div>
             
             <div className="p-4 flex-1 flex flex-col min-h-0 border-t">
-                <div className="flex justify-between items-center mb-2">
+                <div className="flex gap-2 mb-2">
                     <AlertDialog open={isClearAllDialogOpen} onOpenChange={setIsClearAllDialogOpen}>
                         <AlertDialogTrigger asChild>
-                            <Button variant="ghost" size="sm" className="text-destructive hover:bg-destructive/10 hover:text-destructive">
-                                <Trash2 className="mr-2 h-4 w-4" /> Clear
+                            <Button variant="destructive" className="flex-1">
+                                <Trash2 className="mr-2 h-4 w-4" /> Clear All
                             </Button>
                         </AlertDialogTrigger>
                         <AlertDialogContent>
@@ -527,7 +527,7 @@ export default function PersonaChatPage() {
                             </AlertDialogFooter>
                         </AlertDialogContent>
                     </AlertDialog>
-                    <Button size="sm" variant="ghost" onClick={handleNewChat}>
+                    <Button variant="outline" className="flex-1" onClick={handleNewChat}>
                         <MessageSquarePlus className="mr-2 h-4 w-4" /> New Chat
                     </Button>
                 </div>
@@ -541,7 +541,7 @@ export default function PersonaChatPage() {
                             "flex justify-between items-center px-3 py-2 rounded-md transition-colors",
                             activeChatId === chat.id ? 'bg-primary/20 text-primary-foreground' : 'hover:bg-secondary'
                           )}>
-                            <p className="text-sm truncate pr-2">
+                            <p className="text-sm truncate pr-2 min-w-0">
                                 <AnimatedChatTitle title={chat.title} />
                             </p>
                             <Button
