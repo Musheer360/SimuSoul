@@ -24,7 +24,7 @@ import { getAllPersonas, deletePersona } from '@/lib/db';
 function PersonaCardSkeleton() {
   return (
     <div className="space-y-4">
-      <Skeleton className="aspect-[3/4] w-full rounded-lg" />
+      <Skeleton className="aspect-square w-full rounded-lg" />
       <div className="space-y-2">
         <Skeleton className="h-6 w-3/4" />
         <Skeleton className="h-4 w-5/6" />
@@ -56,8 +56,8 @@ export default function HomePage() {
     return (
       <div className="flex h-full flex-col">
         <div className="m-auto w-full">
-          <div className="container py-12">
-            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-10">
+          <div className="container py-8">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-8">
               <div className="mb-4 sm:mb-0">
                 <h1 className="text-4xl font-bold font-headline tracking-tight">Your Personas</h1>
                 <p className="text-muted-foreground mt-1">Create and manage your AI companions.</p>
@@ -78,8 +78,8 @@ export default function HomePage() {
   return (
     <div className="flex h-full flex-col">
       <div className="m-auto w-full">
-        <div className="container py-12">
-          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-10 animate-fade-in-up">
+        <div className="container py-8">
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-8 animate-fade-in-up">
             <div className="mb-4 sm:mb-0">
               <h1 className="text-4xl font-bold font-headline tracking-tight">Your Personas</h1>
               <p className="text-muted-foreground mt-1">Create and manage your AI companions.</p>
@@ -134,7 +134,7 @@ export default function HomePage() {
 
                   <Link href={`/persona/${persona.id}`} className="block">
                     <Card className="h-full overflow-hidden border-2 border-transparent group-hover:border-primary transition-all duration-300 group-hover:shadow-2xl group-hover:shadow-primary/20 bg-card/50 backdrop-blur-sm group-hover:-translate-y-2">
-                      <div className="aspect-[3/4] relative overflow-hidden">
+                      <div className="aspect-square relative overflow-hidden">
                         <Image
                           src={persona.profilePictureUrl}
                           alt={persona.name}
