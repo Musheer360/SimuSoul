@@ -8,9 +8,8 @@ import { chatAction, generateChatTitleAction } from '@/app/actions';
 import type { Persona, UserDetails, ChatMessage, ChatSession, ApiKeys } from '@/lib/types';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Textarea } from '@/components/ui/textarea';
-import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { Send, Loader2, Bot, User, AlertCircle, Trash2, MessageSquarePlus, ArrowLeft, PanelLeft, Pencil, Plus, Brain } from 'lucide-react';
+import { Send, Loader2, Bot, User, AlertCircle, Trash2, MessageSquarePlus, ArrowLeft, PanelLeft, Pencil, Brain } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import {
   AlertDialog,
@@ -99,7 +98,6 @@ export default function PersonaChatPage() {
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [newMemoryInput, setNewMemoryInput] = useState('');
 
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [isMemoryDialogOpen, setIsMemoryDialogOpen] = useState(false);
@@ -334,36 +332,6 @@ export default function PersonaChatPage() {
         description: `${updatedPersona.name} has been saved.`,
     });
   }, [persona, toast]);
-
-  const handleManualAddMemory = async (e: FormEvent) => {
-      e.preventDefault();
-      if (!persona || !newMemoryInput.trim()) return;
-
-      const today = new Date();
-      const year = today.getFullYear();
-      const month = String(today.getMonth() + 1).padStart(2, '0');
-      const day = String(today.getDate()).padStart(2, '0');
-      const formattedDate = `${year}-${month}-${day}`;
-      const memoryWithDate = `${formattedDate}: ${newMemoryInput.trim()}`;
-
-      const updatedPersona = {
-          ...persona,
-          memories: [...new Set([...(persona.memories || []), memoryWithDate])]
-      };
-      setPersona(updatedPersona);
-      await savePersona(updatedPersona);
-      setNewMemoryInput('');
-  };
-
-  const handleDeleteMemory = async (memoryToDelete: string) => {
-    if (!persona) return;
-    const updatedPersona = {
-        ...persona,
-        memories: (persona.memories || []).filter(m => m !== memoryToDelete)
-    };
-    setPersona(updatedPersona);
-    await savePersona(updatedPersona);
-  };
   
   const handleMemoryDialogChange = (open: boolean) => {
       if (open) {
@@ -472,29 +440,16 @@ export default function PersonaChatPage() {
                         <DialogHeader>
                             <DialogTitle>Memories for {persona.name}</DialogTitle>
                             <DialogDescription>
-                                View, add, or remove memories for this persona. This helps them remember things about you.
+                               These are the memories this persona has about you. They are updated automatically during conversation.
                             </DialogDescription>
                         </DialogHeader>
                         <div className="space-y-4 py-4">
-                            <form onSubmit={handleManualAddMemory} className="flex gap-2">
-                                <Input 
-                                    value={newMemoryInput}
-                                    onChange={(e) => setNewMemoryInput(e.target.value)}
-                                    placeholder="Add a new memory..."
-                                />
-                                <Button type="submit" size="icon" className="flex-shrink-0">
-                                    <Plus className="h-4 w-4" />
-                                </Button>
-                            </form>
-                            <ScrollArea className="h-64 border rounded-md">
+                            <ScrollArea className="h-72 border rounded-md">
                                 <div className="p-4 space-y-1">
                                     {(persona.memories || []).length > 0 ? (
                                         [...persona.memories].sort().map((memory, index) => (
-                                            <div key={index} className="group flex items-center justify-between text-sm px-3 py-2 rounded-md transition-colors hover:bg-secondary">
-                                                <p className="flex-1 pr-2 break-words">{memory}</p>
-                                                <Button variant="ghost" size="icon" className="h-6 w-6 shrink-0 opacity-0 group-hover:opacity-100 hover:bg-transparent hover:text-inherit" onClick={() => handleDeleteMemory(memory)}>
-                                                    <Trash2 className="h-4 w-4 text-destructive/70 hover:text-destructive" />
-                                                </Button>
+                                            <div key={index} className="flex items-center text-sm px-3 py-2 rounded-md">
+                                                <p className="flex-1 pr-2 break-words">{memory.replace(/^\d{4}-\d{2}-\d{2}: /, '')}</p>
                                             </div>
                                         ))
                                     ) : (
@@ -548,7 +503,7 @@ export default function PersonaChatPage() {
                         <Link key={chat.id} href={`/persona/${persona.id}?chat=${chat.id}`} className="block group" scroll={false}>
                           <div className={cn(
                             "flex justify-between items-center px-3 py-2 rounded-md transition-colors",
-                            activeChatId === chat.id ? 'bg-primary/20 text-primary-foreground dark:text-primary-foreground' : 'hover:bg-secondary'
+                            activeChatId === chat.id ? 'bg-primary/20 text-primary dark:text-primary-foreground' : 'hover:bg-secondary'
                           )}>
                             <p className="text-sm truncate pr-2 min-w-0">
                                 <AnimatedChatTitle title={chat.title} />
@@ -614,7 +569,7 @@ export default function PersonaChatPage() {
                             )}
                             <div className={cn(
                                 "max-w-md lg:max-w-xl rounded-lg px-4 py-3", 
-                                message.role === 'user' ? 'bg-primary text-primary-foreground rounded-tr-none' : 'bg-secondary rounded-tl-none',
+                                message.role === 'user' ? 'bg-primary text-primary-foreground' : 'bg-secondary rounded-tl-none',
                                 glowingMessageIndex === index && 'animate-shine-once'
                             )}>
                                 <FormattedMessage content={message.content} />

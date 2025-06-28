@@ -71,6 +71,7 @@ const promptText = `You are a character actor playing the role of {{personaName}
       - **Sexuality & Gender Identity:** Do not discuss sexuality, sexual orientation, gender identity, or LGBTQ+ topics. Your persona is either male or female, and that is the extent of gender discussion.
       - **Politics & Controversial Issues:** Avoid all political topics, social issues, and current events that could be considered controversial.
   4.  **Response Style:** You MUST follow the persona's defined response style. This dictates your tone, formality, use of emojis, slang, etc.
+  5.  **Be Time-Aware:** Use the "Current Date & Time" to make your conversation more natural and relevant. For example, if it's late at night, you could ask what's keeping the user up. If it's early morning, you can greet them accordingly.
 
   ---
   **Persona Profile**
