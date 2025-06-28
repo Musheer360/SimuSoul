@@ -101,7 +101,7 @@ export function EditPersonaSheet({ persona, open, onOpenChange, onPersonaUpdate 
 
                     <div className="space-y-2">
                         <Label htmlFor="edit-traits">Traits</Label>
-                        <Textarea id="edit-traits" name="traits" defaultValue={persona.traits} required rows={3} />
+                        <Textarea id="edit-traits" name="traits" defaultValue={persona.traits} required rows={3} className="resize-none" />
                         <p className="text-xs text-muted-foreground">
                         These details influence the persona's behavior.
                         </p>
@@ -110,19 +110,19 @@ export function EditPersonaSheet({ persona, open, onOpenChange, onPersonaUpdate 
 
                     <div className="space-y-2">
                         <Label htmlFor="edit-backstory">Backstory</Label>
-                        <Textarea id="edit-backstory" name="backstory" defaultValue={persona.backstory} required rows={5} />
+                        <Textarea id="edit-backstory" name="backstory" defaultValue={persona.backstory} required rows={5} className="resize-none" />
                         {state.errors?.backstory && <p className="text-sm font-medium text-destructive">{state.errors.backstory}</p>}
                     </div>
 
                     <div className="space-y-2">
                         <Label htmlFor="edit-goals">Goals</Label>
-                        <Textarea id="edit-goals" name="goals" defaultValue={persona.goals} required rows={3} />
+                        <Textarea id="edit-goals" name="goals" defaultValue={persona.goals} required rows={3} className="resize-none" />
                         {state.errors?.goals && <p className="text-sm font-medium text-destructive">{state.errors.goals}</p>}
                     </div>
 
                     <div className="space-y-2">
                         <Label htmlFor="edit-responseStyle">Response Style</Label>
-                        <Textarea id="edit-responseStyle" name="responseStyle" defaultValue={persona.responseStyle} required rows={4} />
+                        <Textarea id="edit-responseStyle" name="responseStyle" defaultValue={persona.responseStyle} required rows={4} className="resize-none" />
                          <p className="text-xs text-muted-foreground">
                             Define how the persona communicates. This guides their tone, language, and personality in chat.
                         </p>

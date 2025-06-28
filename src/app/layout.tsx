@@ -42,7 +42,7 @@ export default function RootLayout({
         >
             <div className="relative flex h-screen flex-col overflow-hidden">
               <SiteHeader />
-              <main className="flex-1 overflow-y-hidden">{children}</main>
+              <main className="flex-1 overflow-y-auto no-scrollbar">{children}</main>
             </div>
             <Toaster />
         </ThemeProvider>

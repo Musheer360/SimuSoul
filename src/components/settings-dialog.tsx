@@ -95,8 +95,9 @@ export function SettingsDialog({ children }: { children: React.ReactNode }) {
                 name="about"
                 value={userDetails.about}
                 onChange={handleUserDetailsChange}
-                className="col-span-3"
+                className="col-span-3 resize-none"
                 placeholder="A short description of you, can also be a URL."
+                rows={3}
               />
             </div>
           </div>

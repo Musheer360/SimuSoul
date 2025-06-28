@@ -251,6 +251,8 @@ export default function NewPersonaPage() {
                     defaultValue={defaultValues.traits}
                     placeholder="e.g., Stoic, resourceful, former-spy, haunted by the past..."
                     required
+                    rows={3}
+                    className="resize-none"
                     />
                     <p className="text-xs text-muted-foreground">
                     This will be used to generate the profile picture.
@@ -269,6 +271,8 @@ export default function NewPersonaPage() {
                     defaultValue={defaultValues.backstory}
                     placeholder="Describe the character's history and experiences."
                     required
+                    rows={5}
+                    className="resize-none"
                     />
                     {state.errors?.backstory && (
                     <p className="text-sm font-medium text-destructive">
@@ -284,6 +288,8 @@ export default function NewPersonaPage() {
                     defaultValue={defaultValues.goals}
                     placeholder="What does this character want to achieve?"
                     required
+                    rows={3}
+                    className="resize-none"
                     />
                     {state.errors?.goals && (
                     <p className="text-sm font-medium text-destructive">
@@ -300,6 +306,8 @@ export default function NewPersonaPage() {
                     defaultValue={defaultValues.responseStyle}
                     placeholder="e.g., Talks like a Gen-Z, uses a lot of slang and emojis. Formal and professional. Gets sarcastic when annoyed."
                     required
+                    rows={4}
+                    className="resize-none"
                     />
                      <p className="text-xs text-muted-foreground">
                         Define how the persona communicates. This guides their tone, language, and personality in chat.
@@ -331,6 +339,7 @@ export default function NewPersonaPage() {
                     onChange={(e) => setPrompt(e.target.value)}
                     placeholder="e.g., A badass pokemon trainer from the future who time-traveled to the past."
                     rows={4}
+                    className="resize-none"
                 />
                 <Button
                     className="w-full"

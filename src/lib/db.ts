@@ -65,9 +65,9 @@ export async function deletePersona(id: string): Promise<void> {
 // UserDetails operations
 const USER_DETAILS_KEY = 'currentUser';
 export async function getUserDetails(): Promise<UserDetails> {
-    if (!dbPromise) return { name: '', about: '' };
+    if (!dbPromise) return { name: '', about: '', hasAcceptedTerms: false };
     const db = await dbPromise;
-    return (await db.get(USER_DETAILS_STORE, USER_DETAILS_KEY)) || { name: '', about: '' };
+    return (await db.get(USER_DETAILS_STORE, USER_DETAILS_KEY)) || { name: '', about: '', hasAcceptedTerms: false };
 }
 
 export async function saveUserDetails(details: UserDetails): Promise<void> {

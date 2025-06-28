@@ -190,13 +190,6 @@ export default function PersonaChatPage() {
       }
     }
   }, [messages]);
-
-  const handleInput = (e: React.FormEvent<HTMLTextAreaElement>) => {
-    const textarea = e.currentTarget;
-    textarea.style.height = 'auto';
-    const newHeight = Math.min(textarea.scrollHeight, 160);
-    textarea.style.height = `${newHeight}px`;
-  };
   
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
@@ -659,10 +652,9 @@ export default function PersonaChatPage() {
                             ref={textareaRef}
                             value={input}
                             onChange={(e) => setInput(e.target.value)}
-                            onInput={handleInput}
                             placeholder={`Message ${persona.name}...`}
                             className="flex-1 resize-none border-0 bg-transparent p-2 text-base shadow-none focus-visible:ring-0"
-                            rows={1}
+                            rows={3}
                             onKeyDown={(e) => {
                               if (e.key === 'Enter' && !e.shiftKey) {
                                 e.preventDefault();

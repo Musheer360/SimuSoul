@@ -26,6 +26,7 @@ export interface Persona {
 export interface UserDetails {
   name: string;
   about: string;
+  hasAcceptedTerms?: boolean;
 }
 
 export interface ApiKeys {
