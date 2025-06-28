@@ -2,31 +2,20 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { PlusCircle, Users, Loader2 } from 'lucide-react';
+import { Rocket } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { getAllPersonas, getUserDetails, saveUserDetails } from '@/lib/db';
+import { getUserDetails, saveUserDetails } from '@/lib/db';
 import { TermsDialog } from '@/components/terms-dialog';
 import type { UserDetails } from '@/lib/types';
-import { cn } from '@/lib/utils';
 
 export default function HomePage() {
   const router = useRouter();
-  const [hasPersonas, setHasPersonas] = useState<boolean | null>(null);
   const [showTermsDialog, setShowTermsDialog] = useState(false);
   const [userDetails, setUserDetailsState] = useState<UserDetails | null>(null);
 
   useEffect(() => {
     async function checkInitialState() {
-      const [storedPersonas, storedUserDetails] = await Promise.all([
-        getAllPersonas(),
-        getUserDetails(),
-      ]);
-      
-      // Artificial delay to make the animation noticeable
-      setTimeout(() => {
-        setHasPersonas(storedPersonas.length > 0);
-      }, 500);
-
+      const storedUserDetails = await getUserDetails();
       setUserDetailsState(storedUserDetails);
 
       if (!storedUserDetails.hasAcceptedTerms) {
@@ -44,16 +33,6 @@ export default function HomePage() {
     setShowTermsDialog(false);
   };
 
-  const handleClick = () => {
-    if (hasPersonas) {
-      router.push('/personas');
-    } else {
-      router.push('/persona/new');
-    }
-  };
-
-  const isLoading = hasPersonas === null;
-
   return (
     <div className="flex h-full items-center justify-center">
       <TermsDialog open={showTermsDialog} onAccept={handleAcceptTerms} />
@@ -67,28 +46,11 @@ export default function HomePage() {
         <div className="mt-8 h-16 flex items-center justify-center">
           <Button
             size="lg"
-            className={cn(
-              'rounded-full text-lg py-6 transition-all duration-500 ease-out flex items-center justify-center',
-              isLoading ? 'w-16 h-16 p-0' : (hasPersonas ? 'w-72 px-10' : 'w-80 px-10')
-            )}
-            disabled={isLoading}
-            onClick={!isLoading ? handleClick : undefined}
+            className="rounded-full text-lg py-6 px-10"
+            onClick={() => router.push('/personas')}
           >
-            {isLoading ? (
-              <Loader2 className="h-6 w-6 animate-spin" />
-            ) : (
-              <div className="flex items-center justify-center opacity-0 animate-fade-in-delay">
-                {hasPersonas ? (
-                  <>
-                    <Users className="mr-2" /> View Your Personas
-                  </>
-                ) : (
-                  <>
-                    <PlusCircle className="mr-2" /> Create Your First Persona
-                  </>
-                )}
-              </div>
-            )}
+            <Rocket className="mr-2" />
+            Get Started
           </Button>
         </div>
       </div>
