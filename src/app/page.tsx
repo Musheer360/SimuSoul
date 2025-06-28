@@ -4,20 +4,17 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { PlusCircle, Users } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Skeleton } from '@/components/ui/skeleton';
 import { getAllPersonas, getUserDetails, saveUserDetails } from '@/lib/db';
 import { TermsDialog } from '@/components/terms-dialog';
 import type { UserDetails } from '@/lib/types';
 
 export default function HomePage() {
   const [hasPersonas, setHasPersonas] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
   const [showTermsDialog, setShowTermsDialog] = useState(false);
   const [userDetails, setUserDetailsState] = useState<UserDetails | null>(null);
 
   useEffect(() => {
     async function checkInitialState() {
-      setIsLoading(true);
       const [storedPersonas, storedUserDetails] = await Promise.all([
         getAllPersonas(),
         getUserDetails(),
@@ -28,7 +25,6 @@ export default function HomePage() {
       if (!storedUserDetails.hasAcceptedTerms) {
         setShowTermsDialog(true);
       }
-      setIsLoading(false);
     }
     checkInitialState();
   }, []);
@@ -52,9 +48,6 @@ export default function HomePage() {
           Craft unique AI personas and engage in dynamic, memorable conversations. Your imagination is the only limit.
         </p>
         <div className="mt-8">
-            {isLoading ? (
-            <Skeleton className="h-14 w-72 mx-auto rounded-full" />
-          ) : (
             <Button asChild size="lg" className="rounded-full text-lg py-7 px-10">
               {hasPersonas ? (
                 <Link href="/personas">
@@ -66,7 +59,6 @@ export default function HomePage() {
                 </Link>
               )}
             </Button>
-          )}
         </div>
       </div>
     </div>

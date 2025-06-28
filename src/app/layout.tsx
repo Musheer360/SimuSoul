@@ -31,7 +31,7 @@ export default function RootLayout({
       </head>
       <body
         className={cn(
-          'font-body antialiased animate-fade-in-up'
+          'font-body antialiased'
         )}
       >
         <ThemeProvider
