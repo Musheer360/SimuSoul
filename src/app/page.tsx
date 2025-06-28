@@ -2,12 +2,12 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { PlusCircle, Users } from 'lucide-react';
+import { PlusCircle, Users, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { getAllPersonas, getUserDetails, saveUserDetails } from '@/lib/db';
 import { TermsDialog } from '@/components/terms-dialog';
 import type { UserDetails } from '@/lib/types';
-import { Skeleton } from '@/components/ui/skeleton';
+import { cn } from '@/lib/utils';
 
 export default function HomePage() {
   const [hasPersonas, setHasPersonas] = useState<boolean | null>(null);
@@ -20,7 +20,12 @@ export default function HomePage() {
         getAllPersonas(),
         getUserDetails(),
       ]);
-      setHasPersonas(storedPersonas.length > 0);
+      
+      // Artificial delay to make the animation noticeable
+      setTimeout(() => {
+        setHasPersonas(storedPersonas.length > 0);
+      }, 500);
+
       setUserDetailsState(storedUserDetails);
 
       if (!storedUserDetails.hasAcceptedTerms) {
@@ -38,6 +43,8 @@ export default function HomePage() {
     setShowTermsDialog(false);
   };
 
+  const isLoading = hasPersonas === null;
+
   return (
     <div className="flex h-full items-center justify-center">
       <TermsDialog open={showTermsDialog} onAccept={handleAcceptTerms} />
@@ -49,21 +56,27 @@ export default function HomePage() {
           Craft unique AI personas and engage in dynamic, memorable conversations. Your imagination is the only limit.
         </p>
         <div className="mt-8 h-16 flex items-center justify-center">
-            {hasPersonas === null ? (
-              <Skeleton className="h-16 w-72 mx-auto rounded-full" />
-            ) : (
-              <Button asChild size="lg" className="rounded-full text-lg py-6 px-10">
-                {hasPersonas ? (
-                  <Link href="/personas">
-                    <Users className="mr-2" /> View Your Personas
-                  </Link>
-                ) : (
-                  <Link href="/persona/new">
-                    <PlusCircle className="mr-2" /> Create Your First Persona
-                  </Link>
-                )}
-              </Button>
+          <Button
+            size="lg"
+            className={cn(
+              'rounded-full text-lg py-6 transition-all duration-500 ease-out flex items-center justify-center',
+              isLoading ? 'w-16 h-16 p-0' : (hasPersonas ? 'w-72 px-10' : 'w-80 px-10')
             )}
+            disabled={isLoading}
+            asChild={!isLoading}
+          >
+            {isLoading ? (
+              <Loader2 className="h-6 w-6 animate-spin" />
+            ) : hasPersonas ? (
+              <Link href="/personas" className="flex items-center justify-center opacity-0 animate-fade-in-delay">
+                <Users className="mr-2" /> View Your Personas
+              </Link>
+            ) : (
+              <Link href="/persona/new" className="flex items-center justify-center opacity-0 animate-fade-in-delay">
+                <PlusCircle className="mr-2" /> Create Your First Persona
+              </Link>
+            )}
+          </Button>
         </div>
       </div>
     </div>

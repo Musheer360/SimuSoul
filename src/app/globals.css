@@ -8,32 +8,32 @@
   }
 
   :root {
-    --background: 0 0% 100%; /* White */
-    --foreground: 210 8% 15%; /* Dark Gray */
+    --background: 224 71% 4%; /* Tokyo Night Dark */
+    --foreground: 210 40% 98%; /* Almost white */
 
-    --card: 0 0% 98%; /* Lighter Gray */
-    --card-foreground: 210 8% 15%;
+    --card: 224 71% 8%; /* Darker Card */
+    --card-foreground: 210 40% 98%;
 
-    --popover: 0 0% 100%;
-    --popover-foreground: 210 8% 15%;
+    --popover: 224 71% 4%;
+    --popover-foreground: 210 40% 98%;
 
     --primary: 272 68% 61%; /* Vivid Purple */
     --primary-foreground: 0 0% 100%;
 
-    --secondary: 210 8% 95%; /* Light Gray for secondary elements */
-    --secondary-foreground: 210 8% 15%;
+    --secondary: 224 71% 10%; /* Darker secondary */
+    --secondary-foreground: 210 40% 98%;
 
-    --muted: 210 8% 95%;
-    --muted-foreground: 210 8% 45%;
+    --muted: 224 71% 10%;
+    --muted-foreground: 210 40% 60%;
 
-    --accent: 272 90% 90%; /* Light Lavender for hover */
-    --accent-foreground: 272 80% 20%; /* Dark Purple text for hover */
+    --accent: 272 68% 61%; /* Vivid Purple for hover */
+    --accent-foreground: 0 0% 100%; /* White text for hover */
 
-    --destructive: 0 84.2% 60.2%; /* Red */
-    --destructive-foreground: 0 0% 100%;
+    --destructive: 0 62.8% 50.6%; /* Brighter Red for dark mode */
+    --destructive-foreground: 0 0% 98%;
 
-    --border: 210 8% 88%;
-    --input: 210 8% 88%;
+    --border: 224 71% 12%;
+    --input: 224 71% 12%;
     --ring: 272 68% 61%;
 
     --radius: 0.5rem;
@@ -114,9 +114,9 @@
     background-image: linear-gradient(
       -45deg,
       hsl(var(--primary)) 0%,
-      hsl(var(--accent)) 25%,
+      #48BFE3 25%,
       hsl(var(--foreground)) 50%,
-      hsl(var(--accent)) 75%,
+      #48BFE3 75%,
       hsl(var(--primary)) 100%
     );
     animation: animated-gradient 6s ease-in-out infinite alternate;
@@ -139,4 +139,17 @@
   100% {
     background-position: 100% 50%;
   }
+}
+
+@keyframes fade-in-delay {
+  0%, 80% {
+    opacity: 0;
+  }
+  100% {
+    opacity: 1;
+  }
+}
+
+.animate-fade-in-delay {
+  animation: fade-in-delay 0.5s ease-out forwards;
 }
