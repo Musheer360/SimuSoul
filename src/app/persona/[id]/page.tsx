@@ -539,7 +539,7 @@ export default function PersonaChatPage() {
                         <Link key={chat.id} href={`/persona/${persona.id}?chat=${chat.id}`} className="block group" scroll={false}>
                           <div className={cn(
                             "flex justify-between items-center px-3 py-2 rounded-md transition-colors",
-                            activeChatId === chat.id ? 'bg-primary/20 text-primary-foreground' : 'hover:bg-secondary'
+                            activeChatId === chat.id ? 'bg-primary/20 text-primary dark:text-primary-foreground' : 'hover:bg-secondary'
                           )}>
                             <p className="text-sm truncate pr-2 min-w-0">
                                 <AnimatedChatTitle title={chat.title} />
