@@ -171,194 +171,196 @@ export default function NewPersonaPage() {
   };
 
   return (
-    <div className="container py-12">
-        <Card className="max-w-2xl mx-auto animate-fade-in-up bg-card/80 backdrop-blur-sm border border-border/20">
-        <CardHeader className="text-center">
-            <CardTitle className="font-headline text-3xl">
-            Create a New Persona
-            </CardTitle>
-            <CardDescription>
-            Bring your character to life. Fill out the details manually or use AI to
-            generate them for you.
-            </CardDescription>
-        </CardHeader>
-        <CardContent>
-            <Tabs value={activeTab} onValueChange={setActiveTab}>
-            <TabsList className="grid w-full grid-cols-2">
-                <TabsTrigger value="manual">Manual</TabsTrigger>
-                <TabsTrigger value="ai">
-                <Wand2 className="mr-2 h-4 w-4" /> Generate with AI
-                </TabsTrigger>
-            </TabsList>
-            <TabsContent value="manual" className="pt-6">
-                <form action={dispatch} className="space-y-6" key={formKey}>
-                  <input type="hidden" name="apiKey" value={apiKeys.gemini} />
-                <div className="space-y-2">
-                    <Label htmlFor="name">Name</Label>
-                    <Input
-                    id="name"
-                    name="name"
-                    ref={nameRef}
-                    defaultValue={defaultValues.name}
-                    placeholder="e.g., Captain Eva Rostova"
-                    required
-                    />
-                    {state.errors?.name && (
-                    <p className="text-sm font-medium text-destructive">
-                        {state.errors.name}
-                    </p>
-                    )}
-                </div>
-                <div className="space-y-2">
-                    <Label htmlFor="relation">Relationship</Label>
-                    <Input
-                    id="relation"
-                    name="relation"
-                    ref={relationRef}
-                    defaultValue={defaultValues.relation}
-                    placeholder="e.g., Best friend, mentor, rival"
-                    required
-                    />
-                    {state.errors?.relation && (
-                    <p className="text-sm font-medium text-destructive">
-                        {state.errors.relation}
-                    </p>
-                    )}
-                </div>
-                <div className="space-y-2">
-                    <div className="flex justify-between items-center">
-                    <Label htmlFor="traits">Traits & Details</Label>
-                    <Button
-                        type="button"
-                        variant="link"
-                        size="sm"
-                        className="text-primary hover:text-accent"
-                        onClick={handleGenerateDetails}
-                        disabled={isGeneratingDetails}
-                    >
-                        {isGeneratingDetails ? (
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        ) : (
-                        <Wand2 className="mr-2 h-4 w-4" />
-                        )}
-                        Generate Details
-                    </Button>
-                    </div>
-                    <Label htmlFor="traits" className="text-xs font-normal text-muted-foreground">Traits</Label>
-                    <Textarea
-                    id="traits"
-                    name="traits"
-                    defaultValue={defaultValues.traits}
-                    placeholder="e.g., Stoic, resourceful, former-spy, haunted by the past..."
-                    required
-                    rows={3}
-                    className="resize-none"
-                    />
-                    <p className="text-xs text-muted-foreground">
-                    This will be used to generate the profile picture.
-                    </p>
-                    {state.errors?.traits && (
-                    <p className="text-sm font-medium text-destructive">
-                        {state.errors.traits}
-                    </p>
-                    )}
-                </div>
-                <div className="space-y-2">
-                    <Label htmlFor="backstory">Backstory</Label>
-                    <Textarea
-                    id="backstory"
-                    name="backstory"
-                    defaultValue={defaultValues.backstory}
-                    placeholder="Describe the character's history and experiences."
-                    required
-                    rows={5}
-                    className="resize-none"
-                    />
-                    {state.errors?.backstory && (
-                    <p className="text-sm font-medium text-destructive">
-                        {state.errors.backstory}
-                    </p>
-                    )}
-                </div>
-                <div className="space-y-2">
-                    <Label htmlFor="goals">Goals</Label>
-                    <Textarea
-                    id="goals"
-                    name="goals"
-                    defaultValue={defaultValues.goals}
-                    placeholder="What does this character want to achieve?"
-                    required
-                    rows={3}
-                    className="resize-none"
-                    />
-                    {state.errors?.goals && (
-                    <p className="text-sm font-medium text-destructive">
-                        {state.errors.goals}
-                    </p>
-                    )}
-                </div>
+    <div className="h-full overflow-y-auto no-scrollbar">
+      <div className="container py-12">
+          <Card className="max-w-2xl mx-auto bg-card/80 backdrop-blur-sm border border-border/20">
+          <CardHeader className="text-center">
+              <CardTitle className="font-headline text-3xl">
+              Create a New Persona
+              </CardTitle>
+              <CardDescription>
+              Bring your character to life. Fill out the details manually or use AI to
+              generate them for you.
+              </CardDescription>
+          </CardHeader>
+          <CardContent>
+              <Tabs value={activeTab} onValueChange={setActiveTab}>
+              <TabsList className="grid w-full grid-cols-2">
+                  <TabsTrigger value="manual">Manual</TabsTrigger>
+                  <TabsTrigger value="ai">
+                  <Wand2 className="mr-2 h-4 w-4" /> Generate with AI
+                  </TabsTrigger>
+              </TabsList>
+              <TabsContent value="manual" className="pt-6">
+                  <form action={dispatch} className="space-y-6" key={formKey}>
+                    <input type="hidden" name="apiKey" value={apiKeys.gemini} />
+                  <div className="space-y-2">
+                      <Label htmlFor="name">Name</Label>
+                      <Input
+                      id="name"
+                      name="name"
+                      ref={nameRef}
+                      defaultValue={defaultValues.name}
+                      placeholder="e.g., Captain Eva Rostova"
+                      required
+                      />
+                      {state.errors?.name && (
+                      <p className="text-sm font-medium text-destructive">
+                          {state.errors.name}
+                      </p>
+                      )}
+                  </div>
+                  <div className="space-y-2">
+                      <Label htmlFor="relation">Relationship</Label>
+                      <Input
+                      id="relation"
+                      name="relation"
+                      ref={relationRef}
+                      defaultValue={defaultValues.relation}
+                      placeholder="e.g., Best friend, mentor, rival"
+                      required
+                      />
+                      {state.errors?.relation && (
+                      <p className="text-sm font-medium text-destructive">
+                          {state.errors.relation}
+                      </p>
+                      )}
+                  </div>
+                  <div className="space-y-2">
+                      <div className="flex justify-between items-center">
+                      <Label htmlFor="traits">Traits & Details</Label>
+                      <Button
+                          type="button"
+                          variant="link"
+                          size="sm"
+                          className="text-primary hover:text-accent"
+                          onClick={handleGenerateDetails}
+                          disabled={isGeneratingDetails}
+                      >
+                          {isGeneratingDetails ? (
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                          ) : (
+                          <Wand2 className="mr-2 h-4 w-4" />
+                          )}
+                          Generate Details
+                      </Button>
+                      </div>
+                      <Label htmlFor="traits" className="text-xs font-normal text-muted-foreground">Traits</Label>
+                      <Textarea
+                      id="traits"
+                      name="traits"
+                      defaultValue={defaultValues.traits}
+                      placeholder="e.g., Stoic, resourceful, former-spy, haunted by the past..."
+                      required
+                      rows={3}
+                      className="resize-none"
+                      />
+                      <p className="text-xs text-muted-foreground">
+                      This will be used to generate the profile picture.
+                      </p>
+                      {state.errors?.traits && (
+                      <p className="text-sm font-medium text-destructive">
+                          {state.errors.traits}
+                      </p>
+                      )}
+                  </div>
+                  <div className="space-y-2">
+                      <Label htmlFor="backstory">Backstory</Label>
+                      <Textarea
+                      id="backstory"
+                      name="backstory"
+                      defaultValue={defaultValues.backstory}
+                      placeholder="Describe the character's history and experiences."
+                      required
+                      rows={5}
+                      className="resize-none"
+                      />
+                      {state.errors?.backstory && (
+                      <p className="text-sm font-medium text-destructive">
+                          {state.errors.backstory}
+                      </p>
+                      )}
+                  </div>
+                  <div className="space-y-2">
+                      <Label htmlFor="goals">Goals</Label>
+                      <Textarea
+                      id="goals"
+                      name="goals"
+                      defaultValue={defaultValues.goals}
+                      placeholder="What does this character want to achieve?"
+                      required
+                      rows={3}
+                      className="resize-none"
+                      />
+                      {state.errors?.goals && (
+                      <p className="text-sm font-medium text-destructive">
+                          {state.errors.goals}
+                      </p>
+                      )}
+                  </div>
 
-                <div className="space-y-2">
-                    <Label htmlFor="responseStyle">Response Style</Label>
-                    <Textarea
-                    id="responseStyle"
-                    name="responseStyle"
-                    defaultValue={defaultValues.responseStyle}
-                    placeholder="e.g., Talks like a Gen-Z, uses a lot of slang and emojis. Formal and professional. Gets sarcastic when annoyed."
-                    required
-                    rows={4}
-                    className="resize-none"
-                    />
-                     <p className="text-xs text-muted-foreground">
-                        Define how the persona communicates. This guides their tone, language, and personality in chat.
-                    </p>
-                    {state.errors?.responseStyle && (
-                    <p className="text-sm font-medium text-destructive">
-                        {state.errors.responseStyle}
-                    </p>
-                    )}
-                </div>
+                  <div className="space-y-2">
+                      <Label htmlFor="responseStyle">Response Style</Label>
+                      <Textarea
+                      id="responseStyle"
+                      name="responseStyle"
+                      defaultValue={defaultValues.responseStyle}
+                      placeholder="e.g., Talks like a Gen-Z, uses a lot of slang and emojis. Formal and professional. Gets sarcastic when annoyed."
+                      required
+                      rows={4}
+                      className="resize-none"
+                      />
+                       <p className="text-xs text-muted-foreground">
+                          Define how the persona communicates. This guides their tone, language, and personality in chat.
+                      </p>
+                      {state.errors?.responseStyle && (
+                      <p className="text-sm font-medium text-destructive">
+                          {state.errors.responseStyle}
+                      </p>
+                      )}
+                  </div>
 
-                {state.message && !state.success && (
-                    <Alert variant="destructive">
-                    <AlertTitle>Error</AlertTitle>
-                    <AlertDescription>{state.message}</AlertDescription>
-                    </Alert>
-                )}
+                  {state.message && !state.success && (
+                      <Alert variant="destructive">
+                      <AlertTitle>Error</AlertTitle>
+                      <AlertDescription>{state.message}</AlertDescription>
+                      </Alert>
+                  )}
 
-                <SubmitButton />
-                </form>
-            </TabsContent>
-            <TabsContent value="ai" className="pt-6">
-                <div className="space-y-4">
-                <Label htmlFor="prompt">Describe your character idea</Label>
-                <Textarea
-                    id="prompt"
-                    name="prompt"
-                    value={prompt}
-                    onChange={(e) => setPrompt(e.target.value)}
-                    placeholder="e.g., A badass pokemon trainer from the future who time-traveled to the past."
-                    rows={4}
-                    className="resize-none"
-                />
-                <Button
-                    className="w-full"
-                    onClick={handleGenerateFullPersona}
-                    disabled={isGeneratingFull || !prompt}
-                    size="lg"
-                >
-                    {isGeneratingFull ? (
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    ) : (
-                    <Wand2 className="mr-2 h-4 w-4" />
-                    )}
-                    Generate Persona from Prompt
-                </Button>
-                </div>
-            </TabsContent>
-            </Tabs>
-        </CardContent>
-        </Card>
+                  <SubmitButton />
+                  </form>
+              </TabsContent>
+              <TabsContent value="ai" className="pt-6">
+                  <div className="space-y-4">
+                  <Label htmlFor="prompt">Describe your character idea</Label>
+                  <Textarea
+                      id="prompt"
+                      name="prompt"
+                      value={prompt}
+                      onChange={(e) => setPrompt(e.target.value)}
+                      placeholder="e.g., A badass pokemon trainer from the future who time-traveled to the past."
+                      rows={4}
+                      className="resize-none"
+                  />
+                  <Button
+                      className="w-full"
+                      onClick={handleGenerateFullPersona}
+                      disabled={isGeneratingFull || !prompt}
+                      size="lg"
+                  >
+                      {isGeneratingFull ? (
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      ) : (
+                      <Wand2 className="mr-2 h-4 w-4" />
+                      )}
+                      Generate Persona from Prompt
+                  </Button>
+                  </div>
+              </TabsContent>
+              </Tabs>
+          </CardContent>
+          </Card>
+      </div>
     </div>
   );
 }

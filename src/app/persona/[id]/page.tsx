@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useEffect, useState, useRef, FormEvent, useMemo, useCallback } from 'react';
@@ -719,5 +718,3 @@ export default function PersonaChatPage() {
     </>
   );
 }
-
-    

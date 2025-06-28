@@ -1,4 +1,3 @@
-
 import { Settings, Info } from 'lucide-react';
 import Link from 'next/link';
 import { Button } from './ui/button';
@@ -33,5 +32,3 @@ export function SiteHeader() {
     </header>
   );
 }
-
-    
