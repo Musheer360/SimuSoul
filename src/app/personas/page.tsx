@@ -24,7 +24,7 @@ import { getAllPersonas, deletePersona } from '@/lib/db';
 function PersonaCardSkeleton() {
   return (
     <div className="space-y-4">
-      <Skeleton className="aspect-square w-full rounded-lg" />
+      <Skeleton className="aspect-[3/4] w-full rounded-lg" />
       <div className="space-y-2">
         <Skeleton className="h-6 w-3/4" />
         <Skeleton className="h-4 w-5/6" />
@@ -54,7 +54,7 @@ export default function PersonasPage() {
 
   return (
     <div className="h-full overflow-y-auto">
-      <div className="container py-8 md:py-12">
+      <div className="container py-8">
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-8">
           <div className="mb-4 sm:mb-0">
             <h1 className="text-3xl font-bold font-headline tracking-tight">Your Personas</h1>
@@ -68,18 +68,17 @@ export default function PersonasPage() {
         </div>
 
         {isLoading ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-8">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
             {[...Array(4)].map((_, i) => (
               <PersonaCardSkeleton key={i} />
             ))}
           </div>
         ) : personas.length > 0 ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-8">
-            {personas.map((persona, index) => (
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+            {personas.map((persona) => (
               <div
                 key={persona.id}
-                className="relative group animate-fade-in-up"
-                style={{ animationDelay: `${index * 100}ms` }}
+                className="relative group"
               >
                 <AlertDialog>
                   <AlertDialogTrigger asChild>
@@ -114,7 +113,7 @@ export default function PersonasPage() {
 
                 <Link href={`/persona/${persona.id}`} className="block">
                   <Card className="h-full overflow-hidden border-2 border-transparent group-hover:border-primary transition-all duration-300 group-hover:shadow-2xl group-hover:shadow-primary/20 bg-card group-hover:-translate-y-2">
-                      <div className="aspect-square relative overflow-hidden">
+                      <div className="aspect-[3/4] relative overflow-hidden">
                         <Image
                           src={persona.profilePictureUrl}
                           alt={persona.name}
@@ -137,7 +136,7 @@ export default function PersonasPage() {
             ))}
           </div>
         ) : (
-            <div className="text-center py-20 border-2 border-dashed border-border/50 rounded-lg animate-fade-in flex flex-col items-center justify-center bg-card/20 backdrop-blur-sm">
+            <div className="text-center py-20 border-2 border-dashed border-border/50 rounded-lg flex flex-col items-center justify-center bg-card/20 backdrop-blur-sm">
             <Bot className="mx-auto h-16 w-16 text-muted-foreground" />
             <h3 className="mt-4 text-2xl font-medium font-headline">No Personas Yet</h3>
             <p className="mt-2 text-base text-muted-foreground max-w-sm">

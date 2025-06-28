@@ -7,9 +7,9 @@ import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { getAllPersonas } from '@/lib/db';
 
-function FeatureCard({ icon: Icon, title, description, animationDelay }: { icon: React.ElementType, title: string, description: string, animationDelay: string }) {
+function FeatureCard({ icon: Icon, title, description }: { icon: React.ElementType, title: string, description: string }) {
   return (
-    <div className="flex flex-col items-center text-center p-6 bg-card/30 rounded-lg backdrop-blur-sm border border-border/20 animate-fade-in-up" style={{ animationDelay }}>
+    <div className="flex flex-col items-center text-center p-6 bg-card/30 rounded-lg backdrop-blur-sm border border-border/20">
       <div className="flex items-center justify-center w-16 h-16 mb-4 rounded-full bg-primary/10 text-primary">
         <Icon className="w-8 h-8" />
       </div>
@@ -39,13 +39,13 @@ export default function HomePage() {
       {/* Hero Section */}
       <section className="h-full snap-start flex items-center justify-center">
         <div className="container text-center">
-          <h1 className="text-4xl md:text-6xl font-bold font-headline tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-primary via-accent to-white animate-fade-in-up">
+          <h1 className="text-4xl md:text-6xl font-bold font-headline tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-primary via-accent to-white">
             Create, Converse, Connect.
           </h1>
-          <p className="max-w-2xl mx-auto mt-4 text-lg md:text-xl text-muted-foreground animate-fade-in-up" style={{ animationDelay: '0.2s' }}>
+          <p className="max-w-2xl mx-auto mt-4 text-lg md:text-xl text-muted-foreground">
             Craft unique AI personas and engage in dynamic, memorable conversations. Your imagination is the only limit.
           </p>
-          <div className="mt-8 animate-fade-in-up" style={{ animationDelay: '0.4s' }}>
+          <div className="mt-8">
               {isLoading ? (
               <Skeleton className="h-14 w-72 mx-auto rounded-full" />
             ) : (
@@ -68,7 +68,7 @@ export default function HomePage() {
       {/* Features Section */}
       <section className="h-full snap-start flex items-center justify-center bg-background/50 backdrop-blur-sm">
         <div className="container">
-            <div className="text-center mb-12 animate-fade-in-up" style={{ animationDelay: '0.6s' }}>
+            <div className="text-center mb-12">
               <h2 className="text-3xl font-bold font-headline tracking-tight">How It Works</h2>
               <p className="text-muted-foreground mt-2 max-w-2xl mx-auto">
                   PersonaForge is designed to be simple, powerful, and deeply personal.
@@ -79,19 +79,16 @@ export default function HomePage() {
               icon={Wand2} 
               title="Design Deep Personas" 
               description="Define everything from backstories and traits to unique speaking styles."
-              animationDelay="0.8s"
             />
             <FeatureCard 
               icon={MessageCircle} 
               title="Dynamic Conversations" 
               description="Our AI remembers your chats, learns about you, and stays in character."
-              animationDelay="1.0s"
             />
             <FeatureCard 
               icon={DatabaseZap} 
               title="Own Your Data" 
               description="All your personas and chats are stored locally and securely in your browser."
-              animationDelay="1.2s"
             />
           </div>
         </div>
