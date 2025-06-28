@@ -113,6 +113,7 @@ export default function PersonaChatPage() {
 
   const scrollAreaRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const formRef = useRef<HTMLFormElement>(null);
 
   useEffect(() => {
     async function loadPageData() {
@@ -191,6 +192,26 @@ export default function PersonaChatPage() {
       }
     }
   }, [messages]);
+
+  useEffect(() => {
+    const form = formRef.current;
+    const textarea = textareaRef.current;
+    // Only run this logic on mobile devices
+    if (!form || !textarea || !isMobile) return;
+
+    const handleFocus = () => {
+      // Use a timeout to allow the keyboard to animate into view
+      setTimeout(() => {
+        form.scrollIntoView({ behavior: 'smooth', block: 'end' });
+      }, 200);
+    };
+
+    textarea.addEventListener('focus', handleFocus);
+
+    return () => {
+      textarea.removeEventListener('focus', handleFocus);
+    };
+  }, [isMobile]);
   
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
@@ -204,7 +225,7 @@ export default function PersonaChatPage() {
     const optimisticPersona = {
       ...persona,
       chats: persona.chats.map(c => 
-        c.id === activeChatId ? { ...c, messages: [...c.messages, userMessage] } : c
+        c.id === activeChatId ? { ...c, messages: [...c.messages, userMessage], updatedAt: Date.now() } : c
       ),
     };
     setPersona(optimisticPersona);
@@ -541,7 +562,7 @@ export default function PersonaChatPage() {
                         <Link key={chat.id} href={`/persona/${persona.id}?chat=${chat.id}`} className="block group" scroll={false}>
                           <div className={cn(
                             "flex justify-between items-center px-3 py-2 rounded-md transition-colors",
-                            activeChatId === chat.id ? 'bg-primary/20 text-primary-foreground' : 'hover:bg-secondary'
+                            activeChatId === chat.id ? 'bg-primary/20 text-primary dark:text-primary-foreground' : 'hover:bg-secondary'
                           )}>
                             <p className="text-sm truncate pr-2 min-w-0">
                                 <AnimatedChatTitle title={chat.title} />
@@ -646,6 +667,7 @@ export default function PersonaChatPage() {
                     <div className="p-4 border-t bg-background/50">
                       <div className="max-w-3xl mx-auto">
                         <form
+                          ref={formRef}
                           onSubmit={handleSubmit}
                           className="flex w-full items-end gap-2 rounded-lg border bg-secondary/50 p-2"
                         >

@@ -39,7 +39,7 @@ export default function RootLayout({
           defaultTheme="dark"
           disableTransitionOnChange
         >
-            <div className="relative flex h-screen flex-col overflow-hidden">
+            <div className="relative flex h-[100dvh] flex-col overflow-hidden">
               <SiteHeader />
               <main className="flex-1 overflow-y-auto no-scrollbar">{children}</main>
             </div>
