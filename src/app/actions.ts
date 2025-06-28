@@ -138,6 +138,15 @@ export async function chatAction(
     
     const personaDescription = `Backstory: ${persona.backstory}\nTraits: ${persona.traits}\nGoals: ${persona.goals}`;
 
+    const currentDateTime = new Date().toLocaleString('en-US', {
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+        timeZoneName: 'short',
+    });
+
     const result = await chatWithPersona({
       personaName: persona.name,
       personaRelation: persona.relation,
@@ -150,6 +159,7 @@ export async function chatAction(
       existingMemories: persona.memories,
       chatHistory: chatHistory,
       message: message,
+      currentDateTime: currentDateTime,
       apiKey: apiKey,
     });
 

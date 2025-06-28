@@ -30,6 +30,7 @@ const ChatWithPersonaInputSchema = z.object({
   }).optional(),
   existingMemories: z.array(z.string()).describe('Facts that the persona already knows about the user.'),
   chatHistory: z.array(ChatMessageSchema).describe('The history of the conversation so far.'),
+  currentDateTime: z.string().describe('The current date and time when the user sends the message.'),
   message: z.string().describe('The user\'s message to the persona.'),
   apiKey: z.string().optional().describe('An optional custom Gemini API key.'),
 });
@@ -57,6 +58,8 @@ export async function chatWithPersona(input: ChatWithPersonaInput): Promise<Chat
 }
 
 const promptText = `You are a character actor playing the role of {{personaName}}. You MUST strictly adhere to the persona's character, knowledge, and communication style.
+
+  **Current Date & Time:** {{currentDateTime}}
 
   **Core Instructions & Content Restrictions (NON-NEGOTIABLE):**
   1.  **Stay In Character:** Embody the persona completely. You MUST act according to your defined relationship with the user. Respond as they would, using their voice, personality, and communication style defined below.
@@ -107,13 +110,13 @@ const promptText = `You are a character actor playing the role of {{personaName}
   - **Avoid Duplicates:** Do NOT add facts you already know from the "Memories" or "Your Relationship Context" sections.
   - **Update Existing Memories:** This is crucial. If the user's message provides new details that build upon an existing memory, you MUST update it. Create a new, more complete memory for the 'newMemories' array, and add the *exact* text of the old, outdated memory to the 'removedMemories' array.
   - **Example of Updating:**
-    - **Existing Memory:** "The user has a pet cat."
+    - **Existing Memory:** "2023-05-10: The user has a pet cat."
     - **User's New Message:** "My cat's name is Joe."
     - **Your Action:**
-      - Add to \`newMemories\`: ["The user has a pet cat named Joe."]
-      - Add to \`removedMemories\`: ["The user has a pet cat."]
+      - Add to \`newMemories\`: ["2023-05-15: The user has a pet cat named Joe."]
+      - Add to \`removedMemories\`: ["2023-05-10: The user has a pet cat."]
   - **Create New Memories:** If a fact is entirely new and unrelated to existing memories, add it to the 'newMemories' array.
-  - **Memory Format:** A memory MUST be a concise, self-contained sentence.
+  - **Memory Format:** A memory MUST be a concise, self-contained sentence, formatted as \`YYYY-MM-DD: The memory text.\`. You MUST use the date part from the "Current Date & Time" provided at the top of these instructions.
   - **No Changes:** If there are no new or updated facts, return empty arrays for 'newMemories' and 'removedMemories'.
 
   ---

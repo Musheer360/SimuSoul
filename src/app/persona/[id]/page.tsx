@@ -339,9 +339,16 @@ export default function PersonaChatPage() {
       e.preventDefault();
       if (!persona || !newMemoryInput.trim()) return;
 
+      const today = new Date();
+      const year = today.getFullYear();
+      const month = String(today.getMonth() + 1).padStart(2, '0');
+      const day = String(today.getDate()).padStart(2, '0');
+      const formattedDate = `${year}-${month}-${day}`;
+      const memoryWithDate = `${formattedDate}: ${newMemoryInput.trim()}`;
+
       const updatedPersona = {
           ...persona,
-          memories: [...new Set([...(persona.memories || []), newMemoryInput.trim()])]
+          memories: [...new Set([...(persona.memories || []), memoryWithDate])]
       };
       setPersona(updatedPersona);
       await savePersona(updatedPersona);
