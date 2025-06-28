@@ -323,7 +323,7 @@ export default function PersonaChatPage() {
   const handleDeletePersona = async () => {
     if (!id || typeof id !== 'string') return;
     await deletePersona(id);
-    router.push('/');
+    router.push('/personas');
   };
 
   const handlePersonaUpdate = useCallback(async (updatedPersonaData: Omit<Persona, 'chats' | 'memories'>) => {
@@ -385,7 +385,7 @@ export default function PersonaChatPage() {
           <CardContent>
             <p className="mb-4">This persona could not be found. It might have been deleted.</p>
             <Button asChild>
-              <Link href="/">
+              <Link href="/personas">
                 <ArrowLeft className="mr-2 h-4 w-4" />
                 Return to All Personas
               </Link>
@@ -585,7 +585,7 @@ export default function PersonaChatPage() {
                       <PanelLeft className="h-5 w-5" />
                   </Button>
                   <Button asChild variant="ghost" className="text-muted-foreground hover:text-foreground">
-                      <Link href="/">
+                      <Link href="/personas">
                       <ArrowLeft className="mr-2 h-4 w-4" />
                       All Personas
                       </Link>
