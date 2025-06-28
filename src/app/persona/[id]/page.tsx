@@ -113,7 +113,6 @@ export default function PersonaChatPage() {
 
   const scrollAreaRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
-  const formRef = useRef<HTMLFormElement>(null);
 
   useEffect(() => {
     async function loadPageData() {
@@ -192,28 +191,6 @@ export default function PersonaChatPage() {
       }
     }
   }, [messages]);
-
-  useEffect(() => {
-    const form = formRef.current;
-    const textarea = textareaRef.current;
-    
-    // This effect now runs on all devices to ensure consistency.
-    // The behavior is negligible on desktop but critical for mobile keyboards.
-    if (!form || !textarea) return;
-
-    const handleFocus = () => {
-      // Use a timeout to allow the keyboard to animate into view
-      setTimeout(() => {
-        form.scrollIntoView({ behavior: 'smooth', block: 'end' });
-      }, 300);
-    };
-
-    textarea.addEventListener('focus', handleFocus);
-
-    return () => {
-      textarea.removeEventListener('focus', handleFocus);
-    };
-  }, []); // Empty dependency array ensures this runs once on mount
   
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
@@ -669,7 +646,6 @@ export default function PersonaChatPage() {
                     <div className="p-4 border-t bg-background/50">
                       <div className="max-w-3xl mx-auto">
                         <form
-                          ref={formRef}
                           onSubmit={handleSubmit}
                           className="flex w-full items-end gap-2 rounded-lg border bg-secondary/50 p-2"
                         >

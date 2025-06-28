@@ -54,7 +54,7 @@ export default function PersonasPage() {
   };
 
   return (
-    <div className="h-full overflow-y-auto no-scrollbar">
+    <div>
       <div className="container py-8">
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-8">
           <div className="mb-4 sm:mb-0">
