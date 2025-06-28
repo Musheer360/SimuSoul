@@ -196,14 +196,16 @@ export default function PersonaChatPage() {
   useEffect(() => {
     const form = formRef.current;
     const textarea = textareaRef.current;
-    // Only run this logic on mobile devices
-    if (!form || !textarea || !isMobile) return;
+    
+    // This effect now runs on all devices to ensure consistency.
+    // The behavior is negligible on desktop but critical for mobile keyboards.
+    if (!form || !textarea) return;
 
     const handleFocus = () => {
       // Use a timeout to allow the keyboard to animate into view
       setTimeout(() => {
         form.scrollIntoView({ behavior: 'smooth', block: 'end' });
-      }, 200);
+      }, 300);
     };
 
     textarea.addEventListener('focus', handleFocus);
@@ -211,7 +213,7 @@ export default function PersonaChatPage() {
     return () => {
       textarea.removeEventListener('focus', handleFocus);
     };
-  }, [isMobile]);
+  }, []); // Empty dependency array ensures this runs once on mount
   
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
@@ -562,7 +564,7 @@ export default function PersonaChatPage() {
                         <Link key={chat.id} href={`/persona/${persona.id}?chat=${chat.id}`} className="block group" scroll={false}>
                           <div className={cn(
                             "flex justify-between items-center px-3 py-2 rounded-md transition-colors",
-                            activeChatId === chat.id ? 'bg-primary/20 text-primary dark:text-primary-foreground' : 'hover:bg-secondary'
+                            activeChatId === chat.id ? 'bg-primary/20 text-primary-foreground dark:text-primary-foreground' : 'hover:bg-secondary'
                           )}>
                             <p className="text-sm truncate pr-2 min-w-0">
                                 <AnimatedChatTitle title={chat.title} />
