@@ -8,6 +8,7 @@ export interface ChatSession {
   title: string;
   messages: ChatMessage[];
   createdAt: number;
+  updatedAt: number;
 }
 
 export interface Persona {

@@ -134,11 +134,13 @@ export default function PersonaChatPage() {
 
   const handleNewChat = useCallback(async () => {
     if (!persona) return;
+    const now = Date.now();
     const newChat: ChatSession = {
       id: crypto.randomUUID(),
       title: 'New Chat',
       messages: [],
-      createdAt: Date.now(),
+      createdAt: now,
+      updatedAt: now,
     };
     const updatedPersona = {
       ...persona,
@@ -151,7 +153,7 @@ export default function PersonaChatPage() {
   
   const sortedChats = useMemo(() => {
     if (!persona?.chats) return [];
-    return [...persona.chats].sort((a, b) => b.createdAt - a.createdAt);
+    return [...persona.chats].sort((a, b) => (b.updatedAt || b.createdAt) - (a.updatedAt || a.createdAt));
   }, [persona?.chats]);
 
   useEffect(() => {
@@ -253,7 +255,7 @@ export default function PersonaChatPage() {
       chats: persona.chats.map(c => {
         if (c.id !== activeChatId) return c;
         const updatedMessages = assistantMessage ? [...c.messages, userMessage, assistantMessage] : [...c.messages, userMessage];
-        return { ...c, messages: updatedMessages };
+        return { ...c, messages: updatedMessages, updatedAt: Date.now() };
       }),
       memories: finalMemories,
     };
@@ -505,7 +507,7 @@ export default function PersonaChatPage() {
                 <div className="flex gap-2 mb-2">
                     <AlertDialog open={isClearAllDialogOpen} onOpenChange={setIsClearAllDialogOpen}>
                         <AlertDialogTrigger asChild>
-                            <Button variant="destructive" className="flex-1">
+                            <Button variant="outline" className="flex-1">
                                 <Trash2 className="mr-2 h-4 w-4" /> Clear All
                             </Button>
                         </AlertDialogTrigger>
@@ -539,7 +541,7 @@ export default function PersonaChatPage() {
                         <Link key={chat.id} href={`/persona/${persona.id}?chat=${chat.id}`} className="block group" scroll={false}>
                           <div className={cn(
                             "flex justify-between items-center px-3 py-2 rounded-md transition-colors",
-                            activeChatId === chat.id ? 'bg-primary/20 text-primary dark:text-primary-foreground' : 'hover:bg-secondary'
+                            activeChatId === chat.id ? 'bg-primary/20 text-primary-foreground' : 'hover:bg-secondary'
                           )}>
                             <p className="text-sm truncate pr-2 min-w-0">
                                 <AnimatedChatTitle title={chat.title} />
