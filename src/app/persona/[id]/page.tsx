@@ -651,16 +651,22 @@ export default function PersonaChatPage() {
                           <Textarea
                             ref={textareaRef}
                             value={input}
-                            onChange={(e) => setInput(e.target.value)}
-                            placeholder={`Message ${persona.name}...`}
-                            className="flex-1 resize-none border-0 bg-transparent p-2 text-base shadow-none focus-visible:ring-0"
-                            rows={3}
+                            onChange={(e) => {
+                              setInput(e.target.value);
+                              // Auto-resize logic
+                              const target = e.currentTarget;
+                              target.style.height = 'auto';
+                              target.style.height = `${target.scrollHeight}px`;
+                            }}
                             onKeyDown={(e) => {
                               if (e.key === 'Enter' && !e.shiftKey) {
                                 e.preventDefault();
                                 handleSubmit(e as any);
                               }
                             }}
+                            rows={1}
+                            placeholder={`Message ${persona.name}...`}
+                            className="flex-1 resize-none border-0 bg-transparent p-2 text-base shadow-none focus-visible:ring-0 max-h-40 overflow-y-auto"
                           />
                           <Button
                             type="submit"
@@ -713,3 +719,5 @@ export default function PersonaChatPage() {
     </>
   );
 }
+
+    

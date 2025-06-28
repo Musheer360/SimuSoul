@@ -1,6 +1,6 @@
+
 import { Settings, Info } from 'lucide-react';
 import Link from 'next/link';
-import { SettingsDialog } from './settings-dialog';
 import { Button } from './ui/button';
 import { ThemeToggle } from './theme-toggle';
 
@@ -23,13 +23,15 @@ export function SiteHeader() {
                 </Link>
             </Button>
             <ThemeToggle />
-            <SettingsDialog>
-            <Button variant="secondary" size="icon" aria-label="Settings">
-                <Settings className="h-5 w-5" />
+            <Button asChild variant="secondary" size="icon" aria-label="Settings">
+                <Link href="/settings">
+                    <Settings className="h-5 w-5" />
+                </Link>
             </Button>
-            </SettingsDialog>
         </div>
       </div>
     </header>
   );
 }
+
+    
