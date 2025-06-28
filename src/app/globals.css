@@ -79,6 +79,7 @@
     overscroll-behavior-y: none;
     -ms-overflow-style: none; /* IE and Edge */
     scrollbar-width: none; /* Firefox */
+    overflow-y: auto;
   }
 
   main::-webkit-scrollbar {
