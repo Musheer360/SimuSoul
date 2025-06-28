@@ -1,4 +1,4 @@
-import { Settings } from 'lucide-react';
+import { Settings, Info } from 'lucide-react';
 import Link from 'next/link';
 import { SettingsDialog } from './settings-dialog';
 import { Button } from './ui/button';
@@ -17,6 +17,11 @@ export function SiteHeader() {
         </div>
         
         <div className="flex flex-1 items-center justify-end gap-2">
+            <Button asChild variant="secondary" size="icon" aria-label="About">
+                <Link href="/about">
+                    <Info className="h-5 w-5" />
+                </Link>
+            </Button>
             <ThemeToggle />
             <SettingsDialog>
             <Button variant="secondary" size="icon" aria-label="Settings">
