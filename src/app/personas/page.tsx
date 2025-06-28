@@ -137,11 +137,13 @@ export default function PersonasPage() {
             ))}
           </div>
         ) : (
-            <div className="text-center py-20 border-2 border-dashed border-border/50 rounded-lg flex flex-col items-center justify-center bg-card/80 backdrop-blur-sm">
-            <Bot className="mx-auto h-16 w-16 text-muted-foreground" />
-            <h3 className="mt-4 text-2xl font-medium font-headline">No Personas Yet</h3>
+          <div className="flex flex-col items-center justify-center text-center py-20">
+            <div className="p-6 rounded-full bg-primary/10 mb-6">
+              <Bot className="h-16 w-16 text-primary" />
+            </div>
+            <h3 className="text-2xl font-medium font-headline">Your Forge is Empty</h3>
             <p className="mt-2 text-base text-muted-foreground max-w-sm">
-              It looks like your forge is empty. Click the button above to create your first persona!
+              You haven't created any personas yet. Click the button above to bring your first character to life.
             </p>
           </div>
         )}
