@@ -20,6 +20,7 @@ import {
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
 import { getAllPersonas, deletePersona } from '@/lib/db';
+import { cn } from '@/lib/utils';
 
 function PersonaCardSkeleton() {
   return (
@@ -112,7 +113,7 @@ export default function PersonasPage() {
                 </AlertDialog>
 
                 <Link href={`/persona/${persona.id}`} className="block">
-                  <Card className="h-full overflow-hidden border-2 border-transparent group-hover:border-primary transition-all duration-300 group-hover:shadow-2xl group-hover:shadow-primary/20 bg-card group-hover:-translate-y-2">
+                  <Card className="h-full overflow-hidden border border-border/20 group-hover:border-primary transition-all duration-300 group-hover:shadow-2xl group-hover:shadow-primary/20 bg-card/80 backdrop-blur-sm group-hover:-translate-y-2">
                       <div className="aspect-[3/4] relative overflow-hidden">
                         <Image
                           src={persona.profilePictureUrl}
@@ -136,7 +137,7 @@ export default function PersonasPage() {
             ))}
           </div>
         ) : (
-            <div className="text-center py-20 border-2 border-dashed border-border/50 rounded-lg flex flex-col items-center justify-center bg-card/20 backdrop-blur-sm">
+            <div className="text-center py-20 border-2 border-dashed border-border/50 rounded-lg flex flex-col items-center justify-center bg-card/80 backdrop-blur-sm">
             <Bot className="mx-auto h-16 w-16 text-muted-foreground" />
             <h3 className="mt-4 text-2xl font-medium font-headline">No Personas Yet</h3>
             <p className="mt-2 text-base text-muted-foreground max-w-sm">

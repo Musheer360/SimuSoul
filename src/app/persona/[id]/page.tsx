@@ -48,7 +48,7 @@ function PersonaChatSkeleton() {
   return (
     <div className="flex h-full">
       {/* Left Sidebar Skeleton */}
-      <div className="w-80 bg-card/50 backdrop-blur-sm border-r hidden md:flex flex-col">
+      <div className="w-80 bg-card/80 backdrop-blur-sm border-r hidden md:flex flex-col">
           <div className="p-4 space-y-4">
               <div className="flex items-center gap-4">
                   <Skeleton className="h-16 w-16 rounded-full" />
@@ -378,7 +378,7 @@ export default function PersonaChatPage() {
   if (persona === null) {
     return (
        <div className="container flex items-center justify-center h-full">
-        <Card className="m-auto bg-card/80 backdrop-blur-sm">
+        <Card className="m-auto bg-card/80 backdrop-blur-sm border border-border/20">
           <CardHeader>
             <CardTitle>Persona Not Found</CardTitle>
           </CardHeader>
@@ -409,7 +409,7 @@ export default function PersonaChatPage() {
           />
           {/* Left Sidebar */}
           <div className={cn(
-              "transition-transform duration-300 ease-in-out flex flex-col bg-card/50 backdrop-blur-sm",
+              "transition-transform duration-300 ease-in-out flex flex-col bg-card/80 backdrop-blur-sm",
               "fixed bottom-0 left-0 top-16 z-30 w-80 border-r md:static md:bottom-auto md:top-auto md:h-auto md:w-auto md:transform-none md:transition-all",
               isSidebarOpen ? "translate-x-0" : "-translate-x-full",
               isSidebarOpen ? "md:w-80" : "md:w-0 md:p-0 md:opacity-0 md:border-r-0",

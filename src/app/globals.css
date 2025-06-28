@@ -9,64 +9,64 @@
 
   :root {
     --background: 0 0% 100%; /* White */
-    --foreground: 240 10% 3.9%; /* Dark Gray */
+    --foreground: 210 8% 15%; /* Dark Gray */
 
     --card: 0 0% 98%; /* Lighter Gray */
-    --card-foreground: 240 10% 3.9%;
+    --card-foreground: 210 8% 15%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 240 10% 3.9%;
+    --popover-foreground: 210 8% 15%;
 
-    --primary: 217 91% 60%; /* Bright Blue */
+    --primary: 272 68% 61%; /* Vivid Purple */
     --primary-foreground: 0 0% 100%;
 
-    --secondary: 240 4.8% 95.9%; /* Light Gray */
-    --secondary-foreground: 240 10% 3.9%;
+    --secondary: 210 8% 95%; /* Light Gray for secondary elements */
+    --secondary-foreground: 210 8% 15%;
 
-    --muted: 240 4.8% 95.9%;
-    --muted-foreground: 240 3.8% 46.1%;
+    --muted: 210 8% 95%;
+    --muted-foreground: 210 8% 45%;
 
-    --accent: 240 4.8% 95.9%;
-    --accent-foreground: 240 10% 3.9%;
+    --accent: 195 71% 62%; /* Electric Blue */
+    --accent-foreground: 210 8% 15%;
 
     --destructive: 0 84.2% 60.2%; /* Red */
     --destructive-foreground: 0 0% 100%;
 
-    --border: 240 5.9% 90%;
-    --input: 240 5.9% 90%;
-    --ring: 217 91% 60%;
+    --border: 210 8% 88%;
+    --input: 210 8% 88%;
+    --ring: 272 68% 61%;
 
     --radius: 0.5rem;
   }
 
   .dark {
-    --background: 240 10% 3.9%; /* Dark Gray */
-    --foreground: 0 0% 98%; /* Almost White */
+    --background: 224 71% 4%; /* Tokyo Night Dark */
+    --foreground: 210 40% 98%; /* Almost white */
 
-    --card: 240 10% 6.9%; /* Darker Gray */
-    --card-foreground: 0 0% 98%;
+    --card: 224 71% 8%; /* Darker Card */
+    --card-foreground: 210 40% 98%;
 
-    --popover: 240 10% 3.9%;
-    --popover-foreground: 0 0% 98%;
+    --popover: 224 71% 4%;
+    --popover-foreground: 210 40% 98%;
 
-    --primary: 217 91% 60%; /* Bright Blue */
+    --primary: 272 68% 61%; /* Vivid Purple */
     --primary-foreground: 0 0% 100%;
 
-    --secondary: 240 3.7% 15.9%; /* Darker Blue-Gray */
-    --secondary-foreground: 0 0% 98%;
+    --secondary: 224 71% 10%; /* Darker secondary */
+    --secondary-foreground: 210 40% 98%;
 
-    --muted: 240 3.7% 15.9%;
-    --muted-foreground: 240 5% 64.9%;
+    --muted: 224 71% 10%;
+    --muted-foreground: 210 40% 60%;
 
-    --accent: 240 3.7% 15.9%;
-    --accent-foreground: 0 0% 98%;
+    --accent: 195 71% 62%; /* Electric Blue */
+    --accent-foreground: 0 0% 100%;
 
     --destructive: 0 62.8% 50.6%; /* Brighter Red for dark mode */
     --destructive-foreground: 0 0% 98%;
 
-    --border: 240 3.7% 15.9%;
-    --input: 240 3.7% 15.9%;
-    --ring: 217 91% 60%;
+    --border: 224 71% 12%;
+    --input: 224 71% 12%;
+    --ring: 272 68% 61%;
   }
 }
 
@@ -123,6 +123,19 @@
     -ms-overflow-style: none; /* IE and Edge */
     scrollbar-width: none; /* Firefox */
   }
+
+  .animate-gradient {
+    background-size: 300%;
+    background-image: linear-gradient(
+      -45deg,
+      hsl(var(--primary)) 0%,
+      hsl(var(--accent)) 25%,
+      hsl(var(--foreground)) 50%,
+      hsl(var(--accent)) 75%,
+      hsl(var(--primary)) 100%
+    );
+    animation: animated-gradient 6s ease-in-out infinite alternate;
+  }
 }
 
 @keyframes shine-effect {
@@ -131,5 +144,14 @@
   }
   to {
     transform: translateX(100%);
+  }
+}
+
+@keyframes animated-gradient {
+  0% {
+    background-position: 0% 50%;
+  }
+  100% {
+    background-position: 100% 50%;
   }
 }

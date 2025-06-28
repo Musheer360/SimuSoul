@@ -39,7 +39,7 @@ export default function HomePage() {
       {/* Hero Section */}
       <section className="h-full snap-start flex items-center justify-center">
         <div className="container text-center">
-          <h1 className="text-4xl md:text-6xl font-bold font-headline tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-primary via-accent to-foreground">
+          <h1 className="text-4xl md:text-6xl font-bold font-headline tracking-tight text-transparent bg-clip-text animate-gradient">
             Create, Converse, Connect.
           </h1>
           <p className="max-w-2xl mx-auto mt-4 text-lg md:text-xl text-muted-foreground">

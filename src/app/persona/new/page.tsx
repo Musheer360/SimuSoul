@@ -172,7 +172,7 @@ export default function NewPersonaPage() {
 
   return (
     <div className="container py-12">
-        <Card className="max-w-2xl mx-auto animate-fade-in-up bg-card/50 backdrop-blur-sm">
+        <Card className="max-w-2xl mx-auto animate-fade-in-up bg-card/80 backdrop-blur-sm border border-border/20">
         <CardHeader className="text-center">
             <CardTitle className="font-headline text-3xl">
             Create a New Persona
