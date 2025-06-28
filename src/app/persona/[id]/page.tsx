@@ -40,7 +40,7 @@ import { FormattedMessage } from '@/components/formatted-message';
 import { useToast } from '@/hooks/use-toast';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { AnimatedChatTitle } from '@/components/animated-chat-title';
-import { getPersona, savePersona, deletePersona, getUserDetails, getApiKeys } from '@/lib/db';
+import { getPersona, savePersona, deletePersona, getUserDetails, getApiKeys, saveMemory, deleteMemory } from '@/lib/db';
 
 function PersonaChatSkeleton() {
   return (
@@ -111,6 +111,7 @@ export default function PersonaChatPage() {
 
   const scrollAreaRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const formRef = useRef<HTMLFormElement>(null);
 
   useEffect(() => {
     async function loadPageData() {
@@ -214,14 +215,12 @@ export default function PersonaChatPage() {
     setIsLoading(true);
     setError(null);
 
-    const currentDateTime = new Date().toLocaleString('en-US', {
-        year: 'numeric',
-        month: 'long',
-        day: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit',
-        hour12: true,
+    const now = new Date();
+    const currentDateTime = now.toLocaleString('en-US', {
+        dateStyle: 'full',
+        timeStyle: 'full',
     });
+    const currentDateForMemory = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
 
     const res = await chatAction({
       persona,
@@ -230,6 +229,7 @@ export default function PersonaChatPage() {
       message: userInput,
       apiKey: apiKeys.gemini,
       currentDateTime,
+      currentDateForMemory,
     });
 
     setIsLoading(false);
@@ -244,16 +244,26 @@ export default function PersonaChatPage() {
     const memoryWasUpdated = (res.newMemories?.length || 0) > 0 || (res.removedMemories?.length || 0) > 0;
     
     if (memoryWasUpdated) {
-      finalMemories = finalMemories.filter(mem => !res.removedMemories?.includes(mem));
-      finalMemories = [...new Set([...finalMemories, ...(res.newMemories || [])])];
-      
-      setGlowingMessageIndex(userMessageIndex);
-      setTimeout(() => setGlowingMessageIndex(null), 1500);
+        const memoriesToDelete = new Set(res.removedMemories || []);
+        finalMemories = finalMemories.filter(mem => !memoriesToDelete.has(mem));
+        
+        const memoriesToAdd = (res.newMemories || []).map(mem => mem);
+        for (const memory of memoriesToAdd) {
+            await saveMemory(persona.id, memory);
+        }
+        for (const memory of memoriesToDelete) {
+            await deleteMemory(persona.id, memory);
+        }
 
-      if (!isMobile) {
-        setIsMemoryButtonGlowing(true);
-        setTimeout(() => setIsMemoryButtonGlowing(false), 1500);
-      }
+        finalMemories = [...finalMemories, ...memoriesToAdd];
+      
+        setGlowingMessageIndex(userMessageIndex);
+        setTimeout(() => setGlowingMessageIndex(null), 1500);
+
+        if (!isMobile) {
+            setIsMemoryButtonGlowing(true);
+            setTimeout(() => setIsMemoryButtonGlowing(false), 1500);
+        }
     }
 
     const assistantMessage: ChatMessage | null = res.response ? { role: 'assistant', content: res.response } : null;
@@ -513,7 +523,9 @@ export default function PersonaChatPage() {
                         <Link key={chat.id} href={`/persona/${persona.id}?chat=${chat.id}`} className="block group" scroll={false}>
                           <div className={cn(
                             "flex justify-between items-center px-3 py-2 rounded-md transition-colors",
-                            activeChatId === chat.id ? 'bg-primary/20 text-primary dark:text-primary-foreground' : 'hover:bg-secondary'
+                             activeChatId === chat.id
+                              ? 'bg-primary/20 text-primary-foreground dark:text-primary-foreground'
+                              : 'hover:bg-secondary'
                           )}>
                             <p className="text-sm truncate pr-2 min-w-0">
                                 <AnimatedChatTitle title={chat.title} />
@@ -618,12 +630,20 @@ export default function PersonaChatPage() {
                     <div className="p-4 border-t bg-background/50">
                       <div className="max-w-3xl mx-auto">
                         <form
+                          ref={formRef}
                           onSubmit={handleSubmit}
                           className="flex w-full items-end gap-2 rounded-lg border bg-secondary/50 p-2"
                         >
                           <Textarea
                             ref={textareaRef}
                             value={input}
+                            onFocus={(e) => {
+                                if (isMobile) {
+                                    setTimeout(() => {
+                                        e.target.scrollIntoView({ behavior: 'smooth', block: 'end' });
+                                    }, 300);
+                                }
+                            }}
                             onChange={(e) => {
                               setInput(e.target.value);
                               // Auto-resize logic

@@ -118,6 +118,7 @@ const chatActionSchema = z.object({
     message: z.string(),
     apiKey: z.string().optional(),
     currentDateTime: z.string(),
+    currentDateForMemory: z.string(),
 });
 
 export async function chatAction(
@@ -128,6 +129,7 @@ export async function chatAction(
     message: string;
     apiKey?: string;
     currentDateTime: string;
+    currentDateForMemory: string;
   }
 ): Promise<{ response?: string; newMemories?: string[]; removedMemories?: string[]; error?: string }> {
   try {
@@ -136,7 +138,7 @@ export async function chatAction(
         return { error: 'Invalid input' };
     }
 
-    const { persona, userDetails, chatHistory, message, apiKey, currentDateTime } = validatedPayload.data;
+    const { persona, userDetails, chatHistory, message, apiKey, currentDateTime, currentDateForMemory } = validatedPayload.data;
     
     const personaDescription = `Backstory: ${persona.backstory}\nTraits: ${persona.traits}\nGoals: ${persona.goals}`;
 
@@ -153,6 +155,7 @@ export async function chatAction(
       chatHistory: chatHistory,
       message: message,
       currentDateTime: currentDateTime,
+      currentDateForMemory: currentDateForMemory,
       apiKey: apiKey,
     });
 
