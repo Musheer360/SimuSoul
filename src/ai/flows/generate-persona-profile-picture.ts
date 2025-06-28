@@ -49,7 +49,7 @@ const generatePersonaProfilePictureFlow = ai.defineFlow(
 
       const {media} = await dynamicAi.generate({
         model: 'googleai/gemini-2.0-flash-preview-image-generation',
-        prompt: `Create a photorealistic, cinematic headshot of a character, facing the camera. The character is described as: ${input.personaTraits}`,
+        prompt: `Create a photorealistic, cinematic portrait of a character up to their mid-body. The character should be facing the camera. The character is described as: ${input.personaTraits}`,
         config: {
           responseModalities: ['TEXT', 'IMAGE'],
         },

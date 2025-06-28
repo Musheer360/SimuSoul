@@ -35,9 +35,14 @@ export async function generatePersonaFromPrompt(input: GeneratePersonaFromPrompt
 
 const promptText = `You are a world-class creative writer and character designer. Based on the user's prompt, generate a complete, ready-to-use fictional persona.
 
+**IMPORTANT CONTENT RESTRICTIONS:**
+- **Gender:** The persona MUST be strictly either male or female. Do not create characters that are non-binary, gender-fluid, or any other gender identity.
+- **Religion:** You MUST NOT create any persona that is a religious figure, deity, or has any association with real-world religions. The character's backstory and goals must be completely secular.
+- **Controversial Topics:** You MUST NOT create personas related to or that express views on sensitive or controversial topics, including but not limited to politics, sexuality (including LGBTQ+ identities), or social activism. Keep the persona's identity and story neutral and broadly appealing.
+
 User's Prompt: "{{prompt}}"
 
-Generate all of the following details for this new character:
+Generate all of the following details for this new character, strictly adhering to the content restrictions above:
 - Name: A unique and fitting name.
 - Relationship: A plausible relationship to the user (e.g., friend, mentor, rival).
 - Traits: A short, punchy list of their most defining characteristics.
@@ -45,7 +50,7 @@ Generate all of the following details for this new character:
 - Goals: What drives them forward? What do they want to achieve?
 - Response Style: Define their communication habits. Are they formal or informal? Do they use emojis, slang, or curse words? How does their tone change with their mood (e.g., happy, angry, casual)? Be specific.
 
-Be creative and ensure all the generated details are consistent with each other and the original prompt.
+Be creative and ensure all the generated details are consistent with each other, the original prompt, and the content restrictions.
 `;
 
 const generatePersonaFromPromptFlow = ai.defineFlow(
@@ -66,6 +71,26 @@ const generatePersonaFromPromptFlow = ai.defineFlow(
         input: {schema: GeneratePersonaFromPromptInputSchema},
         output: {schema: GeneratePersonaFromPromptOutputSchema},
         prompt: promptText,
+        config: {
+            safetySettings: [
+              {
+                category: 'HARM_CATEGORY_HATE_SPEECH',
+                threshold: 'BLOCK_ONLY_HIGH',
+              },
+              {
+                category: 'HARM_CATEGORY_DANGEROUS_CONTENT',
+                threshold: 'BLOCK_ONLY_HIGH',
+              },
+              {
+                category: 'HARM_CATEGORY_HARASSMENT',
+                threshold: 'BLOCK_ONLY_HIGH',
+              },
+              {
+                category: 'HARM_CATEGORY_SEXUALLY_EXPLICIT',
+                threshold: 'BLOCK_ONLY_HIGH',
+              },
+            ],
+          },
       });
 
       const { output } = await prompt(input);

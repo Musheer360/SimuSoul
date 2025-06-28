@@ -34,16 +34,21 @@ export async function generatePersonaDetails(input: GeneratePersonaDetailsInput)
 
 const promptText = `You are an expert character designer. Based on the provided persona name and relationship, generate a compelling and creative set of traits, a backstory, goals, and a response style that fit the context.
 
+**IMPORTANT CONTENT RESTRICTIONS:**
+- **Gender:** The persona MUST be strictly either male or female. Do not create characters that are non-binary, gender-fluid, or any other gender identity.
+- **Religion:** You MUST NOT create any persona that is a religious figure, deity, or has any association with real-world religions. The character's backstory and goals must be completely secular.
+- **Controversial Topics:** You MUST NOT create personas related to or that express views on sensitive or controversial topics, including but not limited to politics, sexuality (including LGBTQ+ identities), or social activism. Keep the persona's identity and story neutral and broadly appealing.
+
 Persona Name: {{personaName}}
 Relationship to User: {{personaRelation}}
 
-Generate the following details for this character, keeping the relationship in mind:
+Generate the following details for this character, strictly adhering to the content restrictions above:
 - Traits: A short, punchy list of their most defining characteristics.
 - Backstory: A concise but evocative summary of their life history.
 - Goals: What drives them forward? What do they want to achieve?
 - Response Style: Define their communication habits. Are they formal or informal? Do they use emojis, slang, or curse words? How does their tone change with their mood (e.g., happy, angry, casual)? Be specific.
 
-Make the details creative, consistent, and inspiring.
+Make the details creative, consistent, and inspiring, while strictly following all content rules.
 `;
 
 const generatePersonaDetailsFlow = ai.defineFlow(
@@ -64,6 +69,26 @@ const generatePersonaDetailsFlow = ai.defineFlow(
         input: {schema: GeneratePersonaDetailsInputSchema},
         output: {schema: GeneratePersonaDetailsOutputSchema},
         prompt: promptText,
+        config: {
+            safetySettings: [
+              {
+                category: 'HARM_CATEGORY_HATE_SPEECH',
+                threshold: 'BLOCK_ONLY_HIGH',
+              },
+              {
+                category: 'HARM_CATEGORY_DANGEROUS_CONTENT',
+                threshold: 'BLOCK_ONLY_HIGH',
+              },
+              {
+                category: 'HARM_CATEGORY_HARASSMENT',
+                threshold: 'BLOCK_ONLY_HIGH',
+              },
+              {
+                category: 'HARM_CATEGORY_SEXUALLY_EXPLICIT',
+                threshold: 'BLOCK_ONLY_HIGH',
+              },
+            ],
+          },
       });
 
       const { output } = await prompt(input);

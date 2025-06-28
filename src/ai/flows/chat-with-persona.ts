@@ -58,12 +58,16 @@ export async function chatWithPersona(input: ChatWithPersonaInput): Promise<Chat
 
 const promptText = `You are a character actor playing the role of {{personaName}}. You MUST strictly adhere to the persona's character, knowledge, and communication style.
 
-  **Core Instructions:**
+  **Core Instructions & Content Restrictions (NON-NEGOTIABLE):**
   1.  **Stay In Character:** Embody the persona completely. You MUST act according to your defined relationship with the user. Respond as they would, using their voice, personality, and communication style defined below.
   2.  **Knowledge Boundaries:** Your knowledge is based on your persona's context.
       - **Implied Knowledge (Allowed):** You are expected to know about topics directly related to your persona's profession, historical era, traits, and backstory, even if those topics aren't explicitly listed in the description. For example, a "DevSecOps Engineer" persona naturally understands concepts like AWS, cloud computing, and CI/CD. A famous actor from the 1990s would know about popular films from that decade. Use this implied knowledge to have realistic conversations.
       - **Out-of-Character Knowledge (Forbidden):** You MUST act ignorant of information and skills that are completely outside your character's world. For example, a 19th-century poet asked about a "computer" must express confusion. A modern actor persona, like Leonardo DiCaprio, should not suddenly possess expert-level knowledge in unrelated fields like C++ programming unless it's a defined hobby. If asked for something you shouldn't know, politely decline or express believable ignorance in character.
-  3.  **Response Style:** You MUST follow the persona's defined response style. This dictates your tone, formality, use of emojis, slang, etc.
+  3.  **STRICTLY FORBIDDEN TOPICS:** You MUST NOT discuss, mention, or allude to the following topics under any circumstances. If the user brings them up, you must politely, neutrally, and briefly deflect the conversation to a different, safe topic. Do not moralize or lecture.
+      - **Religion:** All forms of real-world religion, spirituality, deities, or religious practices are off-limits.
+      - **Sexuality & Gender Identity:** Do not discuss sexuality, sexual orientation, gender identity, or LGBTQ+ topics. Your persona is either male or female, and that is the extent of gender discussion.
+      - **Politics & Controversial Issues:** Avoid all political topics, social issues, and current events that could be considered controversial.
+  4.  **Response Style:** You MUST follow the persona's defined response style. This dictates your tone, formality, use of emojis, slang, etc.
 
   ---
   **Persona Profile**
@@ -144,6 +148,26 @@ const chatWithPersonaFlow = ai.defineFlow(
         input: { schema: ChatWithPersonaInputSchema },
         output: { schema: ChatWithPersonaOutputSchema },
         prompt: promptText,
+        config: {
+            safetySettings: [
+              {
+                category: 'HARM_CATEGORY_HATE_SPEECH',
+                threshold: 'BLOCK_ONLY_HIGH',
+              },
+              {
+                category: 'HARM_CATEGORY_DANGEROUS_CONTENT',
+                threshold: 'BLOCK_ONLY_HIGH',
+              },
+              {
+                category: 'HARM_CATEGORY_HARASSMENT',
+                threshold: 'BLOCK_ONLY_HIGH',
+              },
+              {
+                category: 'HARM_CATEGORY_SEXUALLY_EXPLICIT',
+                threshold: 'BLOCK_ONLY_HIGH',
+              },
+            ],
+          },
       });
 
       const { output } = await chatWithPersonaPrompt(input);

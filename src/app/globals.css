@@ -8,65 +8,57 @@
   }
 
   :root {
-    --background: 222 84% 4%;
-    --foreground: 210 40% 98%;
+    --background: 224 71% 4%; /* Midnight Blue */
+    --foreground: 210 40% 98%; /* Light Gray */
 
-    --card: 222 84% 6%;
+    --card: 224 71% 9%; /* Darker Blue-Gray */
     --card-foreground: 210 40% 98%;
 
-    --popover: 222 84% 4%;
+    --popover: 224 71% 4%;
     --popover-foreground: 210 40% 98%;
 
-    --primary: 278 69% 61%;
+    --primary: 262 83% 58%; /* Vibrant Violet */
     --primary-foreground: 210 40% 98%;
 
-    --secondary: 217 33% 17%;
+    --secondary: 215 28% 17%; /* Muted Blue-Gray */
     --secondary-foreground: 210 40% 98%;
 
-    --muted: 217 33% 17%;
+    --muted: 215 28% 17%;
     --muted-foreground: 215 20% 65%;
 
-    --accent: 278 69% 70%;
-    --accent-foreground: 222 84% 4%;
+    --accent: 262 83% 68%; /* Lighter Violet for hover */
+    --accent-foreground: 210 40% 98%;
 
-    --destructive: 0 63% 31%;
+    --destructive: 0 72% 51%; /* Brighter Red */
     --destructive-foreground: 210 40% 98%;
 
-    --border: 217 33% 17%;
-    --input: 217 33% 17%;
-    --ring: 278 69% 61%;
+    --border: 215 28% 17%;
+    --input: 215 28% 17%;
+    --ring: 262 83% 58%;
 
     --radius: 0.75rem;
   }
 
   .dark {
-    --background: 222 84% 4%;
+    --background: 224 71% 4%;
     --foreground: 210 40% 98%;
-
-    --card: 222 84% 6%;
+    --card: 224 71% 9%;
     --card-foreground: 210 40% 98%;
-
-    --popover: 222 84% 4%;
+    --popover: 224 71% 4%;
     --popover-foreground: 210 40% 98%;
-
-    --primary: 278 69% 61%;
+    --primary: 262 83% 58%;
     --primary-foreground: 210 40% 98%;
-
-    --secondary: 217 33% 17%;
+    --secondary: 215 28% 17%;
     --secondary-foreground: 210 40% 98%;
-
-    --muted: 217 33% 17%;
+    --muted: 215 28% 17%;
     --muted-foreground: 215 20% 65%;
-
-    --accent: 278 69% 70%;
-    --accent-foreground: 222 84% 4%;
-
-    --destructive: 0 84.2% 60.2%;
+    --accent: 262 83% 68%;
+    --accent-foreground: 210 40% 98%;
+    --destructive: 0 72% 51%;
     --destructive-foreground: 210 40% 98%;
-
-    --border: 217 33% 17%;
-    --input: 217 33% 17%;
-    --ring: 278 69% 61%;
+    --border: 215 28% 17%;
+    --input: 215 28% 17%;
+    --ring: 262 83% 58%;
   }
 }
 
@@ -82,6 +74,14 @@
 @layer utilities {
   .text-balance {
     text-wrap: balance;
+  }
+
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+  .no-scrollbar {
+    -ms-overflow-style: none;  /* IE and Edge */
+    scrollbar-width: none;  /* Firefox */
   }
 
   .animate-shine-once {
