@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { PlusCircle, Users, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { getAllPersonas, getUserDetails, saveUserDetails } from '@/lib/db';
@@ -10,6 +10,7 @@ import type { UserDetails } from '@/lib/types';
 import { cn } from '@/lib/utils';
 
 export default function HomePage() {
+  const router = useRouter();
   const [hasPersonas, setHasPersonas] = useState<boolean | null>(null);
   const [showTermsDialog, setShowTermsDialog] = useState(false);
   const [userDetails, setUserDetailsState] = useState<UserDetails | null>(null);
@@ -43,6 +44,14 @@ export default function HomePage() {
     setShowTermsDialog(false);
   };
 
+  const handleClick = () => {
+    if (hasPersonas) {
+      router.push('/personas');
+    } else {
+      router.push('/persona/new');
+    }
+  };
+
   const isLoading = hasPersonas === null;
 
   return (
@@ -63,18 +72,22 @@ export default function HomePage() {
               isLoading ? 'w-16 h-16 p-0' : (hasPersonas ? 'w-72 px-10' : 'w-80 px-10')
             )}
             disabled={isLoading}
-            asChild={!isLoading}
+            onClick={!isLoading ? handleClick : undefined}
           >
             {isLoading ? (
               <Loader2 className="h-6 w-6 animate-spin" />
-            ) : hasPersonas ? (
-              <Link href="/personas" className="flex items-center justify-center opacity-0 animate-fade-in-delay">
-                <Users className="mr-2" /> View Your Personas
-              </Link>
             ) : (
-              <Link href="/persona/new" className="flex items-center justify-center opacity-0 animate-fade-in-delay">
-                <PlusCircle className="mr-2" /> Create Your First Persona
-              </Link>
+              <div className="flex items-center justify-center opacity-0 animate-fade-in-delay">
+                {hasPersonas ? (
+                  <>
+                    <Users className="mr-2" /> View Your Personas
+                  </>
+                ) : (
+                  <>
+                    <PlusCircle className="mr-2" /> Create Your First Persona
+                  </>
+                )}
+              </div>
             )}
           </Button>
         </div>
