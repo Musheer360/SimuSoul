@@ -33,9 +33,9 @@ export default function RootLayout({
           'font-body antialiased'
         )}
       >
-        <div className="relative flex min-h-screen flex-col">
+        <div className="relative flex h-screen flex-col overflow-hidden">
           <SiteHeader />
-          <main className="flex-1 overflow-y-auto">{children}</main>
+          <main className="flex-1 overflow-y-hidden">{children}</main>
         </div>
         <Toaster />
       </body>
