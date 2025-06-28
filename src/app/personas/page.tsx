@@ -5,7 +5,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { PlusCircle, Bot, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardTitle } from '@/components/ui/card';
+import { Card, CardTitle } from '@/components/ui/card';
 import type { Persona } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
 import {
@@ -112,26 +112,25 @@ export default function PersonasPage() {
               </AlertDialog>
 
               <Link href={`/persona/${persona.id}`} className="block">
-                <Card className="h-full overflow-hidden border-2 border-transparent group-hover:border-primary transition-all duration-300 group-hover:shadow-2xl group-hover:shadow-primary/20 bg-card/50 backdrop-blur-sm group-hover:-translate-y-2">
-                  <div className="aspect-square relative overflow-hidden">
-                    <Image
-                      src={persona.profilePictureUrl}
-                      alt={persona.name}
-                      fill
-                      className="object-cover group-hover:scale-105 transition-transform duration-500 ease-in-out"
-                      data-ai-hint="persona portrait"
-                    />
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/60 to-transparent" />
-                  </div>
-                  <div className="p-4">
-                    <CardTitle className="font-headline text-xl text-white group-hover:text-primary transition-colors">
-                      {persona.name}
-                    </CardTitle>
-                    <p className="text-sm text-muted-foreground line-clamp-2 mt-1">
-                      {persona.relation}
-                    </p>
-                  </div>
-                </Card>
+                 <Card className="h-full overflow-hidden border-2 border-transparent group-hover:border-primary transition-all duration-300 group-hover:shadow-2xl group-hover:shadow-primary/20 bg-card group-hover:-translate-y-2">
+                    <div className="aspect-square relative overflow-hidden">
+                      <Image
+                        src={persona.profilePictureUrl}
+                        alt={persona.name}
+                        fill
+                        className="object-cover group-hover:scale-105 transition-transform duration-500 ease-in-out"
+                        data-ai-hint="persona portrait"
+                      />
+                      <div className="absolute inset-0 flex flex-col justify-end bg-gradient-to-t from-black/90 via-black/60 to-transparent p-4">
+                        <CardTitle className="font-headline text-xl text-white group-hover:text-primary transition-colors">
+                          {persona.name}
+                        </CardTitle>
+                        <p className="text-sm text-white/80 line-clamp-2 mt-1">
+                          {persona.relation}
+                        </p>
+                      </div>
+                    </div>
+                  </Card>
               </Link>
             </div>
           ))}
