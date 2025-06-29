@@ -209,6 +209,29 @@ export default function PersonaChatPage() {
       }
     }
   }, [messages]);
+
+  const handleInputFocus = () => {
+    if (!isMobile) return;
+
+    setTimeout(() => {
+        // 1. Scroll the inner chat message container to the very bottom.
+        if (scrollAreaRef.current) {
+            const scrollContainer = scrollAreaRef.current.querySelector('div');
+            if (scrollContainer) {
+                scrollContainer.scrollTo({
+                    top: scrollContainer.scrollHeight,
+                    behavior: 'smooth'
+                });
+            }
+        }
+
+        // 2. Scroll the entire browser window to the bottom.
+        window.scrollTo({
+            top: document.body.scrollHeight,
+            behavior: 'smooth'
+        });
+    }, 300);
+  };
   
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
@@ -720,13 +743,7 @@ export default function PersonaChatPage() {
                             <Textarea
                                 ref={textareaRef}
                                 value={input}
-                                onFocus={(e) => {
-                                    if (isMobile) {
-                                        setTimeout(() => {
-                                            e.target.scrollIntoView({ behavior: 'smooth', block: 'end' });
-                                        }, 300);
-                                    }
-                                }}
+                                onFocus={handleInputFocus}
                                 onChange={(e) => {
                                 setInput(e.target.value);
                                 const target = e.currentTarget;
