@@ -636,14 +636,15 @@ export default function PersonaChatPage() {
                 {activeChatId && activeChat ? (
                 <>
                     <ScrollArea className="flex-1" ref={scrollAreaRef}>
-                    <div className="py-4 max-w-3xl mx-auto w-full">
+                    <div className="px-4 py-4 max-w-3xl mx-auto w-full">
                         {messages.map((message, index) => {
                           const isFirstInSequence = !messages[index - 1] || messages[index - 1].role !== message.role;
+                          const isLastInSequence = !messages[index + 1] || messages[index + 1].role !== message.role;
                           return (
                             <div 
                               key={index} 
                               className={cn(
-                                "flex animate-fade-in-up px-4", 
+                                "flex animate-fade-in-up", 
                                 message.role === 'user' ? 'justify-end' : 'justify-start',
                                 isFirstInSequence ? 'mt-3' : 'mt-1',
                                 index === 0 && 'mt-0'
@@ -655,10 +656,15 @@ export default function PersonaChatPage() {
                                   ? 'bg-primary text-primary-foreground' 
                                   : 'bg-secondary',
                                 glowingMessageIndex === index && 'animate-shine-once',
-                                message.role === 'assistant' && (isFirstInSequence ? 'rounded-tl-none' : 'rounded-tl-md'),
-                                message.role === 'assistant' && 'rounded-r-lg',
-                                message.role === 'user' && (isFirstInSequence ? 'rounded-tr-none' : 'rounded-tr-md'),
-                                message.role === 'user' && 'rounded-l-lg'
+                                // Grouping logic
+                                message.role === 'assistant' && cn(
+                                  'rounded-tl-none',
+                                  isLastInSequence ? 'rounded-bl-lg' : 'rounded-bl-none'
+                                ),
+                                message.role === 'user' && cn(
+                                  'rounded-tr-none',
+                                  isLastInSequence ? 'rounded-br-lg' : 'rounded-br-none'
+                                ),
                               )}>
                                 <FormattedMessage content={message.content} />
                               </div>
@@ -668,14 +674,13 @@ export default function PersonaChatPage() {
 
                         {isLoading && (
                         <div className={cn(
-                          "flex animate-fade-in-up px-4",
+                          "flex animate-fade-in-up",
                           "justify-start",
                           lastMessageIsAssistant ? 'mt-1' : 'mt-3'
                         )}>
                             <div className={cn(
-                                "flex h-11 items-center rounded-lg bg-secondary px-4",
-                                lastMessageIsAssistant ? 'rounded-tl-md' : 'rounded-tl-none',
-                                'rounded-r-lg'
+                                "flex h-11 items-center rounded-lg bg-secondary px-4 rounded-r-lg",
+                                "rounded-tl-none rounded-bl-lg"
                             )}>
                                 <div className="flex items-center justify-center space-x-1.5 h-full">
                                     <div className="w-2 h-2 rounded-full bg-muted-foreground animate-typing-dot-1"></div>
