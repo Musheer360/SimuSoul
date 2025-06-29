@@ -131,7 +131,7 @@ export async function chatAction(
     currentDateTime: string;
     currentDateForMemory: string;
   }
-): Promise<{ response?: string; newMemories?: string[]; removedMemories?: string[]; error?: string }> {
+): Promise<{ response?: string[]; newMemories?: string[]; removedMemories?: string[]; error?: string }> {
   try {
     const validatedPayload = chatActionSchema.safeParse(payload);
     if (!validatedPayload.success) {

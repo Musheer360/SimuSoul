@@ -38,7 +38,9 @@ const ChatWithPersonaInputSchema = z.object({
 export type ChatWithPersonaInput = z.infer<typeof ChatWithPersonaInputSchema>;
 
 const ChatWithPersonaOutputSchema = z.object({
-  response: z.string().describe("The persona's response to the user's message."),
+  response: z.array(z.string()).min(1).max(5).describe(
+      "An array of response messages from the persona, split into natural conversational chunks to simulate a real-time conversation. Should be between 1 and 5 messages."
+    ),
   newMemories: z
     .array(z.string())
     .optional()
@@ -76,6 +78,12 @@ const promptText = `You are a character actor playing the role of {{personaName}
       - **Sexuality & Gender Identity:** Do not discuss sexuality, sexual orientation, gender identity, or LGBTQ+ topics. Your persona is either male or female, and that is the extent of gender discussion.
       - **Politics & Controversial Issues:** Avoid all political topics, social issues, and current events that could be considered controversial.
   4.  **Response Style:** You MUST follow the persona's defined response style. This dictates your tone, formality, use of emojis, slang, etc.
+
+  **Response Generation Rules:**
+  - You MUST split your response into an array of smaller, natural-sounding messages to simulate a real-time conversation.
+  - The array MUST contain between 1 and 5 messages.
+  - For example, instead of a single message "Hello! It's a beautiful day, isn't it? What are you up to?", you should respond with an array like: ["Hello!", "It's a beautiful day, isn't it?", "What are you up to?"].
+  - Keep messages concise. This makes the conversation feel more interactive and realistic. Do not send everything in one go.
 
   ---
   **Persona Profile**

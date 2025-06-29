@@ -131,14 +131,12 @@ export default function PersonaChatPage() {
   const handleNewChat = useCallback(async () => {
     if (!persona) return;
 
-    // Check if a "New Chat" already exists.
     const existingNewChat = persona.chats.find(c => c.title === 'New Chat');
     if (existingNewChat) {
       router.push(`/persona/${persona.id}?chat=${existingNewChat.id}`);
       return;
     }
 
-    // If no "New Chat" exists, create one.
     const now = Date.now();
     const newChat: ChatSession = {
       id: crypto.randomUUID(),
@@ -174,7 +172,6 @@ export default function PersonaChatPage() {
       if (existingNewChat) {
         router.replace(`/persona/${persona.id}?chat=${existingNewChat.id}`, { scroll: false });
       } else {
-        // No "New Chat" exists, so create one.
         const now = Date.now();
         const newChatSession: ChatSession = {
             id: crypto.randomUUID(),
@@ -215,40 +212,42 @@ export default function PersonaChatPage() {
   
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
-    if (!input.trim() || !persona || !activeChatId) return;
-
+    if (!input.trim() || !persona || !activeChatId || isLoading) return;
+  
+    setIsLoading(true);
+  
     const userMessage: ChatMessage = { role: 'user', content: input };
     const userInput = input;
     const isNewChat = messages.length === 0;
-
-    const userMessageIndex = messages.length;
+  
     const optimisticPersona = {
       ...persona,
-      chats: persona.chats.map(c => 
-        c.id === activeChatId ? { ...c, messages: [...c.messages, userMessage], updatedAt: Date.now() } : c
+      chats: persona.chats.map(c =>
+        c.id === activeChatId
+          ? { ...c, messages: [...c.messages, userMessage], updatedAt: Date.now() }
+          : c
       ),
     };
     setPersona(optimisticPersona);
-
+  
     setInput('');
     if (textareaRef.current) {
       textareaRef.current.style.height = 'auto';
     }
-    setIsLoading(true);
     setError(null);
-
+  
     const now = new Date();
     const currentDateTime = now.toLocaleString('en-US', {
-        weekday: 'long',
-        year: 'numeric',
-        month: 'long',
-        day: 'numeric',
-        hour: 'numeric',
-        minute: '2-digit',
-        hour12: true,
+      weekday: 'long',
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric',
+      hour: 'numeric',
+      minute: '2-digit',
+      hour12: true,
     });
     const currentDateForMemory = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
-
+  
     const res = await chatAction({
       persona,
       userDetails,
@@ -258,67 +257,88 @@ export default function PersonaChatPage() {
       currentDateTime,
       currentDateForMemory,
     });
-
-    setIsLoading(false);
-
+  
     if (res.error) {
       setError(res.error);
-      setPersona(persona); // Revert optimistic update
+      setPersona(persona);
+      setIsLoading(false);
       return;
     }
-
+  
     let finalMemories = persona.memories || [];
     const memoryWasUpdated = (res.newMemories?.length || 0) > 0 || (res.removedMemories?.length || 0) > 0;
-    
+  
     if (memoryWasUpdated) {
-        const memoriesToDelete = new Set(res.removedMemories || []);
-        finalMemories = finalMemories.filter(mem => !memoriesToDelete.has(mem));
-        
-        const memoriesToAdd = (res.newMemories || []).map(mem => mem);
-        
-        finalMemories = [...finalMemories, ...memoriesToAdd];
-      
-        setGlowingMessageIndex(userMessageIndex);
-        setTimeout(() => setGlowingMessageIndex(null), 1500);
-
-        if (!isMobile) {
-            setIsMemoryButtonGlowing(true);
-            setTimeout(() => setIsMemoryButtonGlowing(false), 1500);
-        }
-    }
-
-    const assistantMessage: ChatMessage | null = res.response ? { role: 'assistant', content: res.response } : null;
-
-    let personaToSave = {
-      ...persona,
-      chats: persona.chats.map(c => {
-        if (c.id !== activeChatId) return c;
-        const updatedMessages = assistantMessage ? [...c.messages, userMessage, assistantMessage] : [...c.messages, userMessage];
-        return { ...c, messages: updatedMessages, updatedAt: Date.now() };
-      }),
-      memories: finalMemories,
-    };
-    setPersona(personaToSave);
-    await savePersona(personaToSave);
-
-    if (isNewChat && assistantMessage) {
-      const titleResult = await generateChatTitleAction({
-        userMessage: userInput,
-        assistantResponse: assistantMessage.content,
-        apiKey: apiKeys.gemini,
-      });
-
-      if (titleResult.title) {
-        personaToSave = {
-          ...personaToSave,
-          chats: personaToSave.chats.map(c => c.id === activeChatId ? { ...c, title: titleResult.title! } : c),
-        };
-        setPersona(personaToSave);
-        await savePersona(personaToSave);
-      } else if (titleResult.error) {
-        console.error('Title generation failed:', titleResult.error);
+      const memoriesToDelete = new Set(res.removedMemories || []);
+      finalMemories = finalMemories.filter(mem => !memoriesToDelete.has(mem));
+      const memoriesToAdd = res.newMemories || [];
+      finalMemories = [...finalMemories, ...memoriesToAdd];
+  
+      setGlowingMessageIndex(messages.length);
+      setTimeout(() => setGlowingMessageIndex(null), 1500);
+  
+      if (!isMobile) {
+        setIsMemoryButtonGlowing(true);
+        setTimeout(() => setIsMemoryButtonGlowing(false), 1500);
       }
     }
+  
+    let personaForLoop = {
+      ...persona,
+      chats: optimisticPersona.chats,
+      memories: finalMemories,
+    };
+  
+    if (isNewChat && res.response && res.response[0]) {
+      const titleResult = await generateChatTitleAction({
+        userMessage: userInput,
+        assistantResponse: res.response[0],
+        apiKey: apiKeys.gemini,
+      });
+  
+      if (titleResult.title) {
+        personaForLoop = {
+          ...personaForLoop,
+          chats: personaForLoop.chats.map(c =>
+            c.id === activeChatId ? { ...c, title: titleResult.title! } : c
+          ),
+        };
+      }
+    }
+  
+    setPersona(personaForLoop);
+    await savePersona(personaForLoop);
+  
+    if (res.response && res.response.length > 0) {
+      const baseMessages = optimisticPersona.chats.find(c => c.id === activeChatId)?.messages || [];
+      let messagesForThisTurn = [...baseMessages];
+  
+      for (const messageContent of res.response) {
+        const words = messageContent.split(/\s+/).filter(Boolean).length;
+        const wpm = 45;
+        const typingTimeMs = (words / wpm) * 60 * 1000;
+        const delay = Math.max(750, Math.min(typingTimeMs, 3500));
+        await new Promise(resolve => setTimeout(resolve, delay));
+  
+        const assistantMessage: ChatMessage = { role: 'assistant', content: messageContent };
+        messagesForThisTurn.push(assistantMessage);
+  
+        const currentPersonaState = {
+          ...personaForLoop,
+          chats: personaForLoop.chats.map(c =>
+            c.id === activeChatId
+              ? { ...c, messages: [...messagesForThisTurn], updatedAt: Date.now() }
+              : c
+          ),
+        };
+  
+        setPersona(currentPersonaState);
+        personaForLoop = currentPersonaState;
+        await savePersona(currentPersonaState);
+      }
+    }
+  
+    setIsLoading(false);
   };
   
   const handleConfirmDeleteChat = useCallback(async () => {
@@ -610,12 +630,14 @@ export default function PersonaChatPage() {
                 {activeChatId && activeChat ? (
                 <>
                     <ScrollArea className="flex-1" ref={scrollAreaRef}>
-                    <div className="space-y-3 p-4 md:p-6 max-w-3xl mx-auto w-full">
+                    <div className="space-y-3 p-4 max-w-3xl mx-auto w-full">
                         {messages.map((message, index) => (
                         <div key={index} className={cn("flex animate-fade-in-up", message.role === 'user' && 'justify-end')}>
                             <div className={cn(
-                                "flex items-center min-h-10 max-w-md lg:max-w-xl rounded-lg px-4 py-2", 
-                                message.role === 'user' ? 'bg-primary text-primary-foreground' : 'bg-secondary',
+                                "max-w-md lg:max-w-xl rounded-2xl px-4 py-2", 
+                                message.role === 'user' 
+                                  ? 'bg-primary text-primary-foreground rounded-br-md' 
+                                  : 'bg-secondary rounded-bl-md',
                                 glowingMessageIndex === index && 'animate-shine-once'
                             )}>
                                 <FormattedMessage content={message.content} />
@@ -624,7 +646,7 @@ export default function PersonaChatPage() {
                         ))}
                         {isLoading && (
                         <div className="flex justify-start animate-fade-in-up">
-                             <div className="flex h-10 items-center rounded-lg bg-secondary px-4">
+                             <div className="flex h-10 items-center rounded-lg bg-secondary px-4 rounded-bl-md">
                                 <div className="flex items-center justify-center space-x-1.5 h-full">
                                     <div className="w-2 h-2 rounded-full bg-muted-foreground animate-typing-dot-1"></div>
                                     <div className="w-2 h-2 rounded-full bg-muted-foreground animate-typing-dot-2"></div>
@@ -661,7 +683,6 @@ export default function PersonaChatPage() {
                             }}
                             onChange={(e) => {
                               setInput(e.target.value);
-                              // Auto-resize logic
                               const target = e.currentTarget;
                               target.style.height = 'auto';
                               target.style.height = `${target.scrollHeight}px`;
