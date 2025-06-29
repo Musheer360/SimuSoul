@@ -639,7 +639,7 @@ export default function PersonaChatPage() {
                 <>
                     <ScrollArea className="flex-1" ref={scrollAreaRef}>
                     <div className="p-4">
-                        <div className="max-w-3xl mx-auto w-full space-y-1">
+                        <div className="max-w-3xl mx-auto w-full">
                         {messages.map((message, index) => {
                           const isFirstInSequence = !messages[index - 1] || messages[index - 1].role !== message.role;
                           let isLastInSequence = !messages[index + 1] || messages[index + 1].role !== message.role;
@@ -690,7 +690,8 @@ export default function PersonaChatPage() {
                         )}>
                             <div className={cn(
                                 "flex h-11 items-center rounded-lg bg-secondary px-4",
-                                "rounded-tl-none"
+                                "rounded-tl-none",
+                                "rounded-br-lg"
                             )}>
                                 <div className="flex items-center justify-center space-x-1.5 h-full">
                                     <div className="w-2 h-2 rounded-full bg-muted-foreground animate-typing-dot-1"></div>
