@@ -10,7 +10,7 @@ import type { Persona, UserDetails, ChatMessage, ChatSession, ApiKeys } from '@/
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
-import { Send, Loader2, Bot, User, AlertCircle, Trash2, MessageSquarePlus, ArrowLeft, PanelLeft, Pencil, Brain, ChevronRight } from 'lucide-react';
+import { Send, Loader2, Bot, User, AlertCircle, Trash2, MessageSquarePlus, ArrowLeft, PanelLeft, Pencil, Brain } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import {
   AlertDialog,
@@ -434,7 +434,6 @@ export default function PersonaChatPage() {
                                 <h2 className="font-headline text-xl font-semibold truncate" title={persona.name}>{persona.name}</h2>
                                 <p className="text-sm text-muted-foreground truncate" title={persona.relation}>{persona.relation}</p>
                             </div>
-                            <ChevronRight className="h-5 w-5 text-muted-foreground" />
                         </div>
                     </div>
                 </DialogTrigger>
@@ -596,8 +595,8 @@ export default function PersonaChatPage() {
                                 </Avatar>
                             )}
                             <div className={cn(
-                                "max-w-md lg:max-w-xl rounded-lg px-4 py-3", 
-                                message.role === 'user' ? 'bg-primary text-primary-foreground' : 'bg-secondary rounded-tl-none',
+                                "flex items-center min-h-10 max-w-md lg:max-w-xl rounded-lg px-4 py-2", 
+                                message.role === 'user' ? 'bg-primary text-primary-foreground rounded-tr-none' : 'bg-secondary rounded-tl-none',
                                 glowingMessageIndex === index && 'animate-shine-once'
                             )}>
                                 <FormattedMessage content={message.content} />
@@ -752,3 +751,5 @@ export default function PersonaChatPage() {
     </>
   );
 }
+
+    
