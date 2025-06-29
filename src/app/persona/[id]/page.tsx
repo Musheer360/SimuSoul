@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useEffect, useState, useRef, FormEvent, useMemo, useCallback } from 'react';
@@ -40,7 +41,7 @@ import { FormattedMessage } from '@/components/formatted-message';
 import { useToast } from '@/hooks/use-toast';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { AnimatedChatTitle } from '@/components/animated-chat-title';
-import { getPersona, savePersona, deletePersona, getUserDetails, getApiKeys, saveMemory, deleteMemory } from '@/lib/db';
+import { getPersona, savePersona, deletePersona, getUserDetails, getApiKeys } from '@/lib/db';
 
 function PersonaChatSkeleton() {
   return (
@@ -248,13 +249,7 @@ export default function PersonaChatPage() {
         finalMemories = finalMemories.filter(mem => !memoriesToDelete.has(mem));
         
         const memoriesToAdd = (res.newMemories || []).map(mem => mem);
-        for (const memory of memoriesToAdd) {
-            await saveMemory(persona.id, memory);
-        }
-        for (const memory of memoriesToDelete) {
-            await deleteMemory(persona.id, memory);
-        }
-
+        
         finalMemories = [...finalMemories, ...memoriesToAdd];
       
         setGlowingMessageIndex(userMessageIndex);
@@ -524,7 +519,7 @@ export default function PersonaChatPage() {
                           <div className={cn(
                             "flex justify-between items-center px-3 py-2 rounded-md transition-colors",
                              activeChatId === chat.id
-                              ? 'bg-primary/20 text-primary-foreground dark:text-primary-foreground'
+                              ? 'bg-primary/20 text-primary dark:text-primary-foreground'
                               : 'hover:bg-secondary'
                           )}>
                             <p className="text-sm truncate pr-2 min-w-0">
