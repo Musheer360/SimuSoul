@@ -641,8 +641,8 @@ export default function PersonaChatPage() {
                             <div className={cn(
                                 "max-w-md lg:max-w-xl rounded-lg px-4 py-2", 
                                 message.role === 'user' 
-                                  ? 'bg-primary text-primary-foreground rounded-br-sm' 
-                                  : 'bg-secondary rounded-bl-sm',
+                                  ? 'bg-primary text-primary-foreground rounded-tr-none' 
+                                  : 'bg-secondary rounded-tl-none',
                                 glowingMessageIndex === index && 'animate-shine-once'
                             )}>
                                 <FormattedMessage content={message.content} />
@@ -651,7 +651,7 @@ export default function PersonaChatPage() {
                         ))}
                         {isLoading && (
                         <div className="flex justify-start animate-fade-in-up">
-                             <div className="flex h-10 items-center rounded-lg bg-secondary px-4 rounded-bl-sm">
+                             <div className="flex h-10 items-center rounded-lg bg-secondary px-4 rounded-tl-none">
                                 <div className="flex items-center justify-center space-x-1.5 h-full">
                                     <div className="w-2 h-2 rounded-full bg-muted-foreground animate-typing-dot-1"></div>
                                     <div className="w-2 h-2 rounded-full bg-muted-foreground animate-typing-dot-2"></div>
