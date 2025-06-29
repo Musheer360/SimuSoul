@@ -59,6 +59,8 @@ export default function NewPersonaPage() {
     backstory: '',
     goals: '',
     responseStyle: '',
+    minWpm: 0,
+    maxWpm: 0,
   });
 
   const [activeTab, setActiveTab] = useState('manual');
@@ -194,6 +196,8 @@ export default function NewPersonaPage() {
               <TabsContent value="manual" className="pt-6">
                   <form action={dispatch} className="space-y-6" key={formKey}>
                     <input type="hidden" name="apiKey" value={apiKeys.gemini} />
+                    <input type="hidden" name="minWpm" value={defaultValues.minWpm} />
+                    <input type="hidden" name="maxWpm" value={defaultValues.maxWpm} />
                   <div className="space-y-2">
                       <Label htmlFor="name">Name</Label>
                       <Input

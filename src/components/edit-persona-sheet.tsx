@@ -86,6 +86,8 @@ export function EditPersonaSheet({ persona, open, onOpenChange, onPersonaUpdate 
                 <div className="space-y-4 pb-6">
                     <input type="hidden" name="id" value={persona.id} />
                     <input type="hidden" name="profilePictureUrl" value={persona.profilePictureUrl} />
+                    <input type="hidden" name="minWpm" value={persona.minWpm} />
+                    <input type="hidden" name="maxWpm" value={persona.maxWpm} />
                     
                     <div className="space-y-2">
                         <Label htmlFor="edit-name">Name</Label>

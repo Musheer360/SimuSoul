@@ -20,6 +20,8 @@ export interface Persona {
   goals: string;
   responseStyle: string;
   profilePictureUrl: string;
+  minWpm: number;
+  maxWpm: number;
   chats: ChatSession[];
   memories: string[];
 }

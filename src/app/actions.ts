@@ -16,6 +16,8 @@ const personaSchemaFields = {
   backstory: z.string().min(1, 'Backstory is required'),
   goals: z.string().min(1, 'Goals are required'),
   responseStyle: z.string().min(1, 'Response Style is required'),
+  minWpm: z.coerce.number(),
+  maxWpm: z.coerce.number(),
 };
 
 const createPersonaSchema = z.object({
@@ -35,6 +37,8 @@ export async function createPersonaAction(
       backstory: formData.get('backstory'),
       goals: formData.get('goals'),
       responseStyle: formData.get('responseStyle'),
+      minWpm: formData.get('minWpm'),
+      maxWpm: formData.get('maxWpm'),
       apiKey: formData.get('apiKey'),
     });
 
@@ -46,7 +50,7 @@ export async function createPersonaAction(
       };
     }
     
-    const { name, relation, traits, backstory, goals, responseStyle, apiKey } = validatedFields.data;
+    const { name, relation, traits, backstory, goals, responseStyle, minWpm, maxWpm, apiKey } = validatedFields.data;
 
     const profilePictureResponse = await generatePersonaProfilePicture({
       personaTraits: `A visual depiction of a character who is: ${traits}. Name: ${name}.`,
@@ -64,6 +68,8 @@ export async function createPersonaAction(
       backstory,
       goals,
       responseStyle,
+      minWpm,
+      maxWpm,
       profilePictureUrl: profilePictureResponse.profilePictureDataUri,
     };
     
@@ -187,6 +193,8 @@ export async function updatePersonaAction(
       goals: formData.get('goals'),
       responseStyle: formData.get('responseStyle'),
       profilePictureUrl: formData.get('profilePictureUrl'),
+      minWpm: formData.get('minWpm'),
+      maxWpm: formData.get('maxWpm'),
     });
 
     if (!validatedFields.success) {

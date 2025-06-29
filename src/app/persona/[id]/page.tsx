@@ -319,10 +319,13 @@ export default function PersonaChatPage() {
   
         // For messages after the first one, add a realistic typing delay
         if (i > 0) {
+          const { minWpm = 35, maxWpm = 40 } = persona;
+          const wpm = Math.floor(Math.random() * (maxWpm - minWpm + 1)) + minWpm;
           const words = messageContent.split(/\s+/).filter(Boolean).length;
-          const wpm = 45; // Words per minute
+          // (words / wpm) = minutes. * 60 = seconds. * 1000 = ms.
           const typingTimeMs = (words / wpm) * 60 * 1000;
-          const delay = Math.max(750, Math.min(typingTimeMs, 3500));
+          // Set a reasonable floor and ceiling for the delay
+          const delay = Math.max(750, Math.min(typingTimeMs, 4000));
           await new Promise(resolve => setTimeout(resolve, delay));
         }
   
@@ -665,13 +668,13 @@ export default function PersonaChatPage() {
                                   isFirstInSequence && !isLastInSequence && "rounded-tl-none rounded-bl-none",
                                   isFirstInSequence && isLastInSequence && "rounded-tl-none",
                                   !isFirstInSequence && !isLastInSequence && "rounded-tl-none rounded-bl-none",
-                                  !isFirstInSequence && isLastInSequence && "rounded-tl-none",
+                                  !isFirstInSequence && isLastInSequence && "rounded-tl-none rounded-bl-lg",
                                 ),
                                 message.role === 'user' && cn(
                                   isFirstInSequence && !isLastInSequence && "rounded-tr-none rounded-br-none",
                                   isFirstInSequence && isLastInSequence && "rounded-tr-none",
                                   !isFirstInSequence && !isLastInSequence && "rounded-tr-none rounded-br-none",
-                                  !isFirstInSequence && isLastInSequence && "rounded-tr-none",
+                                  !isFirstInSequence && isLastInSequence && "rounded-tr-none rounded-br-lg",
                                 ),
                               )}>
                                 <FormattedMessage content={message.content} />
@@ -688,7 +691,8 @@ export default function PersonaChatPage() {
                         )}>
                             <div className={cn(
                                 "flex h-11 items-center rounded-lg bg-secondary px-4",
-                                lastMessageIsAssistant ? "rounded-tl-none rounded-bl-none" : "rounded-tl-none"
+                                "rounded-tl-none",
+                                lastMessageIsAssistant && "rounded-bl-none"
                             )}>
                                 <div className="flex items-center justify-center space-x-1.5 h-full">
                                     <div className="w-2 h-2 rounded-full bg-muted-foreground animate-typing-dot-1"></div>
