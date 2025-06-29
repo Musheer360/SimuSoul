@@ -10,7 +10,7 @@ import type { Persona, UserDetails, ChatMessage, ChatSession, ApiKeys } from '@/
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
-import { Send, Loader2, Bot, User, AlertCircle, Trash2, MessageSquarePlus, ArrowLeft, PanelLeft, Pencil, Brain } from 'lucide-react';
+import { Send, Loader2, Bot, User, AlertCircle, Trash2, MessageSquarePlus, ArrowLeft, PanelLeft, Pencil, Brain, ChevronRight } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import {
   AlertDialog,
@@ -56,12 +56,7 @@ function PersonaChatSkeleton() {
                       <Skeleton className="h-4 w-1/2" />
                   </div>
               </div>
-              <div className="flex gap-2">
-                  <Skeleton className="h-10 w-full" />
-                  <Skeleton className="h-10 w-full" />
-              </div>
           </div>
-          <div className="p-4 border-t"><Skeleton className="h-10 w-full" /></div>
           <div className="p-4 flex-1 flex flex-col gap-2 border-t">
               <div className="flex justify-between items-center mb-2">
                   <Skeleton className="h-8 w-24" />
@@ -101,6 +96,7 @@ export default function PersonaChatPage() {
   const [error, setError] = useState<string | null>(null);
 
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [isManagementDialogOpen, setIsManagementDialogOpen] = useState(false);
   const [isMemoryDialogOpen, setIsMemoryDialogOpen] = useState(false);
   const [isClearAllDialogOpen, setIsClearAllDialogOpen] = useState(false);
   const [chatToDelete, setChatToDelete] = useState<ChatSession | null>(null);
@@ -422,89 +418,78 @@ export default function PersonaChatPage() {
               isSidebarOpen ? "md:w-80" : "md:w-0 md:p-0 md:opacity-0 md:border-r-0",
               !isSidebarOpen && "md:overflow-hidden"
           )}>
-            <div className="p-4 space-y-4 flex-shrink-0">
-                <div className="flex items-center gap-4">
-                     <Image
-                      src={persona.profilePictureUrl}
-                      alt={persona.name}
-                      width={64}
-                      height={64}
-                      className={cn(
-                        "rounded-full object-cover aspect-square border-2 border-primary/50 transition-all duration-500"
-                      )}
-                      data-ai-hint="persona portrait"
-                    />
-                    <div className="flex-1 min-w-0">
-                      <h2 className="font-headline text-xl font-semibold truncate" title={persona.name}>{persona.name}</h2>
-                      <p className="text-sm text-muted-foreground truncate" title={persona.relation}>{persona.relation}</p>
-                    </div>
-                </div>
-                <div className="flex gap-2">
-                    <Button variant="outline" className="flex-1" onClick={() => setIsEditSheetOpen(true)}>
-                      <Pencil className="mr-2 h-4 w-4" /> Edit
-                    </Button>
-                    <AlertDialog>
-                     <AlertDialogTrigger asChild>
-                       <Button variant="destructive" className="flex-1">
-                         <Trash2 className="mr-2 h-4 w-4" /> Delete
-                       </Button>
-                     </AlertDialogTrigger>
-                     <AlertDialogContent>
-                       <AlertDialogHeader>
-                         <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
-                         <AlertDialogDescription>
-                           This action will permanently delete {persona?.name} and all associated chats. This cannot be undone.
-                         </AlertDialogDescription>
-                       </AlertDialogHeader>
-                       <AlertDialogFooter>
-                         <AlertDialogCancel>Cancel</AlertDialogCancel>
-                         <AlertDialogAction className="bg-destructive text-destructive-foreground hover:bg-destructive/90" onClick={handleDeletePersona}>
-                           Delete
-                         </AlertDialogAction>
-                       </AlertDialogFooter>
-                     </AlertDialogContent>
-                   </AlertDialog>
-                </div>
-            </div>
-            
-             <div className="p-4 border-t">
-                <Dialog open={isMemoryDialogOpen} onOpenChange={handleMemoryDialogChange}>
-                    <DialogTrigger asChild>
-                        <Button variant="outline" className={cn("w-full", isMemoryButtonGlowing && "animate-shine-once")}>
-                            <Brain className="mr-2 h-4 w-4" /> View Memories
-                        </Button>
-                    </DialogTrigger>
-                    <DialogContent className="sm:max-w-md">
-                        <DialogHeader>
-                            <DialogTitle>Memories for {persona.name}</DialogTitle>
-                            <DialogDescription>
-                               These are the memories this persona has about you. They are updated automatically during conversation.
-                            </DialogDescription>
-                        </DialogHeader>
-                        <div className="space-y-4 py-4">
-                            <ScrollArea className="h-72 border rounded-md">
-                                <div className="p-4 space-y-1">
-                                    {(persona.memories || []).length > 0 ? (
-                                        [...persona.memories].sort().map((memory, index) => (
-                                            <div key={index} className="flex items-center justify-between text-sm px-3 py-2 rounded-md group hover:bg-secondary/50">
-                                                <p className="flex-1 pr-2 break-words">{memory.replace(/^\d{4}-\d{2}-\d{2}: /, '')}</p>
-                                                <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0 opacity-0 group-hover:opacity-100" onClick={() => handleDeleteMemory(memory)}>
-                                                    <Trash2 className="h-4 w-4 text-destructive" />
-                                                </Button>
-                                            </div>
-                                        ))
-                                    ) : (
-                                        <p className="text-sm text-muted-foreground text-center py-4">No memories yet.</p>
-                                    )}
-                                </div>
-                            </ScrollArea>
+             <Dialog open={isManagementDialogOpen} onOpenChange={setIsManagementDialogOpen}>
+                <DialogTrigger asChild>
+                    <div className="p-4 flex-shrink-0 cursor-pointer hover:bg-secondary transition-colors rounded-lg">
+                        <div className="flex items-center gap-4">
+                            <Image
+                                src={persona.profilePictureUrl}
+                                alt={persona.name}
+                                width={56}
+                                height={56}
+                                className="rounded-full object-cover aspect-square border-2 border-primary/50"
+                                data-ai-hint="persona portrait"
+                            />
+                            <div className="flex-1 min-w-0">
+                                <h2 className="font-headline text-xl font-semibold truncate" title={persona.name}>{persona.name}</h2>
+                                <p className="text-sm text-muted-foreground truncate" title={persona.relation}>{persona.relation}</p>
+                            </div>
+                            <ChevronRight className="h-5 w-5 text-muted-foreground" />
                         </div>
-                        <DialogFooter>
-                            <Button variant="secondary" onClick={() => setIsMemoryDialogOpen(false)}>Close</Button>
-                        </DialogFooter>
-                    </DialogContent>
-                </Dialog>
-            </div>
+                    </div>
+                </DialogTrigger>
+                <DialogContent className="sm:max-w-sm">
+                    <DialogHeader>
+                        <DialogTitle>Manage {persona.name}</DialogTitle>
+                        <DialogDescription>
+                            Edit details, view memories, or delete this persona.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <div className="grid gap-3 pt-4">
+                        <Button variant="outline" className="h-auto justify-start p-4 text-left" onClick={() => { setIsEditSheetOpen(true); setIsManagementDialogOpen(false); }}>
+                            <Pencil className="mr-4 h-5 w-5 flex-shrink-0" />
+                            <div>
+                                <p className="font-semibold">Edit Persona</p>
+                                <p className="text-xs text-muted-foreground">Change name, traits, backstory, etc.</p>
+                            </div>
+                        </Button>
+
+                        <Button variant="outline" className="h-auto justify-start p-4 text-left" onClick={() => { handleMemoryDialogChange(true); setIsManagementDialogOpen(false); }}>
+                            <Brain className="mr-4 h-5 w-5 flex-shrink-0" />
+                            <div>
+                                <p className="font-semibold">View Memories</p>
+                                <p className="text-xs text-muted-foreground">See what this persona remembers about you.</p>
+                            </div>
+                        </Button>
+                        
+                        <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                                <Button variant="destructive" className="h-auto justify-start p-4 text-left">
+                                    <Trash2 className="mr-4 h-5 w-5 flex-shrink-0" />
+                                    <div>
+                                        <p className="font-semibold">Delete Persona</p>
+                                        <p className="text-xs text-destructive-foreground/80">Permanently remove this persona.</p>
+                                    </div>
+                                </Button>
+                            </AlertDialogTrigger>
+                             <AlertDialogContent>
+                               <AlertDialogHeader>
+                                 <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+                                 <AlertDialogDescription>
+                                   This action will permanently delete {persona?.name} and all associated chats. This cannot be undone.
+                                 </AlertDialogDescription>
+                               </AlertDialogHeader>
+                               <AlertDialogFooter>
+                                 <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                 <AlertDialogAction className="bg-destructive text-destructive-foreground hover:bg-destructive/90" onClick={() => { handleDeletePersona(); setIsManagementDialogOpen(false); }}>
+                                   Delete
+                                 </AlertDialogAction>
+                               </AlertDialogFooter>
+                             </AlertDialogContent>
+                        </AlertDialog>
+                    </div>
+                </DialogContent>
+            </Dialog>
             
             <div className="p-4 flex-1 flex flex-col min-h-0 border-t">
                 <div className="flex gap-2 mb-2">
@@ -542,12 +527,12 @@ export default function PersonaChatPage() {
                       <div className="space-y-1">
                       {sortedChats.map(chat => (
                         <Link key={chat.id} href={`/persona/${persona.id}?chat=${chat.id}`} className="block group" scroll={false}>
-                          <div className={cn(
-                            "flex justify-between items-center px-3 py-2 rounded-md transition-colors",
-                             activeChatId === chat.id
-                              ? 'bg-primary/20 text-primary dark:text-primary-foreground'
-                              : 'hover:bg-secondary'
-                          )}>
+                           <div className={cn(
+                                "flex justify-between items-center px-3 py-2 rounded-md transition-colors",
+                                activeChatId === chat.id
+                                ? 'bg-secondary text-foreground'
+                                : 'text-muted-foreground hover:bg-secondary/50 hover:text-foreground'
+                            )}>
                             <p className="text-sm truncate pr-2 min-w-0">
                                 <AnimatedChatTitle title={chat.title} />
                             </p>
@@ -714,6 +699,40 @@ export default function PersonaChatPage() {
           onOpenChange={setIsEditSheetOpen}
           onPersonaUpdate={handlePersonaUpdate}
         />
+      )}
+      
+      {persona && (
+        <Dialog open={isMemoryDialogOpen} onOpenChange={handleMemoryDialogChange}>
+            <DialogContent className="sm:max-w-md">
+                <DialogHeader>
+                    <DialogTitle>Memories for {persona.name}</DialogTitle>
+                    <DialogDescription>
+                       These are the memories this persona has about you. They are updated automatically during conversation.
+                    </DialogDescription>
+                </DialogHeader>
+                <div className="space-y-4 py-4">
+                    <ScrollArea className="h-72 border rounded-md">
+                        <div className="p-4 space-y-2">
+                            {(persona.memories || []).length > 0 ? (
+                                [...persona.memories].sort().map((memory, index) => (
+                                    <div key={index} className="flex items-center justify-between text-sm p-3 rounded-md group bg-secondary/50 hover:bg-secondary/80">
+                                        <p className="flex-1 pr-2 break-words">{memory.replace(/^\d{4}-\d{2}-\d{2}: /, '')}</p>
+                                        <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0 opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-destructive" onClick={() => handleDeleteMemory(memory)}>
+                                            <Trash2 className="h-4 w-4" />
+                                        </Button>
+                                    </div>
+                                ))
+                            ) : (
+                                <p className="text-sm text-muted-foreground text-center py-4">No memories yet.</p>
+                            )}
+                        </div>
+                    </ScrollArea>
+                </div>
+                <DialogFooter>
+                    <Button variant="secondary" onClick={() => setIsMemoryDialogOpen(false)}>Close</Button>
+                </DialogFooter>
+            </DialogContent>
+        </Dialog>
       )}
 
       <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
