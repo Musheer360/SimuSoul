@@ -636,12 +636,12 @@ export default function PersonaChatPage() {
                 {activeChatId && activeChat ? (
                 <>
                     <ScrollArea className="flex-1" ref={scrollAreaRef}>
-                    <div className="p-4 max-w-3xl mx-auto w-full">
+                    <div className="p-4">
+                        <div className="max-w-3xl mx-auto w-full space-y-1">
                         {messages.map((message, index) => {
                           const isFirstInSequence = !messages[index - 1] || messages[index - 1].role !== message.role;
                           let isLastInSequence = !messages[index + 1] || messages[index + 1].role !== message.role;
                           
-                          // If this is the last assistant message and we're waiting for more, it's not the last in the sequence.
                           if (isLoading && message.role === 'assistant' && index === messages.length - 1) {
                             isLastInSequence = false;
                           }
@@ -661,16 +661,17 @@ export default function PersonaChatPage() {
                                   ? 'bg-primary text-primary-foreground' 
                                   : 'bg-secondary',
                                 glowingMessageIndex === index && 'animate-shine-once',
-                                // Grouping logic
                                 message.role === 'assistant' && cn(
-                                  isFirstInSequence && "rounded-tl-none",
-                                  !isFirstInSequence && "rounded-tl-lg",
-                                  !isLastInSequence && "rounded-bl-none",
+                                  isFirstInSequence && !isLastInSequence && "rounded-tl-none rounded-bl-none",
+                                  isFirstInSequence && isLastInSequence && "rounded-tl-none",
+                                  !isFirstInSequence && !isLastInSequence && "rounded-tl-none rounded-bl-none",
+                                  !isFirstInSequence && isLastInSequence && "rounded-tl-none",
                                 ),
                                 message.role === 'user' && cn(
-                                  isFirstInSequence && "rounded-tr-none",
-                                  !isFirstInSequence && "rounded-tr-lg",
-                                  !isLastInSequence && "rounded-br-none",
+                                  isFirstInSequence && !isLastInSequence && "rounded-tr-none rounded-br-none",
+                                  isFirstInSequence && isLastInSequence && "rounded-tr-none",
+                                  !isFirstInSequence && !isLastInSequence && "rounded-tr-none rounded-br-none",
+                                  !isFirstInSequence && isLastInSequence && "rounded-tr-none",
                                 ),
                               )}>
                                 <FormattedMessage content={message.content} />
@@ -687,7 +688,7 @@ export default function PersonaChatPage() {
                         )}>
                             <div className={cn(
                                 "flex h-11 items-center rounded-lg bg-secondary px-4",
-                                !lastMessageIsAssistant && "rounded-tl-none"
+                                lastMessageIsAssistant ? "rounded-tl-none rounded-bl-none" : "rounded-tl-none"
                             )}>
                                 <div className="flex items-center justify-center space-x-1.5 h-full">
                                     <div className="w-2 h-2 rounded-full bg-muted-foreground animate-typing-dot-1"></div>
@@ -697,6 +698,7 @@ export default function PersonaChatPage() {
                             </div>
                         </div>
                         )}
+                        </div>
 
                         {error && (
                         <Alert variant="destructive" className="max-w-md lg:max-w-2xl mx-auto mt-4">
@@ -817,13 +819,11 @@ export default function PersonaChatPage() {
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <Cancel onClick={() => setChatToDelete(null)}>Cancel</Cancel>
-            <Action className="bg-destructive text-destructive-foreground hover:bg-destructive/90" onClick={handleConfirmDeleteChat}>Delete</Action>
+            <AlertDialogCancel onClick={() => setChatToDelete(null)}>Cancel</AlertDialogCancel>
+            <AlertDialogAction className="bg-destructive text-destructive-foreground hover:bg-destructive/90" onClick={handleConfirmDeleteChat}>Delete</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
     </>
   );
 }
-
-    
