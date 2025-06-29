@@ -638,8 +638,7 @@ export default function PersonaChatPage() {
                 {activeChatId && activeChat ? (
                 <>
                     <ScrollArea className="flex-1" ref={scrollAreaRef}>
-                    <div className="p-4">
-                        <div className="max-w-3xl mx-auto w-full">
+                      <div className="max-w-3xl mx-auto p-4">
                         {messages.map((message, index) => {
                           const isFirstInSequence = !messages[index - 1] || messages[index - 1].role !== message.role;
                           let isLastInSequence = !messages[index + 1] || messages[index + 1].role !== message.role;
@@ -701,16 +700,15 @@ export default function PersonaChatPage() {
                             </div>
                         </div>
                         )}
-                        </div>
 
                         {error && (
-                        <Alert variant="destructive" className="max-w-md lg:max-w-2xl mx-auto mt-4">
+                        <Alert variant="destructive" className="mt-4">
                             <AlertCircle className="h-4 w-4" />
                             <AlertTitle>Error</AlertTitle>
                             <AlertDescription>{error}</AlertDescription>
                         </Alert>
                         )}
-                    </div>
+                      </div>
                     </ScrollArea>
                     <div className="border-t bg-background/50">
                         <div className="max-w-3xl mx-auto p-4">
