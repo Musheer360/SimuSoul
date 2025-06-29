@@ -313,12 +313,17 @@ export default function PersonaChatPage() {
       const baseMessages = optimisticPersona.chats.find(c => c.id === activeChatId)?.messages || [];
       let messagesForThisTurn = [...baseMessages];
   
-      for (const messageContent of res.response) {
-        const words = messageContent.split(/\s+/).filter(Boolean).length;
-        const wpm = 45;
-        const typingTimeMs = (words / wpm) * 60 * 1000;
-        const delay = Math.max(750, Math.min(typingTimeMs, 3500));
-        await new Promise(resolve => setTimeout(resolve, delay));
+      for (let i = 0; i < res.response.length; i++) {
+        const messageContent = res.response[i];
+  
+        // For messages after the first one, add a realistic typing delay
+        if (i > 0) {
+          const words = messageContent.split(/\s+/).filter(Boolean).length;
+          const wpm = 45; // Words per minute
+          const typingTimeMs = (words / wpm) * 60 * 1000;
+          const delay = Math.max(750, Math.min(typingTimeMs, 3500));
+          await new Promise(resolve => setTimeout(resolve, delay));
+        }
   
         const assistantMessage: ChatMessage = { role: 'assistant', content: messageContent };
         messagesForThisTurn.push(assistantMessage);
@@ -634,10 +639,10 @@ export default function PersonaChatPage() {
                         {messages.map((message, index) => (
                         <div key={index} className={cn("flex animate-fade-in-up", message.role === 'user' && 'justify-end')}>
                             <div className={cn(
-                                "max-w-md lg:max-w-xl rounded-2xl px-4 py-2", 
+                                "max-w-md lg:max-w-xl rounded-lg px-4 py-2", 
                                 message.role === 'user' 
-                                  ? 'bg-primary text-primary-foreground rounded-br-md' 
-                                  : 'bg-secondary rounded-bl-md',
+                                  ? 'bg-primary text-primary-foreground rounded-br-sm' 
+                                  : 'bg-secondary rounded-bl-sm',
                                 glowingMessageIndex === index && 'animate-shine-once'
                             )}>
                                 <FormattedMessage content={message.content} />
@@ -646,7 +651,7 @@ export default function PersonaChatPage() {
                         ))}
                         {isLoading && (
                         <div className="flex justify-start animate-fade-in-up">
-                             <div className="flex h-10 items-center rounded-lg bg-secondary px-4 rounded-bl-md">
+                             <div className="flex h-10 items-center rounded-lg bg-secondary px-4 rounded-bl-sm">
                                 <div className="flex items-center justify-center space-x-1.5 h-full">
                                     <div className="w-2 h-2 rounded-full bg-muted-foreground animate-typing-dot-1"></div>
                                     <div className="w-2 h-2 rounded-full bg-muted-foreground animate-typing-dot-2"></div>
