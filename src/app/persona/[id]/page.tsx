@@ -112,28 +112,47 @@ export default function PersonaChatPage() {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const formRef = useRef<HTMLFormElement>(null);
   const personaRef = useRef(persona);
+  const prevActiveChatIdRef = useRef<string | null>();
 
   useEffect(() => {
     personaRef.current = persona;
   }, [persona]);
 
   useEffect(() => {
-    return () => {
-      const latestPersona = personaRef.current;
-      if (latestPersona?.chats) {
-        const emptyNewChat = latestPersona.chats.find(
-          (c) => c.title === 'New Chat' && c.messages.length === 0
-        );
-        if (emptyNewChat) {
+    // This effect handles cleaning up empty "New Chat" sessions.
+    // It runs when the active chat changes, and also when the component unmounts.
+    const handleCleanup = (chatIdToClean: string | null | undefined) => {
+      if (!chatIdToClean) return;
+
+      // Use the ref to get the most up-to-date persona data.
+      const personaNow = personaRef.current;
+      if (personaNow?.chats) {
+        const chat = personaNow.chats.find(c => c.id === chatIdToClean);
+        if (chat && chat.title === 'New Chat' && chat.messages.length === 0) {
           const updatedPersona = {
-            ...latestPersona,
-            chats: latestPersona.chats.filter((c) => c.id !== emptyNewChat.id),
+            ...personaNow,
+            chats: personaNow.chats.filter(c => c.id !== chatIdToClean),
           };
+          // Update the state to reflect the change in the UI (e.g., the sidebar)
+          setPersona(updatedPersona);
+          // Persist the change to the database.
           savePersona(updatedPersona);
         }
       }
     };
-  }, []);
+
+    // When the activeChatId changes, we want to clean up the *previous* chat.
+    handleCleanup(prevActiveChatIdRef.current);
+
+    // At the end of the effect, update the ref to the current ID for the next run.
+    prevActiveChatIdRef.current = activeChatId;
+
+    // Return a cleanup function that will run on UNMOUNT.
+    // It will check the very last active chat.
+    return () => {
+      handleCleanup(prevActiveChatIdRef.current);
+    }
+  }, [activeChatId]);
 
   useEffect(() => {
     async function loadPageData() {
@@ -229,7 +248,7 @@ export default function PersonaChatPage() {
       if (scrollContainer) {
         scrollContainer.scrollTo({
             top: scrollContainer.scrollHeight,
-            behavior: 'smooth',
+            behavior: 'auto',
         });
       }
     }
@@ -242,10 +261,10 @@ export default function PersonaChatPage() {
         if (scrollAreaRef.current) {
             const scrollContainer = scrollAreaRef.current.querySelector('div');
             if (scrollContainer) {
-                scrollContainer.scrollTo({ top: scrollContainer.scrollHeight });
+                scrollContainer.scrollTo({ top: scrollContainer.scrollHeight, behavior: 'auto' });
             }
         }
-        window.scrollTo({ top: document.body.scrollHeight });
+        window.scrollTo({ top: document.body.scrollHeight, behavior: 'auto' });
     }, 100);
   };
   
@@ -676,19 +695,23 @@ export default function PersonaChatPage() {
           {/* Right Chat Panel */}
           <div className="flex-1 flex flex-col bg-background/80 backdrop-blur-sm min-w-0">
              <header className="flex items-center justify-between h-16 gap-2 md:gap-4 px-4 border-b flex-shrink-0">
-                <div className="flex items-center gap-2">
-                  <Button asChild variant="ghost" className="text-muted-foreground hover:text-foreground">
-                      <Link href="/personas">
-                      <ArrowLeft className="mr-2 h-4 w-4" />
-                      All Personas
-                      </Link>
-                  </Button>
+                <div className="flex items-center gap-2 md:w-auto w-full">
+                    <div className="flex-1">
+                        <Button asChild variant="ghost" className="text-muted-foreground hover:text-foreground">
+                            <Link href="/personas">
+                            <ArrowLeft className="mr-2 h-4 w-4" />
+                            <span className='hidden md:inline'>All Personas</span>
+                            </Link>
+                        </Button>
+                    </div>
+                    <div className="md:hidden">
+                        <Button variant="ghost" size="icon" onClick={() => setIsSidebarOpen(!isSidebarOpen)}>
+                            <PanelLeft className="h-5 w-5" />
+                        </Button>
+                    </div>
                 </div>
-                 <div className="flex items-center gap-2">
-                    <Button variant="ghost" size="icon" className="hidden md:flex" onClick={() => setIsSidebarOpen(!isSidebarOpen)}>
-                        <PanelLeft className="h-5 w-5" />
-                    </Button>
-                    <Button variant="ghost" size="icon" className="md:hidden" onClick={() => setIsSidebarOpen(!isSidebarOpen)}>
+                 <div className="hidden items-center gap-2 md:flex">
+                    <Button variant="ghost" size="icon" onClick={() => setIsSidebarOpen(!isSidebarOpen)}>
                         <PanelLeft className="h-5 w-5" />
                     </Button>
                 </div>
