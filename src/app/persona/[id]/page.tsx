@@ -130,6 +130,15 @@ export default function PersonaChatPage() {
 
   const handleNewChat = useCallback(async () => {
     if (!persona) return;
+
+    // Check if a "New Chat" already exists.
+    const existingNewChat = persona.chats.find(c => c.title === 'New Chat');
+    if (existingNewChat) {
+      router.push(`/persona/${persona.id}?chat=${existingNewChat.id}`);
+      return;
+    }
+
+    // If no "New Chat" exists, create one.
     const now = Date.now();
     const newChat: ChatSession = {
       id: crypto.randomUUID(),
@@ -160,15 +169,31 @@ export default function PersonaChatPage() {
 
     if (chatIdFromQuery && chatExists) {
       setActiveChatId(chatIdFromQuery);
-    } else if (sortedChats.length > 0) {
-      const latestChatId = sortedChats[0].id;
-      if (latestChatId !== chatIdFromQuery) {
-        router.replace(`/persona/${persona.id}?chat=${latestChatId}`, { scroll: false });
-      }
     } else {
-      handleNewChat();
+      const existingNewChat = persona.chats.find(c => c.title === 'New Chat');
+      if (existingNewChat) {
+        router.replace(`/persona/${persona.id}?chat=${existingNewChat.id}`, { scroll: false });
+      } else {
+        // No "New Chat" exists, so create one.
+        const now = Date.now();
+        const newChatSession: ChatSession = {
+            id: crypto.randomUUID(),
+            title: 'New Chat',
+            messages: [],
+            createdAt: now,
+            updatedAt: now,
+        };
+        const updatedPersona = {
+            ...persona,
+            chats: [newChatSession, ...(persona.chats || [])],
+        };
+        setPersona(updatedPersona);
+        savePersona(updatedPersona).then(() => {
+            router.replace(`/persona/${persona.id}?chat=${newChatSession.id}`, { scroll: false });
+        });
+      }
     }
-  }, [persona, searchParams, router, handleNewChat, sortedChats]);
+  }, [persona, searchParams, router]);
 
   const activeChat = useMemo(() => {
     return persona?.chats.find(c => c.id === activeChatId);
@@ -587,34 +612,19 @@ export default function PersonaChatPage() {
                     <ScrollArea className="flex-1" ref={scrollAreaRef}>
                     <div className="space-y-3 p-4 md:p-6 max-w-3xl mx-auto w-full">
                         {messages.map((message, index) => (
-                        <div key={index} className={cn("flex items-start gap-3 md:gap-4 animate-fade-in-up", message.role === 'user' && 'justify-end')}>
-                             {message.role === 'assistant' && (
-                                <Avatar className="flex-shrink-0 h-10 w-10 border-2 border-primary/50">
-                                    <AvatarImage src={persona.profilePictureUrl} alt={persona.name} className="object-cover" />
-                                    <AvatarFallback><Bot /></AvatarFallback>
-                                </Avatar>
-                            )}
+                        <div key={index} className={cn("flex animate-fade-in-up", message.role === 'user' && 'justify-end')}>
                             <div className={cn(
                                 "flex items-center min-h-10 max-w-md lg:max-w-xl rounded-lg px-4 py-2", 
-                                message.role === 'user' ? 'bg-primary text-primary-foreground rounded-tr-none' : 'bg-secondary rounded-tl-none',
+                                message.role === 'user' ? 'bg-primary text-primary-foreground' : 'bg-secondary',
                                 glowingMessageIndex === index && 'animate-shine-once'
                             )}>
                                 <FormattedMessage content={message.content} />
                             </div>
-                            {message.role === 'user' && (
-                                <Avatar className="flex-shrink-0 h-10 w-10 hidden sm:flex">
-                                    <AvatarFallback><User /></AvatarFallback>
-                                </Avatar>
-                            )}
                         </div>
                         ))}
                         {isLoading && (
-                        <div className="flex items-start gap-3 md:gap-4 justify-start animate-fade-in-up">
-                            <Avatar className="flex-shrink-0 h-10 w-10 border-2 border-primary/50">
-                                <AvatarImage src={persona.profilePictureUrl} alt={persona.name} className="object-cover" />
-                                <AvatarFallback><Bot /></AvatarFallback>
-                            </Avatar>
-                             <div className="flex h-10 items-center rounded-lg bg-secondary rounded-tl-none px-4">
+                        <div className="flex justify-start animate-fade-in-up">
+                             <div className="flex h-10 items-center rounded-lg bg-secondary px-4">
                                 <div className="flex items-center justify-center space-x-1.5 h-full">
                                     <div className="w-2 h-2 rounded-full bg-muted-foreground animate-typing-dot-1"></div>
                                     <div className="w-2 h-2 rounded-full bg-muted-foreground animate-typing-dot-2"></div>
@@ -751,5 +761,3 @@ export default function PersonaChatPage() {
     </>
   );
 }
-
-    
