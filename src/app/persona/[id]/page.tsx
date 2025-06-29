@@ -218,8 +218,13 @@ export default function PersonaChatPage() {
 
     const now = new Date();
     const currentDateTime = now.toLocaleString('en-US', {
-        dateStyle: 'full',
-        timeStyle: 'full',
+        weekday: 'long',
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric',
+        hour: 'numeric',
+        minute: '2-digit',
+        hour12: true,
     });
     const currentDateForMemory = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
 
