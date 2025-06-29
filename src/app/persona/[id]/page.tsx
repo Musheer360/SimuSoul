@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useEffect, useState, useRef, FormEvent, useMemo, useCallback } from 'react';
@@ -210,7 +211,7 @@ export default function PersonaChatPage() {
     }
   }, [messages]);
 
-  const handleInputFocus = () => {
+  const handleInputInteraction = () => {
     if (!isMobile) return;
 
     setTimeout(() => {
@@ -743,7 +744,8 @@ export default function PersonaChatPage() {
                             <Textarea
                                 ref={textareaRef}
                                 value={input}
-                                onFocus={handleInputFocus}
+                                onFocus={handleInputInteraction}
+                                onClick={handleInputInteraction}
                                 onChange={(e) => {
                                 setInput(e.target.value);
                                 const target = e.currentTarget;
