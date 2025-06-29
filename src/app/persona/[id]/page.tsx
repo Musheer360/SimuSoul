@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useEffect, useState, useRef, FormEvent, useMemo, useCallback } from 'react';
@@ -691,8 +690,7 @@ export default function PersonaChatPage() {
                         )}>
                             <div className={cn(
                                 "flex h-11 items-center rounded-lg bg-secondary px-4",
-                                "rounded-tl-none",
-                                lastMessageIsAssistant && "rounded-bl-none"
+                                "rounded-tl-none"
                             )}>
                                 <div className="flex items-center justify-center space-x-1.5 h-full">
                                     <div className="w-2 h-2 rounded-full bg-muted-foreground animate-typing-dot-1"></div>
