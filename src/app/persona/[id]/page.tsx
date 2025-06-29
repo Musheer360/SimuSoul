@@ -352,6 +352,24 @@ export default function PersonaChatPage() {
         description: `${updatedPersona.name} has been saved.`,
     });
   }, [persona, toast]);
+
+  const handleDeleteMemory = useCallback(async (memoryToDelete: string) => {
+    if (!persona) return;
+
+    const updatedMemories = persona.memories.filter(mem => mem !== memoryToDelete);
+    const updatedPersona = {
+      ...persona,
+      memories: updatedMemories,
+    };
+
+    setPersona(updatedPersona);
+    await savePersona(updatedPersona);
+
+    toast({
+      title: 'Memory Deleted',
+      description: 'The memory has been removed.',
+    });
+  }, [persona, toast]);
   
   const handleMemoryDialogChange = (open: boolean) => {
       if (open) {
@@ -468,8 +486,11 @@ export default function PersonaChatPage() {
                                 <div className="p-4 space-y-1">
                                     {(persona.memories || []).length > 0 ? (
                                         [...persona.memories].sort().map((memory, index) => (
-                                            <div key={index} className="flex items-center text-sm px-3 py-2 rounded-md">
+                                            <div key={index} className="flex items-center justify-between text-sm px-3 py-2 rounded-md group hover:bg-secondary/50">
                                                 <p className="flex-1 pr-2 break-words">{memory.replace(/^\d{4}-\d{2}-\d{2}: /, '')}</p>
+                                                <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0 opacity-0 group-hover:opacity-100" onClick={() => handleDeleteMemory(memory)}>
+                                                    <Trash2 className="h-4 w-4 text-destructive" />
+                                                </Button>
                                             </div>
                                         ))
                                     ) : (
