@@ -44,6 +44,8 @@ import { useIsMobile } from '@/hooks/use-mobile';
 import { AnimatedChatTitle } from '@/components/animated-chat-title';
 import { getPersona, savePersona, deletePersona, getUserDetails, getApiKeys } from '@/lib/db';
 
+const TYPING_PLACEHOLDER = 'IS_TYPING_PLACEHOLDER_8f4a7b1c';
+
 function PersonaChatSkeleton() {
   return (
     <div className="flex h-full">
@@ -93,7 +95,6 @@ export default function PersonaChatPage() {
   const [activeChatId, setActiveChatId] = useState<string | null>(null);
   
   const [input, setInput] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
@@ -221,7 +222,6 @@ export default function PersonaChatPage() {
   }, [persona, activeChatId]);
 
   const messages = useMemo(() => activeChat?.messages || [], [activeChat]);
-  const lastMessageIsAssistant = messages.length > 0 && messages[messages.length - 1].role === 'assistant';
 
   useEffect(() => {
     if (scrollAreaRef.current) {
@@ -239,51 +239,51 @@ export default function PersonaChatPage() {
     if (!isMobile) return;
 
     setTimeout(() => {
-        // 1. Scroll the inner chat message container to the very bottom.
         if (scrollAreaRef.current) {
             const scrollContainer = scrollAreaRef.current.querySelector('div');
             if (scrollContainer) {
-                scrollContainer.scrollTo({
-                    top: scrollContainer.scrollHeight,
-                    behavior: 'smooth'
-                });
+                scrollContainer.scrollTo({ top: scrollContainer.scrollHeight });
             }
         }
-
-        // 2. Scroll the entire browser window to the bottom.
-        window.scrollTo({
-            top: document.body.scrollHeight,
-            behavior: 'smooth'
-        });
-    }, 300);
+        window.scrollTo({ top: document.body.scrollHeight });
+    }, 100);
   };
   
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
-    if (!input.trim() || !persona || !activeChatId || isLoading) return;
-  
-    setIsLoading(true);
+    if (!input.trim() || !persona || !activeChatId) return;
   
     const userMessage: ChatMessage = { role: 'user', content: input };
     const userInput = input;
     const isNewChat = messages.length === 0;
   
-    const optimisticPersona = {
+    // 1. Optimistic user message update
+    let currentMessages = [...messages, userMessage];
+    let personaForUpdates = {
       ...persona,
       chats: persona.chats.map(c =>
         c.id === activeChatId
-          ? { ...c, messages: [...c.messages, userMessage], updatedAt: Date.now() }
+          ? { ...c, messages: currentMessages, updatedAt: Date.now() }
           : c
       ),
     };
-    setPersona(optimisticPersona);
-  
+    setPersona(personaForUpdates);
     setInput('');
-    if (textareaRef.current) {
-      textareaRef.current.style.height = 'auto';
-    }
+    if (textareaRef.current) textareaRef.current.style.height = 'auto';
     setError(null);
   
+    // 2. Add the first typing indicator
+    const typingIndicatorMessage: ChatMessage = { role: 'assistant', content: TYPING_PLACEHOLDER };
+    currentMessages.push(typingIndicatorMessage);
+    personaForUpdates = {
+      ...personaForUpdates,
+      chats: personaForUpdates.chats.map(c =>
+        c.id === activeChatId ? { ...c, messages: [...currentMessages] } : c
+      ),
+    };
+    setPersona(personaForUpdates);
+  
+    // 3. API Call
     const now = new Date();
     const currentDateTime = now.toLocaleString('en-US', {
       weekday: 'long',
@@ -306,13 +306,21 @@ export default function PersonaChatPage() {
       currentDateForMemory,
     });
   
+    // Error Handling
     if (res.error) {
       setError(res.error);
-      setPersona(persona);
-      setIsLoading(false);
+      const finalMessages = currentMessages.filter(m => m.content !== TYPING_PLACEHOLDER);
+      const finalPersonaState = {
+        ...personaForUpdates,
+        chats: personaForUpdates.chats.map(c =>
+          c.id === activeChatId ? { ...c, messages: finalMessages } : c
+        ),
+      };
+      setPersona(finalPersonaState);
       return;
     }
   
+    // 4. Handle Memories & Title before message streaming
     let finalMemories = persona.memories || [];
     const memoryWasUpdated = (res.newMemories?.length || 0) > 0 || (res.removedMemories?.length || 0) > 0;
   
@@ -331,11 +339,7 @@ export default function PersonaChatPage() {
       }
     }
   
-    let personaForLoop = {
-      ...persona,
-      chats: optimisticPersona.chats,
-      memories: finalMemories,
-    };
+    let personaForLoop = { ...persona, chats: personaForUpdates.chats, memories: finalMemories };
   
     if (isNewChat && res.response && res.response[0]) {
       const titleResult = await generateChatTitleAction({
@@ -354,31 +358,35 @@ export default function PersonaChatPage() {
       }
     }
   
-    setPersona(personaForLoop);
-    await savePersona(personaForLoop);
-  
+    // 5. Process responses
     if (res.response && res.response.length > 0) {
-      const baseMessages = optimisticPersona.chats.find(c => c.id === activeChatId)?.messages || [];
-      let messagesForThisTurn = [...baseMessages];
+      let messagesForThisTurn = [...personaForLoop.chats.find(c => c.id === activeChatId)!.messages];
   
       for (let i = 0; i < res.response.length; i++) {
         const messageContent = res.response[i];
   
-        // For messages after the first one, add a realistic typing delay
+        // Typing delay
         if (i > 0) {
           const { minWpm = 35, maxWpm = 40 } = persona;
           const wpm = Math.floor(Math.random() * (maxWpm - minWpm + 1)) + minWpm;
           const words = messageContent.split(/\s+/).filter(Boolean).length;
-          // (words / wpm) = minutes. * 60 = seconds. * 1000 = ms.
           const typingTimeMs = (words / wpm) * 60 * 1000;
-          // Set a reasonable floor and ceiling for the delay
           const delay = Math.max(750, Math.min(typingTimeMs, 4000));
           await new Promise(resolve => setTimeout(resolve, delay));
         }
   
-        const assistantMessage: ChatMessage = { role: 'assistant', content: messageContent };
-        messagesForThisTurn.push(assistantMessage);
+        // Replace the current typing indicator with the actual message
+        const typingIndex = messagesForThisTurn.findIndex(m => m.content === TYPING_PLACEHOLDER);
+        if (typingIndex !== -1) {
+          messagesForThisTurn[typingIndex] = { role: 'assistant', content: messageContent };
+        }
   
+        // If there's another message coming, add a new typing indicator
+        if (i < res.response.length - 1) {
+          messagesForThisTurn.push(typingIndicatorMessage);
+        }
+  
+        // Update state and save
         const currentPersonaState = {
           ...personaForLoop,
           chats: personaForLoop.chats.map(c =>
@@ -387,14 +395,18 @@ export default function PersonaChatPage() {
               : c
           ),
         };
-  
         setPersona(currentPersonaState);
         personaForLoop = currentPersonaState;
         await savePersona(currentPersonaState);
       }
+    } else {
+      // No response from AI, just remove the indicator
+      let messagesForThisTurn = [...personaForLoop.chats.find(c => c.id === activeChatId)!.messages];
+      const finalMessages = messagesForThisTurn.filter(m => m.content !== TYPING_PLACEHOLDER);
+      const finalPersonaState = { ...personaForLoop, chats: personaForLoop.chats.map(c => c.id === activeChatId ? { ...c, messages: finalMessages } : c) };
+      setPersona(finalPersonaState);
+      await savePersona(finalPersonaState);
     }
-  
-    setIsLoading(false);
   };
   
   const handleConfirmDeleteChat = useCallback(async () => {
@@ -665,9 +677,6 @@ export default function PersonaChatPage() {
           <div className="flex-1 flex flex-col bg-background/80 backdrop-blur-sm min-w-0">
              <header className="flex items-center justify-between h-16 gap-2 md:gap-4 px-4 border-b flex-shrink-0">
                 <div className="flex items-center gap-2">
-                  <Button variant="ghost" size="icon" className="md:hidden" onClick={() => setIsSidebarOpen(!isSidebarOpen)}>
-                      <PanelLeft className="h-5 w-5" />
-                  </Button>
                   <Button asChild variant="ghost" className="text-muted-foreground hover:text-foreground">
                       <Link href="/personas">
                       <ArrowLeft className="mr-2 h-4 w-4" />
@@ -676,7 +685,10 @@ export default function PersonaChatPage() {
                   </Button>
                 </div>
                  <div className="flex items-center gap-2">
-                     <Button variant="ghost" size="icon" className="hidden md:flex" onClick={() => setIsSidebarOpen(!isSidebarOpen)}>
+                    <Button variant="ghost" size="icon" className="hidden md:flex" onClick={() => setIsSidebarOpen(!isSidebarOpen)}>
+                        <PanelLeft className="h-5 w-5" />
+                    </Button>
+                    <Button variant="ghost" size="icon" className="md:hidden" onClick={() => setIsSidebarOpen(!isSidebarOpen)}>
                         <PanelLeft className="h-5 w-5" />
                     </Button>
                 </div>
@@ -688,13 +700,35 @@ export default function PersonaChatPage() {
                     <ScrollArea className="flex-1" ref={scrollAreaRef}>
                       <div className="max-w-3xl mx-auto p-4">
                         {messages.map((message, index) => {
+                          if (message.content === TYPING_PLACEHOLDER) {
+                            const isFirstInSequence = !messages[index - 1] || messages[index - 1].role !== message.role;
+                            return (
+                                <div 
+                                    key={index}
+                                    className={cn(
+                                        "flex animate-fade-in-up",
+                                        "justify-start",
+                                        isFirstInSequence ? 'mt-4' : 'mt-1'
+                                    )}
+                                >
+                                    <div className={cn(
+                                        "flex h-11 items-center rounded-lg bg-secondary px-4",
+                                        "rounded-tl-none",
+                                        "rounded-br-lg"
+                                    )}>
+                                        <div className="flex items-center justify-center space-x-1.5 h-full">
+                                            <div className="w-2 h-2 rounded-full bg-muted-foreground animate-typing-dot-1"></div>
+                                            <div className="w-2 h-2 rounded-full bg-muted-foreground animate-typing-dot-2"></div>
+                                            <div className="w-2 h-2 rounded-full bg-muted-foreground animate-typing-dot-3"></div>
+                                        </div>
+                                    </div>
+                                </div>
+                            );
+                          }
+
                           const isFirstInSequence = !messages[index - 1] || messages[index - 1].role !== message.role;
                           let isLastInSequence = !messages[index + 1] || messages[index + 1].role !== message.role;
                           
-                          if (isLoading && message.role === 'assistant' && index === messages.length - 1) {
-                            isLastInSequence = false;
-                          }
-
                           return (
                             <div 
                               key={index} 
@@ -728,26 +762,6 @@ export default function PersonaChatPage() {
                             </div>
                           );
                         })}
-
-                        {isLoading && (
-                        <div className={cn(
-                          "flex animate-fade-in-up",
-                          "justify-start",
-                          lastMessageIsAssistant ? 'mt-1' : 'mt-4'
-                        )}>
-                            <div className={cn(
-                                "flex h-11 items-center rounded-lg bg-secondary px-4",
-                                "rounded-tl-none",
-                                "rounded-br-lg"
-                            )}>
-                                <div className="flex items-center justify-center space-x-1.5 h-full">
-                                    <div className="w-2 h-2 rounded-full bg-muted-foreground animate-typing-dot-1"></div>
-                                    <div className="w-2 h-2 rounded-full bg-muted-foreground animate-typing-dot-2"></div>
-                                    <div className="w-2 h-2 rounded-full bg-muted-foreground animate-typing-dot-3"></div>
-                                </div>
-                            </div>
-                        </div>
-                        )}
 
                         {error && (
                         <Alert variant="destructive" className="mt-4">
@@ -789,7 +803,7 @@ export default function PersonaChatPage() {
                             <Button
                                 type="submit"
                                 size="icon"
-                                disabled={isLoading || !input.trim()}
+                                disabled={!input.trim()}
                                 className="h-10 w-10 rounded-md flex-shrink-0"
                             >
                                 <Send className="h-5 w-5" />
