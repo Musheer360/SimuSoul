@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useFormStatus } from 'react-dom';
@@ -190,7 +191,7 @@ export default function NewPersonaPage() {
               <TabsList className="grid w-full grid-cols-2">
                   <TabsTrigger value="manual">Manual</TabsTrigger>
                   <TabsTrigger value="ai">
-                  <Wand2 className="mr-2 h-4 w-4" /> Generate with AI
+                  <Wand2 className="mr-2 h-4 w-4 hidden sm:inline-block" /> Generate with AI
                   </TabsTrigger>
               </TabsList>
               <TabsContent value="manual" className="pt-6">
@@ -237,7 +238,7 @@ export default function NewPersonaPage() {
                           type="button"
                           variant="link"
                           size="sm"
-                          className="text-primary hover:text-accent"
+                          className="text-primary hover:underline"
                           onClick={handleGenerateDetails}
                           disabled={isGeneratingDetails}
                       >

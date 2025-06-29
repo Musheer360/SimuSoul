@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { useEffect, useState, useRef, FormEvent, useMemo, useCallback } from 'react';
@@ -109,6 +110,29 @@ export default function PersonaChatPage() {
   const scrollAreaRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const formRef = useRef<HTMLFormElement>(null);
+  const personaRef = useRef(persona);
+
+  useEffect(() => {
+    personaRef.current = persona;
+  }, [persona]);
+
+  useEffect(() => {
+    return () => {
+      const latestPersona = personaRef.current;
+      if (latestPersona?.chats) {
+        const emptyNewChat = latestPersona.chats.find(
+          (c) => c.title === 'New Chat' && c.messages.length === 0
+        );
+        if (emptyNewChat) {
+          const updatedPersona = {
+            ...latestPersona,
+            chats: latestPersona.chats.filter((c) => c.id !== emptyNewChat.id),
+          };
+          savePersona(updatedPersona);
+        }
+      }
+    };
+  }, []);
 
   useEffect(() => {
     async function loadPageData() {
