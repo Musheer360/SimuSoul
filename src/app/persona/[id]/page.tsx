@@ -659,10 +659,10 @@ export default function PersonaChatPage() {
                       {sortedChats.map(chat => (
                         <Link key={chat.id} href={`/persona/${persona.id}?chat=${chat.id}`} className="block group" scroll={false}>
                            <div className={cn(
-                                "flex justify-between items-center px-3 py-2 rounded-md transition-colors",
+                                "flex justify-between items-center p-3 rounded-md transition-colors",
                                 activeChatId === chat.id
                                 ? 'bg-secondary text-foreground'
-                                : 'text-muted-foreground hover:bg-secondary/50 hover:text-foreground'
+                                : 'bg-secondary/50 text-muted-foreground hover:bg-secondary/80 hover:text-foreground'
                             )}>
                             <div className="flex-1 text-sm truncate pr-2 min-w-0">
                                 <AnimatedChatTitle title={chat.title} />
@@ -670,7 +670,7 @@ export default function PersonaChatPage() {
                             <Button
                               variant="ghost"
                               size="icon"
-                              className="h-6 w-6 shrink-0 opacity-0 group-hover:opacity-100 hover:bg-transparent hover:text-inherit"
+                              className="h-7 w-7 shrink-0 opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-destructive"
                               onClick={(e) => { 
                                 e.preventDefault(); 
                                 e.stopPropagation();
@@ -678,7 +678,7 @@ export default function PersonaChatPage() {
                                 setIsDeleteDialogOpen(true);
                               }}
                             >
-                              <Trash2 className="h-4 w-4 text-destructive/70 hover:text-destructive" />
+                              <Trash2 className="h-4 w-4" />
                             </Button>
                           </div>
                         </Link>
