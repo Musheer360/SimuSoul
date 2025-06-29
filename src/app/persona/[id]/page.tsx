@@ -636,34 +636,41 @@ export default function PersonaChatPage() {
                 {activeChatId && activeChat ? (
                 <>
                     <ScrollArea className="flex-1" ref={scrollAreaRef}>
-                    <div className="px-4 py-4 max-w-3xl mx-auto w-full">
+                    <div className="p-4 max-w-3xl mx-auto w-full">
                         {messages.map((message, index) => {
                           const isFirstInSequence = !messages[index - 1] || messages[index - 1].role !== message.role;
-                          const isLastInSequence = !messages[index + 1] || messages[index + 1].role !== message.role;
+                          let isLastInSequence = !messages[index + 1] || messages[index + 1].role !== message.role;
+                          
+                          // If this is the last assistant message and we're waiting for more, it's not the last in the sequence.
+                          if (isLoading && message.role === 'assistant' && index === messages.length - 1) {
+                            isLastInSequence = false;
+                          }
+
                           return (
                             <div 
                               key={index} 
                               className={cn(
                                 "flex animate-fade-in-up", 
                                 message.role === 'user' ? 'justify-end' : 'justify-start',
-                                isFirstInSequence ? 'mt-3' : 'mt-1',
-                                index === 0 && 'mt-0'
+                                isFirstInSequence ? 'mt-4' : 'mt-1'
                               )}
                             >
                               <div className={cn(
-                                "max-w-prose rounded-lg px-4 py-2.5", 
+                                "max-w-[85%] rounded-lg px-4 py-2.5", 
                                 message.role === 'user' 
                                   ? 'bg-primary text-primary-foreground' 
                                   : 'bg-secondary',
                                 glowingMessageIndex === index && 'animate-shine-once',
                                 // Grouping logic
                                 message.role === 'assistant' && cn(
-                                  'rounded-tl-none',
-                                  isLastInSequence ? 'rounded-bl-lg' : 'rounded-bl-none'
+                                  isFirstInSequence && "rounded-tl-none",
+                                  !isFirstInSequence && "rounded-tl-lg",
+                                  !isLastInSequence && "rounded-bl-none",
                                 ),
                                 message.role === 'user' && cn(
-                                  'rounded-tr-none',
-                                  isLastInSequence ? 'rounded-br-lg' : 'rounded-br-none'
+                                  isFirstInSequence && "rounded-tr-none",
+                                  !isFirstInSequence && "rounded-tr-lg",
+                                  !isLastInSequence && "rounded-br-none",
                                 ),
                               )}>
                                 <FormattedMessage content={message.content} />
@@ -676,11 +683,11 @@ export default function PersonaChatPage() {
                         <div className={cn(
                           "flex animate-fade-in-up",
                           "justify-start",
-                          lastMessageIsAssistant ? 'mt-1' : 'mt-3'
+                          lastMessageIsAssistant ? 'mt-1' : 'mt-4'
                         )}>
                             <div className={cn(
-                                "flex h-11 items-center rounded-lg bg-secondary px-4 rounded-r-lg",
-                                "rounded-tl-none rounded-bl-lg"
+                                "flex h-11 items-center rounded-lg bg-secondary px-4",
+                                !lastMessageIsAssistant && "rounded-tl-none"
                             )}>
                                 <div className="flex items-center justify-center space-x-1.5 h-full">
                                     <div className="w-2 h-2 rounded-full bg-muted-foreground animate-typing-dot-1"></div>
@@ -700,49 +707,49 @@ export default function PersonaChatPage() {
                         )}
                     </div>
                     </ScrollArea>
-                    <div className="p-4 border-t bg-background/50">
-                      <div className="max-w-3xl mx-auto">
-                        <form
-                          ref={formRef}
-                          onSubmit={handleSubmit}
-                          className="flex w-full items-end gap-2 rounded-lg border bg-secondary/50 p-2"
-                        >
-                          <Textarea
-                            ref={textareaRef}
-                            value={input}
-                            onFocus={(e) => {
-                                if (isMobile) {
-                                    setTimeout(() => {
-                                        e.target.scrollIntoView({ behavior: 'smooth', block: 'end' });
-                                    }, 300);
+                    <div className="border-t bg-background/50">
+                        <div className="max-w-3xl mx-auto p-4">
+                            <form
+                            ref={formRef}
+                            onSubmit={handleSubmit}
+                            className="flex w-full items-end gap-2 rounded-lg border bg-secondary/50 p-2"
+                            >
+                            <Textarea
+                                ref={textareaRef}
+                                value={input}
+                                onFocus={(e) => {
+                                    if (isMobile) {
+                                        setTimeout(() => {
+                                            e.target.scrollIntoView({ behavior: 'smooth', block: 'end' });
+                                        }, 300);
+                                    }
+                                }}
+                                onChange={(e) => {
+                                setInput(e.target.value);
+                                const target = e.currentTarget;
+                                target.style.height = 'auto';
+                                target.style.height = `${target.scrollHeight}px`;
+                                }}
+                                onKeyDown={(e) => {
+                                if (e.key === 'Enter' && !e.shiftKey) {
+                                    e.preventDefault();
+                                    handleSubmit(e as any);
                                 }
-                            }}
-                            onChange={(e) => {
-                              setInput(e.target.value);
-                              const target = e.currentTarget;
-                              target.style.height = 'auto';
-                              target.style.height = `${target.scrollHeight}px`;
-                            }}
-                            onKeyDown={(e) => {
-                              if (e.key === 'Enter' && !e.shiftKey) {
-                                e.preventDefault();
-                                handleSubmit(e as any);
-                              }
-                            }}
-                            rows={1}
-                            placeholder={`Message ${persona.name}...`}
-                            className="flex-1 resize-none border-0 bg-transparent p-2 text-base shadow-none focus-visible:ring-0 max-h-40 overflow-y-auto"
-                          />
-                          <Button
-                            type="submit"
-                            size="icon"
-                            disabled={isLoading || !input.trim()}
-                            className="h-10 w-10 rounded-md flex-shrink-0"
-                          >
-                            <Send className="h-5 w-5" />
-                          </Button>
-                        </form>
-                      </div>
+                                }}
+                                rows={1}
+                                placeholder={`Message ${persona.name}...`}
+                                className="flex-1 resize-none border-0 bg-transparent p-2 text-base shadow-none focus-visible:ring-0 max-h-40 overflow-y-auto"
+                            />
+                            <Button
+                                type="submit"
+                                size="icon"
+                                disabled={isLoading || !input.trim()}
+                                className="h-10 w-10 rounded-md flex-shrink-0"
+                            >
+                                <Send className="h-5 w-5" />
+                            </Button>
+                            </form>
+                        </div>
                     </div>
                 </>
                 ) : (
@@ -810,11 +817,13 @@ export default function PersonaChatPage() {
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel onClick={() => setChatToDelete(null)}>Cancel</AlertDialogCancel>
-            <AlertDialogAction className="bg-destructive text-destructive-foreground hover:bg-destructive/90" onClick={handleConfirmDeleteChat}>Delete</AlertDialogAction>
+            <Cancel onClick={() => setChatToDelete(null)}>Cancel</Cancel>
+            <Action className="bg-destructive text-destructive-foreground hover:bg-destructive/90" onClick={handleConfirmDeleteChat}>Delete</Action>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
     </>
   );
 }
+
+    
