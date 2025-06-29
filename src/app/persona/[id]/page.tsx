@@ -532,9 +532,9 @@ export default function PersonaChatPage() {
                                 ? 'bg-secondary text-foreground'
                                 : 'text-muted-foreground hover:bg-secondary/50 hover:text-foreground'
                             )}>
-                            <p className="text-sm truncate pr-2 min-w-0">
+                            <div className="flex-1 text-sm truncate pr-2 min-w-0">
                                 <AnimatedChatTitle title={chat.title} />
-                            </p>
+                            </div>
                             <Button
                               variant="ghost"
                               size="icon"
