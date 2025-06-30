@@ -53,12 +53,12 @@ export default function PersonasPage() {
   return (
     <div className="h-full flex flex-col">
       <div className="container py-8 flex flex-col flex-1">
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-8">
-          <div className="mb-4 sm:mb-0">
+        <div className="flex flex-col sm:flex-row justify-between items-center mb-8">
+          <div className="text-center sm:text-left mb-4 sm:mb-0">
             <h1 className="text-3xl font-bold font-headline tracking-tight">Your Personas</h1>
             <p className="text-muted-foreground mt-1">Manage your AI companions or create new ones.</p>
           </div>
-          <Button asChild>
+          <Button asChild className="w-full sm:w-auto">
             <Link href="/persona/new">
               <PlusCircle className="mr-2" /> Create New Persona
             </Link>
