@@ -52,7 +52,7 @@ export default function PersonasPage() {
 
   return (
     <div className="h-full flex flex-col">
-      <div className="container py-8 flex flex-col flex-1">
+      <div className="container py-8 flex flex-col">
         <div className="flex flex-col sm:flex-row justify-between items-center mb-8">
           <div className="text-center sm:text-left mb-4 sm:mb-0">
             <h1 className="text-3xl font-bold font-headline tracking-tight">Your Personas</h1>
@@ -66,14 +66,13 @@ export default function PersonasPage() {
         </div>
 
         {isLoading ? (
-          <div className="flex-1 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
             <PersonaCardSkeleton />
             <PersonaCardSkeleton className="hidden sm:block" />
             <PersonaCardSkeleton className="hidden md:block" />
-            <PersonaCardSkeleton className="hidden lg:block" />
           </div>
         ) : personas.length > 0 ? (
-          <div className="flex-1 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
             {personas.map((persona) => (
               <div
                 key={persona.id}
@@ -83,7 +82,7 @@ export default function PersonasPage() {
                   <AlertDialogTrigger asChild>
                     <Button
                       variant="ghost"
-                      className="absolute top-3 right-3 z-10 h-8 w-8 p-0 text-white/90 hover:bg-transparent hover:text-destructive focus-visible:ring-0 focus-visible:ring-offset-0"
+                      className="absolute top-3 right-3 z-10 h-8 w-8 p-0 text-white/90 hover:text-destructive focus-visible:ring-0 focus-visible:ring-offset-0 transition-opacity md:opacity-0 md:group-hover:opacity-100"
                       aria-label={`Delete ${persona.name}`}
                     >
                       <Trash2 className="h-5 w-5" />
