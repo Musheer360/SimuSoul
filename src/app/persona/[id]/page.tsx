@@ -875,15 +875,15 @@ export default function PersonaChatPage() {
       
       {persona && (
         <Dialog open={isMemoryDialogOpen} onOpenChange={handleMemoryDialogChange}>
-            <DialogContent className="sm:max-w-md" showCloseButton={false}>
+            <DialogContent className="w-full h-full flex flex-col sm:h-auto sm:w-full sm:max-w-md sm:rounded-lg" showCloseButton={false}>
                 <DialogHeader>
                     <DialogTitle>Memories for {persona.name}</DialogTitle>
                     <DialogDescription>
                        These are the memories this persona has about you. They are updated automatically during conversation.
                     </DialogDescription>
                 </DialogHeader>
-                <div className="space-y-4 py-4">
-                    <ScrollArea className="h-72 border rounded-md">
+                <div className="space-y-4 py-4 flex-1 min-h-0">
+                    <ScrollArea className="h-full border rounded-md">
                         <div className="p-4 space-y-2">
                             {(persona.memories || []).length > 0 ? (
                                 [...persona.memories].sort().map((memory) => (
@@ -900,7 +900,7 @@ export default function PersonaChatPage() {
                     </ScrollArea>
                 </div>
                 <DialogFooter>
-                    <Button variant="secondary" onClick={() => setIsMemoryDialogOpen(false)}>Close</Button>
+                    <Button variant="secondary" onClick={() => setIsMemoryDialogOpen(false)} className="w-full">Close</Button>
                 </DialogFooter>
             </DialogContent>
         </Dialog>
