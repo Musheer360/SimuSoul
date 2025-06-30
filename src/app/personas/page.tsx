@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { PlusCircle, Bot, Trash2 } from 'lucide-react';
@@ -48,10 +48,10 @@ export default function PersonasPage() {
     loadPersonas();
   }, []);
 
-  const handleDelete = async (personaId: string) => {
+  const handleDelete = useCallback(async (personaId: string) => {
     await deletePersona(personaId);
     setPersonas((prev) => prev.filter((p) => p.id !== personaId));
-  };
+  }, []);
 
   return (
     <div>

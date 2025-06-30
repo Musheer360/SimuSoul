@@ -568,12 +568,12 @@ export default function PersonaChatPage() {
     });
   }, [persona, toast]);
   
-  const handleMemoryDialogChange = (open: boolean) => {
+  const handleMemoryDialogChange = useCallback((open: boolean) => {
       if (open) {
           setIsMemoryButtonGlowing(false);
       }
       setIsMemoryDialogOpen(open);
-  }
+  }, []);
 
   if (persona === undefined) {
     return <PersonaChatSkeleton />;
