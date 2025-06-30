@@ -25,7 +25,7 @@ import { cn } from '@/lib/utils';
 
 function PersonaCardSkeleton() {
   return (
-    <div className="h-[60vh] w-full">
+    <div className="h-full w-full min-h-0">
       <Skeleton className="h-full w-full rounded-lg" />
     </div>
   );
@@ -66,28 +66,28 @@ export default function PersonasPage() {
         </div>
 
         {isLoading ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
+            <div className="flex-1 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
             {[...Array(4)].map((_, i) => (
               <PersonaCardSkeleton key={i} />
             ))}
           </div>
         ) : personas.length > 0 ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
+          <div className="flex-1 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
             {personas.map((persona) => (
               <div
                 key={persona.id}
-                className="relative group h-[60vh]"
+                className="relative group h-full min-h-0"
               >
                 <AlertDialog>
                   <AlertDialogTrigger asChild>
                     <Button
                       variant="ghost"
                       size="icon"
-                      className="absolute top-3 right-3 z-10 h-8 w-8 text-white/70 hover:text-destructive hover:bg-white/20 opacity-0 group-hover:opacity-100 transition-opacity duration-300"
+                      className="absolute top-3 right-3 z-10 h-9 w-9 rounded-full text-white/70 hover:text-destructive hover:bg-white/20 opacity-0 group-hover:opacity-100 transition-opacity duration-300"
                       aria-label={`Delete ${persona.name}`}
                       onClick={(e) => e.stopPropagation()}
                     >
-                      <Trash2 className="h-4 w-4" />
+                      <Trash2 className="h-5 w-5" />
                     </Button>
                   </AlertDialogTrigger>
                   <AlertDialogContent>
