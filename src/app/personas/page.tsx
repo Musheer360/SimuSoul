@@ -24,7 +24,11 @@ import { getAllPersonas, deletePersona } from '@/lib/db';
 import { cn } from '@/lib/utils';
 
 function PersonaCardSkeleton() {
-  return <Skeleton className="h-full w-full rounded-lg" />;
+  return (
+    <div className="h-full">
+      <Skeleton className="h-full w-full rounded-lg" />
+    </div>
+  );
 }
 
 export default function PersonasPage() {
@@ -62,7 +66,7 @@ export default function PersonasPage() {
         </div>
 
         {isLoading ? (
-            <div className="flex-1 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="flex-1 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
             {[...Array(4)].map((_, i) => (
               <PersonaCardSkeleton key={i} />
             ))}
@@ -72,7 +76,7 @@ export default function PersonasPage() {
             {personas.map((persona) => (
               <div
                 key={persona.id}
-                className="relative group h-full min-h-0"
+                className="relative group h-full"
               >
                 <AlertDialog>
                   <AlertDialogTrigger asChild>
