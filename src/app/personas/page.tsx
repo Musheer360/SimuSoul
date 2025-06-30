@@ -25,7 +25,7 @@ import { cn } from '@/lib/utils';
 
 function PersonaCardSkeleton() {
   return (
-    <div className="aspect-[3/4] w-full">
+    <div className="aspect-[5/6] w-full">
       <Skeleton className="h-full w-full rounded-lg" />
     </div>
   );
@@ -76,7 +76,7 @@ export default function PersonasPage() {
             {personas.map((persona) => (
               <div
                 key={persona.id}
-                className="relative group aspect-[3/4]"
+                className="relative group aspect-[5/6]"
               >
                 <AlertDialog>
                   <AlertDialogTrigger asChild>
