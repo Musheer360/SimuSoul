@@ -126,7 +126,7 @@ export default function SettingsPage() {
                   onChange={handleUserDetailsChange}
                   className="resize-none"
                   placeholder="A short description of you, can also be a URL."
-                  rows={4}
+                  rows={6}
                 />
               </div>
             </div>
