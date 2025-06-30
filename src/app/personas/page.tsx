@@ -83,9 +83,12 @@ export default function PersonasPage() {
                     <Button
                       variant="ghost"
                       size="icon"
-                      className="absolute top-3 right-3 z-10 h-9 w-9 rounded-md bg-black/40 text-white/80 hover:text-destructive hover:bg-destructive/80 transition-all"
+                      className="absolute top-3 right-3 z-10 h-8 w-8 rounded-md text-white/90 [text-shadow:0_1px_2px_rgb(0_0_0_/_0.6)] hover:text-destructive transition-colors"
                       aria-label={`Delete ${persona.name}`}
-                      onClick={(e) => e.stopPropagation()}
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                      }}
                     >
                       <Trash2 className="h-5 w-5" />
                     </Button>
