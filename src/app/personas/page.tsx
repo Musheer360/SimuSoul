@@ -66,13 +66,14 @@ export default function PersonasPage() {
         </div>
 
         {isLoading ? (
-          <div className="flex-1 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="flex-1 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
             <PersonaCardSkeleton />
             <PersonaCardSkeleton className="hidden sm:block" />
+            <PersonaCardSkeleton className="hidden md:block" />
             <PersonaCardSkeleton className="hidden lg:block" />
           </div>
         ) : personas.length > 0 ? (
-          <div className="flex-1 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="flex-1 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
             {personas.map((persona) => (
               <div
                 key={persona.id}
