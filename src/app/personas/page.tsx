@@ -24,11 +24,7 @@ import { getAllPersonas, deletePersona } from '@/lib/db';
 import { cn } from '@/lib/utils';
 
 function PersonaCardSkeleton() {
-  return (
-    <div className="h-full w-full min-h-0">
-      <Skeleton className="h-full w-full rounded-lg" />
-    </div>
-  );
+  return <Skeleton className="h-full w-full rounded-lg" />;
 }
 
 export default function PersonasPage() {
@@ -110,7 +106,7 @@ export default function PersonasPage() {
                 </AlertDialog>
 
                 <Link href={`/persona/${persona.id}`} className="block h-full">
-                  <Card className="h-full overflow-hidden border border-border/20 group-hover:border-primary transition-all duration-300 group-hover:shadow-2xl group-hover:shadow-primary/20 bg-card/80 backdrop-blur-sm group-hover:-translate-y-2">
+                  <Card className="h-full overflow-hidden border border-border/20 group-hover:border-primary transition-all duration-300 group-hover:shadow-2xl group-hover:shadow-primary/20 bg-card/80 backdrop-blur-sm">
                       <div className="h-full relative overflow-hidden">
                         <Image
                           src={persona.profilePictureUrl}
