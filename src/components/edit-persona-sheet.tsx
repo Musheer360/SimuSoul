@@ -25,7 +25,7 @@ import { ScrollArea } from './ui/scroll-area';
 function SubmitButton() {
   const { pending } = useFormStatus();
   return (
-    <Button type="submit" disabled={pending}>
+    <Button type="submit" disabled={pending} size="lg">
       {pending ? (
         <>
           <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -134,7 +134,7 @@ export function EditPersonaSheet({ persona, open, onOpenChange, onPersonaUpdate 
             </ScrollArea>
             <SheetFooter className="p-6 border-t bg-background">
                 <SheetClose asChild>
-                    <Button type="button" variant="outline">Cancel</Button>
+                    <Button type="button" variant="outline" size="lg">Cancel</Button>
                 </SheetClose>
                 <SubmitButton />
             </SheetFooter>
