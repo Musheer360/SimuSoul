@@ -65,7 +65,7 @@ export default function PersonasPage() {
         </div>
 
         {isLoading ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
             {/* Display 3 skeletons for loading state */}
             <PersonaCardSkeleton />
             <PersonaCardSkeleton />
@@ -73,7 +73,7 @@ export default function PersonasPage() {
           </div>
         ) : personas.length > 0 ? (
           // Grid layout with 3 columns on desktop
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
             {personas.map((persona) => (
               <div
                 key={persona.id}
