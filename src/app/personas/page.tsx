@@ -21,13 +21,11 @@ import {
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
 import { getAllPersonas, deletePersona } from '@/lib/db';
-import { cn } from '@/lib/utils';
 
-function PersonaCardSkeleton({ className }: { className?: string }) {
+// Updated skeleton to match card aspect ratio, preventing layout shifts.
+function PersonaCardSkeleton() {
   return (
-    <div className={cn("h-full", className)}>
-      <Skeleton className="h-full w-full rounded-lg" />
-    </div>
+    <Skeleton className="w-full rounded-lg aspect-[4/5]" />
   );
 }
 
@@ -51,7 +49,8 @@ export default function PersonasPage() {
   }, []);
 
   return (
-    <div className="h-full flex flex-col">
+    // Removed h-full to allow the page to scroll vertically
+    <div className="flex flex-col">
       <div className="container py-8 flex flex-col">
         <div className="flex flex-col sm:flex-row justify-between items-center mb-8">
           <div className="text-center sm:text-left mb-4 sm:mb-0">
@@ -67,22 +66,25 @@ export default function PersonasPage() {
 
         {isLoading ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
+            {/* Display 3 skeletons for loading state */}
             <PersonaCardSkeleton />
-            <PersonaCardSkeleton className="hidden sm:block" />
-            <PersonaCardSkeleton className="hidden md:block" />
+            <PersonaCardSkeleton />
+            <PersonaCardSkeleton />
           </div>
         ) : personas.length > 0 ? (
+          // Grid layout with 3 columns on desktop
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
             {personas.map((persona) => (
               <div
                 key={persona.id}
-                className="relative group h-full"
+                className="relative group" // Removed h-full
               >
                 <AlertDialog>
                   <AlertDialogTrigger asChild>
                     <Button
                       variant="ghost"
-                      className="absolute top-3 right-3 z-10 h-8 w-8 p-0 text-white/90 hover:text-destructive focus-visible:ring-0 focus-visible:ring-offset-0 transition-opacity md:opacity-0 md:group-hover:opacity-100"
+                      // Button is always visible on mobile, appears on hover on desktop
+                      className="absolute top-3 right-3 z-10 h-8 w-8 p-0 text-white/90 hover:text-destructive focus-visible:ring-0 focus-visible:ring-offset-0 transition-opacity md:opacity-0 group-hover:opacity-100"
                       aria-label={`Delete ${persona.name}`}
                     >
                       <Trash2 className="h-5 w-5" />
@@ -107,13 +109,15 @@ export default function PersonasPage() {
                   </AlertDialogContent>
                 </AlertDialog>
 
-                <Link href={`/persona/${persona.id}`} className="block h-full">
-                  <Card className="h-full overflow-hidden border border-border/20 group-hover:border-primary transition-all duration-300 group-hover:shadow-2xl group-hover:shadow-primary/20 bg-card/80 backdrop-blur-sm">
+                <Link href={`/persona/${persona.id}`} className="block">
+                  {/* Card now has a fixed aspect ratio to prevent collapsing */}
+                  <Card className="w-full aspect-[4/5] overflow-hidden border border-border/20 group-hover:border-primary transition-all duration-300 group-hover:shadow-2xl group-hover:shadow-primary/20 bg-card/80 backdrop-blur-sm">
                       <div className="h-full relative overflow-hidden">
                         <Image
                           src={persona.profilePictureUrl}
                           alt={persona.name}
                           fill
+                          sizes="(max-width: 768px) 50vw, 33vw" // Optimized for responsive grid
                           className="object-cover group-hover:scale-105 transition-transform duration-500 ease-in-out"
                           data-ai-hint="persona portrait"
                         />
