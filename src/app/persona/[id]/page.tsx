@@ -2,7 +2,7 @@
 
 'use client';
 
-import { useEffect, useState, useRef, FormEvent, useMemo, useCallback } from 'react';
+import { useEffect, useState, useRef, FormEvent, useMemo, useCallback, memo } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useParams, useRouter, useSearchParams } from 'next/navigation';
@@ -45,6 +45,75 @@ import { AnimatedChatTitle } from '@/components/animated-chat-title';
 import { getPersona, savePersona, deletePersona, getUserDetails, getApiKeys } from '@/lib/db';
 
 const TYPING_PLACEHOLDER = 'IS_TYPING_PLACEHOLDER_8f4a7b1c';
+
+// Memoized component to render a single chat message, preventing re-renders on input change.
+const ChatMessageItem = memo(function ChatMessageItem({
+  message,
+  isFirstInSequence,
+  isLastInSequence,
+  glowing,
+}: {
+  message: ChatMessage;
+  isFirstInSequence: boolean;
+  isLastInSequence: boolean;
+  glowing: boolean;
+}) {
+  if (message.content === TYPING_PLACEHOLDER) {
+    return (
+      <div
+        className={cn(
+          "flex animate-fade-in-up",
+          "justify-start",
+          isFirstInSequence ? 'mt-4' : 'mt-1'
+        )}
+      >
+        <div className={cn(
+          "flex h-11 items-center rounded-lg bg-secondary px-4",
+          "rounded-tl-none",
+          "rounded-br-lg"
+        )}>
+          <div className="flex items-center justify-center space-x-1.5 h-full">
+            <div className="w-2 h-2 rounded-full bg-muted-foreground animate-typing-dot-1"></div>
+            <div className="w-2 h-2 rounded-full bg-muted-foreground animate-typing-dot-2"></div>
+            <div className="w-2 h-2 rounded-full bg-muted-foreground animate-typing-dot-3"></div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div
+      className={cn(
+        "flex animate-fade-in-up",
+        message.role === 'user' ? 'justify-end' : 'justify-start',
+        isFirstInSequence ? 'mt-4' : 'mt-1'
+      )}
+    >
+      <div className={cn(
+        "max-w-[85%] rounded-lg px-4 py-2.5",
+        message.role === 'user'
+          ? 'bg-primary text-primary-foreground'
+          : 'bg-secondary',
+        glowing && 'animate-shine-once',
+        message.role === 'assistant' && cn(
+          isFirstInSequence && !isLastInSequence && "rounded-tl-none rounded-bl-none",
+          isFirstInSequence && isLastInSequence && "rounded-tl-none",
+          !isFirstInSequence && !isLastInSequence && "rounded-tl-none rounded-bl-none",
+          !isFirstInSequence && isLastInSequence && "rounded-tl-none rounded-bl-lg",
+        ),
+        message.role === 'user' && cn(
+          isFirstInSequence && !isLastInSequence && "rounded-tr-none rounded-br-none",
+          isFirstInSequence && isLastInSequence && "rounded-tr-none",
+          !isFirstInSequence && !isLastInSequence && "rounded-tr-none rounded-br-none",
+          !isFirstInSequence && isLastInSequence && "rounded-tr-none rounded-br-lg",
+        ),
+      )}>
+        <FormattedMessage content={message.content} />
+      </div>
+    </div>
+  );
+});
 
 function PersonaChatSkeleton() {
   return (
@@ -726,67 +795,17 @@ export default function PersonaChatPage() {
                     <ScrollArea className="flex-1" ref={scrollAreaRef}>
                       <div className="max-w-3xl mx-auto p-4">
                         {messages.map((message, index) => {
-                          if (message.content === TYPING_PLACEHOLDER) {
-                            const isFirstInSequence = !messages[index - 1] || messages[index - 1].role !== message.role;
-                            return (
-                                <div 
-                                    key={index}
-                                    className={cn(
-                                        "flex animate-fade-in-up",
-                                        "justify-start",
-                                        isFirstInSequence ? 'mt-4' : 'mt-1'
-                                    )}
-                                >
-                                    <div className={cn(
-                                        "flex h-11 items-center rounded-lg bg-secondary px-4",
-                                        "rounded-tl-none",
-                                        "rounded-br-lg"
-                                    )}>
-                                        <div className="flex items-center justify-center space-x-1.5 h-full">
-                                            <div className="w-2 h-2 rounded-full bg-muted-foreground animate-typing-dot-1"></div>
-                                            <div className="w-2 h-2 rounded-full bg-muted-foreground animate-typing-dot-2"></div>
-                                            <div className="w-2 h-2 rounded-full bg-muted-foreground animate-typing-dot-3"></div>
-                                        </div>
-                                    </div>
-                                </div>
-                            );
-                          }
-
-                          const isFirstInSequence = !messages[index - 1] || messages[index - 1].role !== message.role;
-                          let isLastInSequence = !messages[index + 1] || messages[index + 1].role !== message.role;
-                          
-                          return (
-                            <div 
-                              key={index} 
-                              className={cn(
-                                "flex animate-fade-in-up", 
-                                message.role === 'user' ? 'justify-end' : 'justify-start',
-                                isFirstInSequence ? 'mt-4' : 'mt-1'
-                              )}
-                            >
-                              <div className={cn(
-                                "max-w-[85%] rounded-lg px-4 py-2.5", 
-                                message.role === 'user' 
-                                  ? 'bg-primary text-primary-foreground' 
-                                  : 'bg-secondary',
-                                glowingMessageIndex === index && 'animate-shine-once',
-                                message.role === 'assistant' && cn(
-                                  isFirstInSequence && !isLastInSequence && "rounded-tl-none rounded-bl-none",
-                                  isFirstInSequence && isLastInSequence && "rounded-tl-none",
-                                  !isFirstInSequence && !isLastInSequence && "rounded-tl-none rounded-bl-none",
-                                  !isFirstInSequence && isLastInSequence && "rounded-tl-none rounded-bl-lg",
-                                ),
-                                message.role === 'user' && cn(
-                                  isFirstInSequence && !isLastInSequence && "rounded-tr-none rounded-br-none",
-                                  isFirstInSequence && isLastInSequence && "rounded-tr-none",
-                                  !isFirstInSequence && !isLastInSequence && "rounded-tr-none rounded-br-none",
-                                  !isFirstInSequence && isLastInSequence && "rounded-tr-none rounded-br-lg",
-                                ),
-                              )}>
-                                <FormattedMessage content={message.content} />
-                              </div>
-                            </div>
-                          );
+                           const isFirstInSequence = !messages[index - 1] || messages[index - 1].role !== message.role;
+                           const isLastInSequence = !messages[index + 1] || messages[index + 1].role !== message.role;
+                           return (
+                             <ChatMessageItem
+                               key={index}
+                               message={message}
+                               isFirstInSequence={isFirstInSequence}
+                               isLastInSequence={isLastInSequence}
+                               glowing={glowingMessageIndex === index}
+                             />
+                           );
                         })}
 
                         {error && (
