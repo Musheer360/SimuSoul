@@ -734,7 +734,7 @@ export default function PersonaChatPage() {
                             <Button
                               variant="ghost"
                               size="icon"
-                              className="h-7 w-7 shrink-0 opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-destructive"
+                              className="h-7 w-7 shrink-0 text-muted-foreground hover:text-destructive"
                               onClick={(e) => { 
                                 e.preventDefault(); 
                                 e.stopPropagation();
@@ -889,7 +889,7 @@ export default function PersonaChatPage() {
                                 [...persona.memories].sort().map((memory, index) => (
                                     <div key={index} className="flex items-center justify-between text-sm p-3 rounded-md group bg-secondary/50 hover:bg-secondary/80">
                                         <p className="flex-1 pr-2 break-words">{memory.replace(/^\d{4}-\d{2}-\d{2}: /, '')}</p>
-                                        <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0 opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-destructive" onClick={() => handleDeleteMemory(memory)}>
+                                        <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0 text-muted-foreground hover:text-destructive" onClick={() => handleDeleteMemory(memory)}>
                                             <Trash2 className="h-4 w-4" />
                                         </Button>
                                     </div>
