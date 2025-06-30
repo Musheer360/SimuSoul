@@ -25,7 +25,7 @@ import { getAllPersonas, deletePersona } from '@/lib/db';
 // Updated skeleton to match card aspect ratio, preventing layout shifts.
 function PersonaCardSkeleton() {
   return (
-    <Skeleton className="w-full h-[75vh] rounded-lg" />
+    <Skeleton className="w-full h-[60vh] rounded-lg" />
   );
 }
 
@@ -111,7 +111,7 @@ export default function PersonasPage() {
 
                 <Link href={`/persona/${persona.id}`} className="block">
                   {/* Card now has a fixed height relative to viewport height */}
-                  <Card className="w-full h-[75vh] overflow-hidden border border-border/20 group-hover:border-primary transition-all duration-300 group-hover:shadow-2xl group-hover:shadow-primary/20 bg-card/80 backdrop-blur-sm">
+                  <Card className="w-full h-[60vh] overflow-hidden border border-border/20 group-hover:border-primary transition-all duration-300 group-hover:shadow-2xl group-hover:shadow-primary/20 bg-card/80 backdrop-blur-sm">
                       <div className="h-full relative overflow-hidden">
                         <Image
                           src={persona.profilePictureUrl}
