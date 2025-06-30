@@ -79,9 +79,9 @@ export async function saveUserDetails(details: UserDetails): Promise<void> {
 // ApiKeys operations
 const API_KEYS_KEY = 'userApiKeys';
 export async function getApiKeys(): Promise<ApiKeys> {
-    if (!dbPromise) return { gemini: '' };
+    if (!dbPromise) return { gemini: [] };
     const db = await dbPromise;
-    return (await db.get(API_KEYS_STORE, API_KEYS_KEY)) || { gemini: '' };
+    return (await db.get(API_KEYS_STORE, API_KEYS_KEY)) || { gemini: [] };
 }
 
 export async function saveApiKeys(keys: ApiKeys): Promise<void> {

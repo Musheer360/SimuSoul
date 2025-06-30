@@ -33,7 +33,7 @@ export interface UserDetails {
 }
 
 export interface ApiKeys {
-  gemini: string;
+  gemini: string[];
 }
 
 export interface CreatePersonaState {

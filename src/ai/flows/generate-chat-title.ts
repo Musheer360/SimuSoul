@@ -16,7 +16,7 @@ import { callWithFailover } from '@/lib/api-key-manager';
 const GenerateChatTitleInputSchema = z.object({
   userMessage: z.string().describe("The user's initial message in the conversation."),
   assistantResponse: z.string().describe("The assistant's first response to the user."),
-  apiKey: z.string().optional().describe('An optional custom Gemini API key.'),
+  apiKey: z.array(z.string()).optional().describe('An optional list of custom Gemini API keys.'),
 });
 export type GenerateChatTitleInput = z.infer<typeof GenerateChatTitleInputSchema>;
 

@@ -9,7 +9,7 @@ import {
   generatePersonaDetailsAction,
   generatePersonaFromPromptAction,
 } from '@/app/actions';
-import type { Persona, CreatePersonaState, ApiKeys } from '@/lib/types';
+import type { Persona, CreatePersonaState } from '@/lib/types';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -25,7 +25,7 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Loader2, Sparkles, Wand2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { getApiKeys, savePersona } from '@/lib/db';
+import { savePersona } from '@/lib/db';
 
 function SubmitButton() {
   const { pending } = useFormStatus();
@@ -49,8 +49,7 @@ function SubmitButton() {
 export default function NewPersonaPage() {
   const router = useRouter();
   const { toast } = useToast();
-  const [apiKeys, setApiKeys] = useState<ApiKeys>({ gemini: '' });
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(false);
 
   const [formKey, setFormKey] = useState(0);
   const [defaultValues, setDefaultValues] = useState({
@@ -81,16 +80,6 @@ export default function NewPersonaPage() {
   const relationRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    async function loadInitialData() {
-      setIsLoading(true);
-      const storedKeys = await getApiKeys();
-      setApiKeys(storedKeys);
-      setIsLoading(false);
-    }
-    loadInitialData();
-  }, []);
-
-  useEffect(() => {
     if (state.success && state.persona) {
       const newPersona: Persona = { ...state.persona, id: crypto.randomUUID(), chats: [], memories: [] };
       savePersona(newPersona).then(() => {
@@ -113,7 +102,7 @@ export default function NewPersonaPage() {
   const handleGenerateFullPersona = async () => {
     if (!prompt) return;
     setIsGeneratingFull(true);
-    const result = await generatePersonaFromPromptAction(prompt, apiKeys.gemini);
+    const result = await generatePersonaFromPromptAction(prompt);
     setIsGeneratingFull(false);
 
     if (result.success && result.personaData) {
@@ -153,7 +142,7 @@ export default function NewPersonaPage() {
       return;
     }
     setIsGeneratingDetails(true);
-    const result = await generatePersonaDetailsAction(name, relation, apiKeys.gemini);
+    const result = await generatePersonaDetailsAction(name, relation);
     setIsGeneratingDetails(false);
 
     if (result.success && result.details) {
@@ -196,7 +185,6 @@ export default function NewPersonaPage() {
               </TabsList>
               <TabsContent value="manual" className="pt-6">
                   <form action={dispatch} className="space-y-6" key={formKey}>
-                    <input type="hidden" name="apiKey" value={apiKeys.gemini} />
                     <input type="hidden" name="minWpm" value={defaultValues.minWpm} />
                     <input type="hidden" name="maxWpm" value={defaultValues.maxWpm} />
                   <div className="space-y-2">

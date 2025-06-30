@@ -33,7 +33,7 @@ const ChatWithPersonaInputSchema = z.object({
   currentDateTime: z.string().describe('The current date and time when the user sends the message.'),
   currentDateForMemory: z.string().describe('The current date in YYYY-MM-DD format for creating memories.'),
   message: z.string().describe('The user\'s message to the persona.'),
-  apiKey: z.string().optional().describe('An optional custom Gemini API key.'),
+  apiKey: z.array(z.string()).optional().describe('An optional list of custom Gemini API keys.'),
 });
 export type ChatWithPersonaInput = z.infer<typeof ChatWithPersonaInputSchema>;
 

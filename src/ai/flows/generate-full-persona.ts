@@ -15,7 +15,7 @@ import { callWithFailover } from '@/lib/api-key-manager';
 
 const GeneratePersonaFromPromptInputSchema = z.object({
   prompt: z.string().describe('A prompt or idea for a character.'),
-  apiKey: z.string().optional().describe('An optional custom Gemini API key.'),
+  apiKey: z.array(z.string()).optional().describe('An optional list of custom Gemini API keys.'),
 });
 export type GeneratePersonaFromPromptInput = z.infer<typeof GeneratePersonaFromPromptInputSchema>;
 

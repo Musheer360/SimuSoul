@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { ArrowLeft, Loader2 } from 'lucide-react';
+import { ArrowLeft, Loader2, PlusCircle, Trash2 } from 'lucide-react';
 import type { UserDetails, ApiKeys } from '@/lib/types';
 import { getUserDetails, saveUserDetails, getApiKeys, saveApiKeys } from '@/lib/db';
 import { useToast } from '@/hooks/use-toast';
@@ -16,7 +16,7 @@ export default function SettingsPage() {
   const { toast } = useToast();
   const router = useRouter();
   const [userDetails, setUserDetails] = useState<UserDetails>({ name: '', about: '' });
-  const [apiKeys, setApiKeys] = useState<ApiKeys>({ gemini: '' });
+  const [apiKeys, setApiKeys] = useState<ApiKeys>({ gemini: [''] });
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
 
@@ -25,7 +25,7 @@ export default function SettingsPage() {
       setIsLoading(true);
       const [details, keys] = await Promise.all([getUserDetails(), getApiKeys()]);
       setUserDetails(details);
-      setApiKeys(keys);
+      setApiKeys(keys.gemini && keys.gemini.length > 0 ? keys : { gemini: [''] });
       setIsLoading(false);
     }
     loadSettings();
@@ -35,14 +35,40 @@ export default function SettingsPage() {
     setUserDetails(prev => ({ ...prev, [e.target.name]: e.target.value }));
   };
 
-  const handleApiKeyChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setApiKeys(prev => ({ ...prev, [e.target.name]: e.target.value }));
+  const handleApiKeyChange = (index: number, value: string) => {
+    const newKeys = [...apiKeys.gemini];
+    newKeys[index] = value;
+    setApiKeys({ gemini: newKeys });
+  };
+  
+  const handleAddKey = () => {
+    if (apiKeys.gemini.length >= 5) {
+      toast({ variant: 'destructive', title: 'Limit Reached', description: 'You can add a maximum of 5 API keys.' });
+      return;
+    }
+    if (apiKeys.gemini[apiKeys.gemini.length - 1].trim() === '') {
+      toast({ variant: 'destructive', title: 'Empty Field', description: 'Please fill in the current API key before adding a new one.' });
+      return;
+    }
+    setApiKeys({ gemini: [...apiKeys.gemini, ''] });
+  };
+
+  const handleRemoveKey = (index: number) => {
+    const newKeys = apiKeys.gemini.filter((_, i) => i !== index);
+    if (newKeys.length === 0) {
+      setApiKeys({ gemini: [''] });
+    } else {
+      setApiKeys({ gemini: newKeys });
+    }
   };
 
   const handleSave = async () => {
     setIsSaving(true);
     try {
-      await Promise.all([saveUserDetails(userDetails), saveApiKeys(apiKeys)]);
+      const keysToSave = {
+        gemini: apiKeys.gemini.map(k => k.trim()).filter(Boolean),
+      };
+      await Promise.all([saveUserDetails(userDetails), saveApiKeys(keysToSave)]);
       toast({
         title: 'Settings Saved',
         description: 'Your details and API keys have been updated.',
@@ -107,18 +133,36 @@ export default function SettingsPage() {
 
             <div className="space-y-4">
               <h3 className="font-semibold font-headline text-xl text-foreground">API Keys</h3>
-              <div className="space-y-2">
-                <Label htmlFor="gemini">Gemini API Key</Label>
-                <Input
-                  id="gemini"
-                  name="gemini"
-                  type="password"
-                  value={apiKeys.gemini}
-                  onChange={handleApiKeyChange}
-                  placeholder="Enter your custom Gemini key"
-                />
+              <div className="space-y-3">
+                {apiKeys.gemini.map((key, index) => (
+                  <div key={index} className="flex items-center gap-2">
+                    <Label htmlFor={`gemini-${index}`} className="sr-only">
+                      Gemini API Key {index + 1}
+                    </Label>
+                    <Input
+                      id={`gemini-${index}`}
+                      name="gemini"
+                      type="password"
+                      value={key}
+                      onChange={(e) => handleApiKeyChange(index, e.target.value)}
+                      placeholder={`Enter Gemini key ${index + 1}`}
+                      className="flex-grow"
+                    />
+                    {apiKeys.gemini.length > 1 && (
+                       <Button variant="ghost" size="icon" onClick={() => handleRemoveKey(index)} aria-label={`Remove key ${index + 1}`}>
+                         <Trash2 className="h-4 w-4 text-muted-foreground" />
+                       </Button>
+                    )}
+                  </div>
+                ))}
+                {apiKeys.gemini.length < 5 && (
+                  <Button variant="outline" onClick={handleAddKey} className="w-full justify-start text-muted-foreground">
+                    <PlusCircle className="mr-2 h-4 w-4" />
+                    Add another API key
+                  </Button>
+                )}
                  <p className="text-xs text-muted-foreground pt-1">
-                   Your key is stored locally and used for all AI requests. If left empty, a server-provided key will be used.
+                   Your keys are stored locally and used for all AI requests. If left empty, a server-provided key will be used.
                  </p>
               </div>
             </div>

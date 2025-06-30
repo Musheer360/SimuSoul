@@ -7,7 +7,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import { chatAction, generateChatTitleAction } from '@/app/actions';
-import type { Persona, UserDetails, ChatMessage, ChatSession, ApiKeys } from '@/lib/types';
+import type { Persona, UserDetails, ChatMessage, ChatSession } from '@/lib/types';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
@@ -42,7 +42,7 @@ import { FormattedMessage } from '@/components/formatted-message';
 import { useToast } from '@/hooks/use-toast';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { AnimatedChatTitle } from '@/components/animated-chat-title';
-import { getPersona, savePersona, deletePersona, getUserDetails, getApiKeys } from '@/lib/db';
+import { getPersona, savePersona, deletePersona, getUserDetails } from '@/lib/db';
 
 const TYPING_PLACEHOLDER = 'IS_TYPING_PLACEHOLDER_8f4a7b1c';
 
@@ -159,7 +159,6 @@ export default function PersonaChatPage() {
 
   const [persona, setPersona] = useState<Persona | null | undefined>(undefined);
   const [userDetails, setUserDetails] = useState<UserDetails>({ name: '', about: '' });
-  const [apiKeys, setApiKeys] = useState<ApiKeys>({ gemini: '' });
   
   const [activeChatId, setActiveChatId] = useState<string | null>(null);
   
@@ -229,14 +228,12 @@ export default function PersonaChatPage() {
         setPersona(null);
         return;
       }
-      const [p, ud, ak] = await Promise.all([
+      const [p, ud] = await Promise.all([
         getPersona(id),
         getUserDetails(),
-        getApiKeys(),
       ]);
       setPersona(p || null);
       setUserDetails(ud);
-      setApiKeys(ak);
     }
     loadPageData();
   }, [id]);
@@ -389,7 +386,6 @@ export default function PersonaChatPage() {
       userDetails,
       chatHistory: messages,
       message: userInput,
-      apiKey: apiKeys.gemini,
       currentDateTime,
       currentDateForMemory,
     });
@@ -433,7 +429,6 @@ export default function PersonaChatPage() {
       const titleResult = await generateChatTitleAction({
         userMessage: userInput,
         assistantResponse: res.response[0],
-        apiKey: apiKeys.gemini,
       });
   
       if (titleResult.title) {

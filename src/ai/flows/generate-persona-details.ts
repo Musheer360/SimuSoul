@@ -16,7 +16,7 @@ import { callWithFailover } from '@/lib/api-key-manager';
 const GeneratePersonaDetailsInputSchema = z.object({
   personaName: z.string().describe('The name of the persona.'),
   personaRelation: z.string().describe("The persona's relationship to the user."),
-  apiKey: z.string().optional().describe('An optional custom Gemini API key.'),
+  apiKey: z.array(z.string()).optional().describe('An optional list of custom Gemini API keys.'),
 });
 export type GeneratePersonaDetailsInput = z.infer<typeof GeneratePersonaDetailsInputSchema>;
 

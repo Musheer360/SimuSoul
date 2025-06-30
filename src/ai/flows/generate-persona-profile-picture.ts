@@ -17,7 +17,7 @@ const GeneratePersonaProfilePictureInputSchema = z.object({
   personaTraits: z
     .string()
     .describe('A description of the persona, including traits, backstory, and appearance.'),
-  apiKey: z.string().optional().describe('An optional custom Gemini API key.'),
+  apiKey: z.array(z.string()).optional().describe('An optional list of custom Gemini API keys.'),
 });
 export type GeneratePersonaProfilePictureInput = z.infer<typeof GeneratePersonaProfilePictureInputSchema>;
 

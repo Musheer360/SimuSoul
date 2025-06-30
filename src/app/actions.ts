@@ -8,6 +8,7 @@ import { generatePersonaDetails } from '@/ai/flows/generate-persona-details';
 import { generatePersonaFromPrompt } from '@/ai/flows/generate-full-persona';
 import { generateChatTitle } from '@/ai/flows/generate-chat-title';
 import type { Persona, UserDetails, ChatMessage, CreatePersonaState, UpdatePersonaState } from '@/lib/types';
+import { getApiKeys } from '@/lib/db';
 
 const personaSchemaFields = {
   name: z.string().min(1, 'Name is required'),
@@ -21,8 +22,7 @@ const personaSchemaFields = {
 };
 
 const createPersonaSchema = z.object({
-  ...personaSchemaFields,
-  apiKey: z.string().optional(),
+  ...personaSchemaFields
 });
 
 export async function createPersonaAction(
@@ -39,7 +39,6 @@ export async function createPersonaAction(
       responseStyle: formData.get('responseStyle'),
       minWpm: formData.get('minWpm'),
       maxWpm: formData.get('maxWpm'),
-      apiKey: formData.get('apiKey'),
     });
 
     if (!validatedFields.success) {
@@ -50,11 +49,13 @@ export async function createPersonaAction(
       };
     }
     
-    const { name, relation, traits, backstory, goals, responseStyle, minWpm, maxWpm, apiKey } = validatedFields.data;
+    const { name, relation, traits, backstory, goals, responseStyle, minWpm, maxWpm } = validatedFields.data;
+
+    const { gemini: userApiKeys } = await getApiKeys();
 
     const profilePictureResponse = await generatePersonaProfilePicture({
       personaTraits: `A visual depiction of a character who is: ${traits}. Name: ${name}.`,
-      apiKey: apiKey,
+      apiKey: userApiKeys,
     });
 
     if (!profilePictureResponse.profilePictureDataUri) {
@@ -81,7 +82,7 @@ export async function createPersonaAction(
   }
 }
 
-export async function generatePersonaDetailsAction(name: string, relation: string, apiKey?: string) {
+export async function generatePersonaDetailsAction(name: string, relation: string) {
   try {
     if (!name?.trim()) {
       return { success: false, error: 'Name is required to generate details.' };
@@ -89,7 +90,8 @@ export async function generatePersonaDetailsAction(name: string, relation: strin
      if (!relation?.trim()) {
       return { success: false, error: 'Relationship is required to generate details.' };
     }
-    const details = await generatePersonaDetails({ personaName: name, personaRelation: relation, apiKey });
+    const { gemini: userApiKeys } = await getApiKeys();
+    const details = await generatePersonaDetails({ personaName: name, personaRelation: relation, apiKey: userApiKeys });
     return { success: true, details };
   } catch (error) {
     console.error(error);
@@ -98,12 +100,13 @@ export async function generatePersonaDetailsAction(name: string, relation: strin
   }
 }
 
-export async function generatePersonaFromPromptAction(prompt: string, apiKey?: string) {
+export async function generatePersonaFromPromptAction(prompt: string) {
    try {
     if (!prompt?.trim()) {
       return { success: false, error: 'A prompt is required to generate a persona.' };
     }
-    const personaData = await generatePersonaFromPrompt({ prompt, apiKey });
+    const { gemini: userApiKeys } = await getApiKeys();
+    const personaData = await generatePersonaFromPrompt({ prompt, apiKey: userApiKeys });
     return { success: true, personaData };
   } catch (error)
   {
@@ -122,7 +125,6 @@ const chatActionSchema = z.object({
         content: z.string()
     })),
     message: z.string(),
-    apiKey: z.string().optional(),
     currentDateTime: z.string(),
     currentDateForMemory: z.string(),
 });
@@ -133,7 +135,6 @@ export async function chatAction(
     userDetails: UserDetails;
     chatHistory: ChatMessage[];
     message: string;
-    apiKey?: string;
     currentDateTime: string;
     currentDateForMemory: string;
   }
@@ -144,8 +145,9 @@ export async function chatAction(
         return { error: 'Invalid input' };
     }
 
-    const { persona, userDetails, chatHistory, message, apiKey, currentDateTime, currentDateForMemory } = validatedPayload.data;
+    const { persona, userDetails, chatHistory, message, currentDateTime, currentDateForMemory } = validatedPayload.data;
     
+    const { gemini: userApiKeys } = await getApiKeys();
     const personaDescription = `Backstory: ${persona.backstory}\nTraits: ${persona.traits}\nGoals: ${persona.goals}`;
 
     const result = await chatWithPersona({
@@ -162,7 +164,7 @@ export async function chatAction(
       message: message,
       currentDateTime: currentDateTime,
       currentDateForMemory: currentDateForMemory,
-      apiKey: apiKey,
+      apiKey: userApiKeys,
     });
 
     return { response: result.response, newMemories: result.newMemories, removedMemories: result.removedMemories };
@@ -213,15 +215,16 @@ export async function updatePersonaAction(
   }
 }
 
-export async function generateChatTitleAction(payload: { userMessage: string; assistantResponse: string, apiKey?: string }): Promise<{ title?: string; error?: string }> {
+export async function generateChatTitleAction(payload: { userMessage: string; assistantResponse: string }): Promise<{ title?: string; error?: string }> {
     try {
         if (!payload.userMessage || !payload.assistantResponse) {
             return { error: 'Both user message and assistant response are required.' };
         }
+        const { gemini: userApiKeys } = await getApiKeys();
         const result = await generateChatTitle({
             userMessage: payload.userMessage,
             assistantResponse: payload.assistantResponse,
-            apiKey: payload.apiKey,
+            apiKey: userApiKeys,
         });
         return { title: result.title };
     } catch (error) {

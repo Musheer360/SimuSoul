@@ -26,42 +26,49 @@ function getRoundRobinKey(): string | undefined {
 }
 
 /**
- * Wraps an API call with failover logic. If the call fails, it retries
- * with the next key in the server-side pool.
- * @param apiCallFn The function to execute, which receives an API key.
- * @param customKey An optional user-provided key, which skips failover.
+ * Wraps an API call with failover logic. It prioritizes custom keys if provided,
+ * otherwise it uses the server-side key pool.
+ * @param apiCallFn The function to execute, which receives a single API key.
+ * @param customKeys An optional array of user-provided keys.
  * @returns The result of the successful API call.
  */
 export async function callWithFailover<T>(
   apiCallFn: (apiKey: string) => Promise<T>,
-  customKey?: string
+  customKeys?: string[]
 ): Promise<T> {
-  // If user provides a key, just use it once. No failover.
-  if (customKey) {
-    return apiCallFn(customKey);
+  // If user provides valid keys, use them.
+  if (customKeys && customKeys.length > 0) {
+    let lastError: Error | null = null;
+    for (const key of customKeys) {
+        try {
+            return await apiCallFn(key);
+        } catch (error: any) {
+            lastError = error;
+            console.warn(`Custom API key ending in ...${key.slice(-4)} failed. Retrying with next key.`);
+        }
+    }
+    throw new Error(`All custom API keys failed. Last error: ${lastError?.message || 'Unknown error'}`);
   }
 
-  const numKeys = serverApiKeys.length;
-  if (numKeys === 0) {
-    throw new Error("No server-side API keys are configured.");
+  // Otherwise, use the server-side pool.
+  const numServerKeys = serverApiKeys.length;
+  if (numServerKeys === 0) {
+    throw new Error("No server-side API keys are configured and no custom key was provided.");
   }
 
-  let lastError: Error | null = null;
-
-  // We will try each key once in a round-robin sequence.
-  for (let i = 0; i < numKeys; i++) {
+  let lastServerError: Error | null = null;
+  for (let i = 0; i < numServerKeys; i++) {
     const apiKey = getRoundRobinKey();
-    if (!apiKey) continue; // Should not happen if numKeys > 0
+    if (!apiKey) continue;
 
     try {
-      const result = await apiCallFn(apiKey);
-      return result; // Success!
+      return await apiCallFn(apiKey);
     } catch (error: any) {
-      lastError = error;
-      console.warn(`API key ending in ...${apiKey.slice(-4)} failed. Retrying with next key.`);
+      lastServerError = error;
+      console.warn(`Server API key ending in ...${apiKey.slice(-4)} failed. Retrying with next key.`);
     }
   }
 
-  // If the loop completes, all keys have failed.
-  throw new Error(`All API keys failed. Last error: ${lastError?.message || 'Unknown error'}`);
+  // If the loop completes, all server keys have failed.
+  throw new Error(`All server-side API keys failed. Last error: ${lastServerError?.message || 'Unknown error'}`);
 }
