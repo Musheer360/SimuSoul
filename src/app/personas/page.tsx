@@ -25,7 +25,7 @@ import { cn } from '@/lib/utils';
 
 function PersonaCardSkeleton() {
   return (
-    <div className="aspect-[5/6] w-full">
+    <div className="h-[60vh] w-full">
       <Skeleton className="h-full w-full rounded-lg" />
     </div>
   );
@@ -66,17 +66,17 @@ export default function PersonasPage() {
         </div>
 
         {isLoading ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6 min-h-0">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
             {[...Array(4)].map((_, i) => (
               <PersonaCardSkeleton key={i} />
             ))}
           </div>
         ) : personas.length > 0 ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6 min-h-0">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
             {personas.map((persona) => (
               <div
                 key={persona.id}
-                className="relative group aspect-[5/6]"
+                className="relative group h-[60vh]"
               >
                 <AlertDialog>
                   <AlertDialogTrigger asChild>
