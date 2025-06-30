@@ -15,10 +15,10 @@ export function MemoryItem({ memory, onDelete }: MemoryItemProps) {
   return (
     <div
       className={cn(
-        'flex items-start justify-between gap-3 text-sm p-3 rounded-md group bg-secondary/50 hover:bg-secondary/80'
+        'grid grid-cols-[1fr_auto] items-center gap-3 text-sm p-3 rounded-md group bg-secondary/50 hover:bg-secondary/80'
       )}
     >
-      <p className="flex-1 min-w-0 break-words">
+      <p className="min-w-0 break-words">
         {formattedMemory}
       </p>
       <Button
