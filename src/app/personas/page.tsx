@@ -54,8 +54,8 @@ export default function PersonasPage() {
   }, []);
 
   return (
-    <div>
-      <div className="container py-8">
+    <div className="h-full flex flex-col">
+      <div className="container py-8 flex flex-col flex-1">
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-8">
           <div className="mb-4 sm:mb-0">
             <h1 className="text-3xl font-bold font-headline tracking-tight">Your Personas</h1>
@@ -69,13 +69,13 @@ export default function PersonasPage() {
         </div>
 
         {isLoading ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6 flex-1 min-h-0">
             {[...Array(4)].map((_, i) => (
               <PersonaCardSkeleton key={i} />
             ))}
           </div>
         ) : personas.length > 0 ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6 flex-1 min-h-0">
             {personas.map((persona) => (
               <div
                 key={persona.id}
@@ -86,7 +86,7 @@ export default function PersonasPage() {
                     <Button
                       variant="ghost"
                       size="icon"
-                      className="absolute top-2 right-2 z-10 h-7 w-7 text-white/70 hover:text-destructive hover:bg-white/20 opacity-0 group-hover:opacity-100 transition-opacity duration-300"
+                      className="absolute top-3 right-3 z-10 h-8 w-8 text-white/70 hover:text-destructive hover:bg-white/20 opacity-0 group-hover:opacity-100 transition-opacity duration-300"
                       aria-label={`Delete ${persona.name}`}
                       onClick={(e) => e.stopPropagation()}
                     >
@@ -112,9 +112,9 @@ export default function PersonasPage() {
                   </AlertDialogContent>
                 </AlertDialog>
 
-                <Link href={`/persona/${persona.id}`} className="block">
+                <Link href={`/persona/${persona.id}`} className="block h-full">
                   <Card className="h-full overflow-hidden border border-border/20 group-hover:border-primary transition-all duration-300 group-hover:shadow-2xl group-hover:shadow-primary/20 bg-card/80 backdrop-blur-sm group-hover:-translate-y-2">
-                      <div className="aspect-[4/3] sm:aspect-[3/4] relative overflow-hidden">
+                      <div className="h-full relative overflow-hidden">
                         <Image
                           src={persona.profilePictureUrl}
                           alt={persona.name}
