@@ -23,9 +23,9 @@ import {
 import { getAllPersonas, deletePersona } from '@/lib/db';
 import { cn } from '@/lib/utils';
 
-function PersonaCardSkeleton() {
+function PersonaCardSkeleton({ className }: { className?: string }) {
   return (
-    <div className="h-full">
+    <div className={cn("h-full", className)}>
       <Skeleton className="h-full w-full rounded-lg" />
     </div>
   );
@@ -67,9 +67,9 @@ export default function PersonasPage() {
 
         {isLoading ? (
           <div className="flex-1 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-            {[...Array(2)].map((_, i) => (
-              <PersonaCardSkeleton key={i} />
-            ))}
+            <PersonaCardSkeleton />
+            <PersonaCardSkeleton className="hidden sm:block" />
+            <PersonaCardSkeleton className="hidden lg:block" />
           </div>
         ) : personas.length > 0 ? (
           <div className="flex-1 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
