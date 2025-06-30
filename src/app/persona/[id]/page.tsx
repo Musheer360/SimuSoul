@@ -696,13 +696,16 @@ export default function PersonaChatPage() {
           <div className="flex-1 flex flex-col bg-background/80 backdrop-blur-sm min-w-0">
              <header className="flex items-center justify-between h-16 gap-2 md:gap-4 px-4 border-b flex-shrink-0">
                 <div className="flex items-center gap-2 md:w-auto w-full">
-                    <div className="flex-1">
+                    <div>
                         <Button asChild variant="ghost" className="text-muted-foreground hover:text-foreground">
                             <Link href="/personas">
                             <ArrowLeft className="mr-2 h-4 w-4" />
                             <span className='hidden md:inline'>All Personas</span>
                             </Link>
                         </Button>
+                    </div>
+                    <div className="flex-1 md:hidden">
+                        {/* Spacer for mobile view to push the sidebar toggle to the right */}
                     </div>
                     <div className="md:hidden">
                         <Button variant="ghost" size="icon" onClick={() => setIsSidebarOpen(!isSidebarOpen)}>
@@ -805,7 +808,6 @@ export default function PersonaChatPage() {
                             <Textarea
                                 ref={textareaRef}
                                 value={input}
-                                onFocus={handleInputInteraction}
                                 onClick={handleInputInteraction}
                                 onChange={(e) => {
                                 setInput(e.target.value);

@@ -72,7 +72,7 @@ export default function SettingsPage() {
     <div className="h-full overflow-y-auto no-scrollbar">
       <div className="container py-8 max-w-2xl mx-auto">
         <Card className="bg-card/80 backdrop-blur-sm border border-border/20">
-          <CardHeader>
+          <CardHeader className="text-center">
             <CardTitle className="font-headline text-3xl">Settings</CardTitle>
             <CardDescription>
               Customize your experience. Your details are saved locally in your browser's database.
@@ -128,7 +128,7 @@ export default function SettingsPage() {
                 <ArrowLeft className="mr-2 h-4 w-4" />
                 Back
               </Button>
-              <Button onClick={handleSave} disabled={isSaving}>
+              <Button onClick={handleSave} disabled={isSaving} size="lg">
                  {isSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                 Save Changes
               </Button>

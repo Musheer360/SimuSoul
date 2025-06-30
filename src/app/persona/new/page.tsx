@@ -238,7 +238,6 @@ export default function NewPersonaPage() {
                           type="button"
                           variant="link"
                           size="sm"
-                          className="text-primary hover:underline"
                           onClick={handleGenerateDetails}
                           disabled={isGeneratingDetails}
                       >
@@ -261,7 +260,7 @@ export default function NewPersonaPage() {
                       className="resize-none"
                       />
                       <p className="text-xs text-muted-foreground">
-                      This will be used to generate the profile picture.
+                      This will be used to generate the profile picture and influence their personality.
                       </p>
                       {state.errors?.traits && (
                       <p className="text-sm font-medium text-destructive">
@@ -280,6 +279,9 @@ export default function NewPersonaPage() {
                       rows={5}
                       className="resize-none"
                       />
+                      <p className="text-xs text-muted-foreground">
+                        This provides context for the AI's knowledge and memories.
+                      </p>
                       {state.errors?.backstory && (
                       <p className="text-sm font-medium text-destructive">
                           {state.errors.backstory}
@@ -297,6 +299,9 @@ export default function NewPersonaPage() {
                       rows={3}
                       className="resize-none"
                       />
+                      <p className="text-xs text-muted-foreground">
+                        This defines the persona's motivations and drives conversations.
+                      </p>
                       {state.errors?.goals && (
                       <p className="text-sm font-medium text-destructive">
                           {state.errors.goals}
