@@ -43,6 +43,7 @@ import { useToast } from '@/hooks/use-toast';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { AnimatedChatTitle } from '@/components/animated-chat-title';
 import { getPersona, savePersona, deletePersona, getUserDetails } from '@/lib/db';
+import { MemoryItem } from '@/components/memory-item';
 
 const TYPING_PLACEHOLDER = 'IS_TYPING_PLACEHOLDER_8f4a7b1c';
 
@@ -885,17 +886,12 @@ export default function PersonaChatPage() {
                     <ScrollArea className="h-72 border rounded-md">
                         <div className="p-4 space-y-2">
                             {(persona.memories || []).length > 0 ? (
-                                [...persona.memories].sort().map((memory, index) => (
-                                    <div key={index} className="relative text-sm p-3 rounded-md group bg-secondary/50 hover:bg-secondary/80">
-                                        <p className="pr-10 break-all">{memory.replace(/^\d{4}-\d{2}-\d{2}: /, '')}</p>
-                                        <Button
-                                          variant="ghost"
-                                          className="absolute top-1.5 right-1.5 h-7 w-7 shrink-0 p-0 text-muted-foreground hover:bg-transparent hover:text-destructive focus-visible:ring-0 focus-visible:ring-offset-0 transition-opacity md:opacity-0 group-hover:opacity-100"
-                                          onClick={() => handleDeleteMemory(memory)}
-                                        >
-                                            <Trash2 className="h-4 w-4" />
-                                        </Button>
-                                    </div>
+                                [...persona.memories].sort().map((memory) => (
+                                    <MemoryItem
+                                        key={memory}
+                                        memory={memory}
+                                        onDelete={handleDeleteMemory}
+                                    />
                                 ))
                             ) : (
                                 <p className="text-sm text-muted-foreground text-center py-4">No memories yet.</p>
