@@ -22,7 +22,7 @@ export function TermsDialog({ open, onAccept }: TermsDialogProps) {
 
   return (
     <Dialog open={open}>
-      <DialogContent className="sm:max-w-lg" onInteractOutside={(e) => e.preventDefault()}>
+      <DialogContent className="sm:max-w-lg" onInteractOutside={(e) => e.preventDefault()} showCloseButton={false}>
         <DialogHeader>
           <DialogTitle className="font-headline text-2xl text-center">
             Welcome to PersonaForge!
