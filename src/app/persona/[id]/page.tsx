@@ -887,7 +887,7 @@ export default function PersonaChatPage() {
                             {(persona.memories || []).length > 0 ? (
                                 [...persona.memories].sort().map((memory, index) => (
                                     <div key={index} className="flex items-center justify-between text-sm p-3 rounded-md group bg-secondary/50 hover:bg-secondary/80">
-                                        <p className="flex-1 pr-2 break-words">{memory.replace(/^\d{4}-\d{2}-\d{2}: /, '')}</p>
+                                        <p className="flex-1 pr-2 break-words min-w-0">{memory.replace(/^\d{4}-\d{2}-\d{2}: /, '')}</p>
                                         <Button variant="ghost" className="h-7 w-7 shrink-0 p-0 text-muted-foreground hover:bg-transparent hover:text-destructive focus-visible:ring-0 focus-visible:ring-offset-0 transition-opacity md:opacity-0 group-hover:opacity-100" onClick={() => handleDeleteMemory(memory)}>
                                             <Trash2 className="h-4 w-4" />
                                         </Button>
