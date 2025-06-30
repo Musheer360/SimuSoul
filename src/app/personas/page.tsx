@@ -82,8 +82,7 @@ export default function PersonasPage() {
                   <AlertDialogTrigger asChild>
                     <Button
                       variant="ghost"
-                      size="icon"
-                      className="absolute top-3 right-3 z-10 h-8 w-8 rounded-md text-white/90 hover:text-destructive"
+                      className="absolute top-3 right-3 z-10 h-8 w-8 p-0 text-white/90 hover:bg-transparent hover:text-destructive focus-visible:ring-0 focus-visible:ring-offset-0"
                       aria-label={`Delete ${persona.name}`}
                       onClick={(e) => {
                         e.preventDefault();
