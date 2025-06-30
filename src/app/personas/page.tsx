@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useEffect, useState, useCallback } from 'react';
@@ -24,12 +25,8 @@ import { cn } from '@/lib/utils';
 
 function PersonaCardSkeleton() {
   return (
-    <div className="space-y-4">
-      <Skeleton className="aspect-[3/4] w-full rounded-lg" />
-      <div className="space-y-2">
-        <Skeleton className="h-6 w-3/4" />
-        <Skeleton className="h-4 w-5/6" />
-      </div>
+    <div className="aspect-[3/4] w-full">
+      <Skeleton className="h-full w-full rounded-lg" />
     </div>
   );
 }
@@ -69,17 +66,17 @@ export default function PersonasPage() {
         </div>
 
         {isLoading ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6 flex-1 min-h-0">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6 min-h-0">
             {[...Array(4)].map((_, i) => (
               <PersonaCardSkeleton key={i} />
             ))}
           </div>
         ) : personas.length > 0 ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6 flex-1 min-h-0">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6 min-h-0">
             {personas.map((persona) => (
               <div
                 key={persona.id}
-                className="relative group"
+                className="relative group aspect-[3/4]"
               >
                 <AlertDialog>
                   <AlertDialogTrigger asChild>
@@ -137,7 +134,7 @@ export default function PersonasPage() {
             ))}
           </div>
         ) : (
-          <div className="flex flex-col items-center justify-center text-center py-20">
+          <div className="flex flex-col items-center justify-center text-center py-20 flex-1">
             <div className="p-6 rounded-full bg-primary/10 mb-6">
               <Bot className="h-16 w-16 text-primary" />
             </div>
