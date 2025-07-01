@@ -96,8 +96,8 @@ export default function SettingsPage() {
 
   return (
     <div className="h-full overflow-y-auto no-scrollbar">
-      <div className="h-full md:container md:py-8 md:max-w-2xl md:mx-auto">
-        <Card className="h-full w-full rounded-none border-0 bg-card/80 backdrop-blur-sm md:rounded-lg md:border">
+      <div className="container py-8 max-w-2xl mx-auto">
+        <Card className="bg-card/80 backdrop-blur-sm border border-border/20">
           <CardHeader className="text-center">
             <CardTitle className="font-headline text-3xl">Settings</CardTitle>
             <CardDescription>
