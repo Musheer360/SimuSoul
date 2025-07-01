@@ -46,7 +46,7 @@ const promptText = `You are a world-class creative writer and character designer
 User's Prompt: "{{prompt}}"
 
 Generate all of the following details for this new character, strictly adhering to the content restrictions above:
-- Name: A unique and fitting name.
+- Name: A unique and fitting name. The name MUST NOT include nicknames in quotes (e.g., do not generate "Aurora 'Rory' Chip").
 - Relationship: A plausible relationship to the user (e.g., friend, mentor, rival).
 - Traits: A short, punchy list of their most defining characteristics.
 - Backstory: A concise but evocative summary of their life history.
