@@ -23,6 +23,9 @@ export async function generatePersonaProfilePicture(input: GeneratePersonaProfil
 
   const requestBody = {
     contents: [{ parts: [{ text: prompt }] }],
+    generationConfig: {
+      responseModalities: ['TEXT', 'IMAGE'],
+    },
   };
 
   // Use the specialized image generation model.
