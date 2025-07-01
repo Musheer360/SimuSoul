@@ -95,10 +95,17 @@ export function EditPersonaSheet({ persona, open, onOpenChange, onPersonaUpdate 
                         {state.errors?.name && <p className="text-sm font-medium text-destructive">{state.errors.name}</p>}
                     </div>
 
-                    <div className="space-y-2">
-                        <Label htmlFor="edit-relation">Relationship</Label>
-                        <Input id="edit-relation" name="relation" defaultValue={persona.relation} required />
-                        {state.errors?.relation && <p className="text-sm font-medium text-destructive">{state.errors.relation}</p>}
+                    <div className="grid grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                            <Label htmlFor="edit-relation">Relationship</Label>
+                            <Input id="edit-relation" name="relation" defaultValue={persona.relation} required />
+                            {state.errors?.relation && <p className="text-sm font-medium text-destructive">{state.errors.relation}</p>}
+                        </div>
+                        <div className="space-y-2">
+                            <Label htmlFor="edit-age">Age (Optional)</Label>
+                            <Input id="edit-age" name="age" type="number" min="18" defaultValue={persona.age} placeholder="e.g., 28" />
+                            {state.errors?.age && <p className="text-sm font-medium text-destructive">{state.errors.age}</p>}
+                        </div>
                     </div>
 
                     <div className="space-y-2">

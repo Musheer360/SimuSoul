@@ -9,9 +9,13 @@ import { generatePersonaFromPrompt } from '@/ai/flows/generate-full-persona';
 import { generateChatTitle } from '@/ai/flows/generate-chat-title';
 import type { Persona, UserDetails, ChatMessage, CreatePersonaState, UpdatePersonaState } from '@/lib/types';
 
+// New helper to handle empty string for optional number fields
+const emptyStringAsUndefined = z.preprocess((val) => (val === '' ? undefined : val), z.any());
+
 const personaSchemaFields = {
   name: z.string().min(1, 'Name is required'),
   relation: z.string().min(1, 'Relationship is required'),
+  age: emptyStringAsUndefined.pipe(z.coerce.number().min(18, 'Age must be 18 or older.').optional()),
   traits: z.string().min(1, 'Traits are required'),
   backstory: z.string().min(1, 'Backstory is required'),
   goals: z.string().min(1, 'Goals are required'),
@@ -33,6 +37,7 @@ export async function createPersonaAction(
     const validatedFields = createPersonaSchema.safeParse({
       name: formData.get('name'),
       relation: formData.get('relation'),
+      age: formData.get('age'),
       traits: formData.get('traits'),
       backstory: formData.get('backstory'),
       goals: formData.get('goals'),
@@ -50,7 +55,7 @@ export async function createPersonaAction(
       };
     }
     
-    const { name, relation, traits, backstory, goals, responseStyle, minWpm, maxWpm } = validatedFields.data;
+    const { name, relation, age, traits, backstory, goals, responseStyle, minWpm, maxWpm } = validatedFields.data;
     const userApiKeys = validatedFields.data.apiKeys ? JSON.parse(validatedFields.data.apiKeys) : [];
 
     const profilePictureResponse = await generatePersonaProfilePicture({
@@ -65,6 +70,7 @@ export async function createPersonaAction(
     const newPersona: Omit<Persona, 'id' | 'chats' | 'memories'> = {
       name,
       relation,
+      age,
       traits,
       backstory,
       goals,
@@ -156,6 +162,7 @@ export async function chatAction(
     const result = await chatWithPersona({
       personaName: persona.name,
       personaRelation: persona.relation,
+      personaAge: persona.age,
       personaDescription: personaDescription,
       responseStyle: persona.responseStyle,
       userDetails: {
@@ -193,6 +200,7 @@ export async function updatePersonaAction(
       id: formData.get('id'),
       name: formData.get('name'),
       relation: formData.get('relation'),
+      age: formData.get('age'),
       traits: formData.get('traits'),
       backstory: formData.get('backstory'),
       goals: formData.get('goals'),

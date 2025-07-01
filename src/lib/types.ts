@@ -15,6 +15,7 @@ export interface Persona {
   id: string;
   name: string;
   relation: string;
+  age?: number;
   backstory: string;
   traits: string;
   goals: string;
@@ -41,6 +42,7 @@ export interface CreatePersonaState {
   errors?: {
     name?: string[];
     relation?: string[];
+    age?: string[];
     traits?: string[];
     backstory?: string[];
     goals?: string[];
@@ -55,6 +57,7 @@ export interface UpdatePersonaState {
   errors?: {
     name?: string[];
     relation?: string[];
+    age?: string[];
     traits?: string[];
     backstory?: string[];
     goals?: string[];

@@ -60,6 +60,7 @@ export default function NewPersonaPage() {
   const [defaultValues, setDefaultValues] = useState({
     name: '',
     relation: '',
+    age: undefined,
     traits: '',
     backstory: '',
     goals: '',
@@ -112,7 +113,7 @@ export default function NewPersonaPage() {
     setIsGeneratingFull(false);
 
     if (result.success && result.personaData) {
-      setDefaultValues(result.personaData);
+      setDefaultValues({ ...result.personaData, age: undefined });
       setFormKey((k) => k + 1);
       setActiveTab('manual');
       toast({
@@ -211,21 +212,39 @@ export default function NewPersonaPage() {
                       </p>
                       )}
                   </div>
-                  <div className="space-y-2">
-                      <Label htmlFor="relation">Relationship</Label>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                        <Label htmlFor="relation">Relationship</Label>
+                        <Input
+                        id="relation"
+                        name="relation"
+                        ref={relationRef}
+                        defaultValue={defaultValues.relation}
+                        placeholder="e.g., Best friend, mentor"
+                        required
+                        />
+                        {state.errors?.relation && (
+                        <p className="text-sm font-medium text-destructive">
+                            {state.errors.relation}
+                        </p>
+                        )}
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="age">Age (Optional)</Label>
                       <Input
-                      id="relation"
-                      name="relation"
-                      ref={relationRef}
-                      defaultValue={defaultValues.relation}
-                      placeholder="e.g., Best friend, mentor, rival"
-                      required
+                        id="age"
+                        name="age"
+                        type="number"
+                        min="18"
+                        defaultValue={defaultValues.age}
+                        placeholder="e.g., 28"
                       />
-                      {state.errors?.relation && (
-                      <p className="text-sm font-medium text-destructive">
-                          {state.errors.relation}
-                      </p>
+                      {state.errors?.age && (
+                        <p className="text-sm font-medium text-destructive">
+                          {state.errors.age}
+                        </p>
                       )}
+                    </div>
                   </div>
                   <div className="space-y-2">
                       <div className="flex justify-between items-center">
