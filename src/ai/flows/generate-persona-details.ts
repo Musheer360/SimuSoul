@@ -84,6 +84,9 @@ Make the details creative, consistent, and inspiring, while strictly following a
     generationConfig: {
       responseMimeType: 'application/json',
       responseSchema: GeneratePersonaDetailsOutputOpenAPISchema,
+      thinkingConfig: {
+        thinkingBudget: 0,
+      },
     },
      safetySettings: [
         { category: 'HARM_CATEGORY_HATE_SPEECH', threshold: 'BLOCK_ONLY_HIGH' },

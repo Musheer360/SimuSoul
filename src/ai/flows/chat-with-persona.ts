@@ -228,7 +228,9 @@ export async function chatWithPersona(
     generationConfig: {
       responseMimeType: 'application/json',
       responseSchema: ChatWithPersonaOutputOpenAPISchema,
-      temperature: 0.85,
+      thinkingConfig: {
+        thinkingBudget: 0,
+      },
     },
     safetySettings: [
         { category: 'HARM_CATEGORY_HATE_SPEECH', threshold: 'BLOCK_ONLY_HIGH' },

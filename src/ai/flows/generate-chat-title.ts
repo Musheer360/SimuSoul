@@ -45,6 +45,9 @@ Generate a short title that captures the essence of this initial exchange.
     generationConfig: {
       responseMimeType: 'application/json',
       responseSchema: GenerateChatTitleOutputOpenAPISchema,
+      thinkingConfig: {
+        thinkingBudget: 0,
+      },
     },
   };
 

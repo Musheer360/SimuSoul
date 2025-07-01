@@ -103,6 +103,9 @@ Be creative and ensure all the generated details are consistent with each other,
     generationConfig: {
       responseMimeType: 'application/json',
       responseSchema: GeneratePersonaFromPromptOutputOpenAPISchema,
+      thinkingConfig: {
+        thinkingBudget: 0,
+      },
     },
      safetySettings: [
         { category: 'HARM_CATEGORY_HATE_SPEECH', threshold: 'BLOCK_ONLY_HIGH' },

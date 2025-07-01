@@ -82,7 +82,9 @@ Analyze all fields below.
     generationConfig: {
       responseMimeType: 'application/json',
       responseSchema: ModeratePersonaContentOutputOpenAPISchema,
-      temperature: 0.0,
+      thinkingConfig: {
+        thinkingBudget: 0,
+      },
     },
      safetySettings: [
         { category: 'HARM_CATEGORY_HATE_SPEECH', threshold: 'BLOCK_ONLY_HIGH' },
