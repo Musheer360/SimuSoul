@@ -157,7 +157,7 @@ const chatWithPersonaFlow = ai.defineFlow(
     return callWithFailover(async (apiKey) => {
       const dynamicAi = genkit({
         plugins: [googleAI({ apiKey })],
-        model: 'googleai/gemini-2.0-flash',
+        model: 'googleai/gemini-2.5-flash',
       });
 
       const chatWithPersonaPrompt = dynamicAi.definePrompt({
