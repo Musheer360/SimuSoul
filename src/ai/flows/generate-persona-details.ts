@@ -24,6 +24,37 @@ export const GeneratePersonaDetailsOutputSchema = z.object({
 });
 export type GeneratePersonaDetailsOutput = z.infer<typeof GeneratePersonaDetailsOutputSchema>;
 
+// Manually define the OpenAPI schema for the Gemini API
+const GeneratePersonaDetailsOutputOpenAPISchema = {
+  type: 'OBJECT',
+  properties: {
+    traits: {
+      type: 'STRING',
+      description: "The persona's key traits and characteristics.",
+    },
+    backstory: {
+      type: 'STRING',
+      description: "The persona's detailed backstory.",
+    },
+    goals: {
+      type: 'STRING',
+      description: "The persona's primary goals and motivations.",
+    },
+    responseStyle: {
+      type: 'STRING',
+      description: "A description of the persona's communication style. Include details like their use of slang, emojis, formality, tone, and any scenario-based variations (e.g., how they talk when happy vs. angry).",
+    },
+    minWpm: {
+      type: 'NUMBER',
+      description: "The persona's minimum typing speed in words per minute (WPM). This should reflect their age, tech-savviness, and personality. Must be an integer.",
+    },
+    maxWpm: {
+      type: 'NUMBER',
+      description: "The persona's maximum typing speed in words per minute (WPM). This MUST be exactly 5 more than minWpm. Must be an integer.",
+    },
+  },
+  required: ['traits', 'backstory', 'goals', 'responseStyle', 'minWpm', 'maxWpm'],
+};
 
 export async function generatePersonaDetails(input: GeneratePersonaDetailsInput): Promise<GeneratePersonaDetailsOutput> {
 
@@ -52,7 +83,7 @@ Make the details creative, consistent, and inspiring, while strictly following a
     contents: [{ parts: [{ text: promptText }] }],
     generationConfig: {
       responseMimeType: 'application/json',
-      responseSchema: GeneratePersonaDetailsOutputSchema,
+      responseSchema: GeneratePersonaDetailsOutputOpenAPISchema,
     },
      safetySettings: [
         { category: 'HARM_CATEGORY_HATE_SPEECH', threshold: 'BLOCK_ONLY_HIGH' },

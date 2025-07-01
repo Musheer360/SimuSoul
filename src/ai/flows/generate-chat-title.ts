@@ -19,6 +19,17 @@ export const GenerateChatTitleOutputSchema = z.object({
 });
 export type GenerateChatTitleOutput = z.infer<typeof GenerateChatTitleOutputSchema>;
 
+// Manually define the OpenAPI schema for the Gemini API
+const GenerateChatTitleOutputOpenAPISchema = {
+  type: 'OBJECT',
+  properties: {
+    title: {
+      type: 'STRING',
+      description: 'A very short chat title, 4-5 words maximum.',
+    },
+  },
+  required: ['title'],
+};
 
 export async function generateChatTitle(input: GenerateChatTitleInput): Promise<GenerateChatTitleOutput> {
   const prompt = `Based on the following first user message and the first AI response, create a concise and descriptive chat title. The title MUST be a maximum of 4-5 words.
@@ -33,7 +44,7 @@ Generate a short title that captures the essence of this initial exchange.
     contents: [{ parts: [{ text: prompt }] }],
     generationConfig: {
       responseMimeType: 'application/json',
-      responseSchema: GenerateChatTitleOutputSchema,
+      responseSchema: GenerateChatTitleOutputOpenAPISchema,
     },
   };
 

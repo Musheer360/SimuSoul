@@ -28,6 +28,50 @@ export const GeneratePersonaFromPromptOutputSchema = z.object({
 });
 export type GeneratePersonaFromPromptOutput = z.infer<typeof GeneratePersonaFromPromptOutputSchema>;
 
+// Manually define the OpenAPI schema for the Gemini API
+const GeneratePersonaFromPromptOutputOpenAPISchema = {
+  type: 'OBJECT',
+  properties: {
+    name: {
+      type: 'STRING',
+      description: 'A creative and fitting name for the persona.',
+    },
+    relation: {
+      type: 'STRING',
+      description: "The persona's relationship to the user, like 'best friend' or 'arch-nemesis'.",
+    },
+    age: {
+      type: 'NUMBER',
+      description: "The persona's age. Must be 18 or older.",
+    },
+    traits: {
+      type: 'STRING',
+      description: "The persona's key traits and characteristics.",
+    },
+    backstory: {
+      type: 'STRING',
+      description: "The persona's detailed backstory.",
+    },
+    goals: {
+      type: 'STRING',
+      description: "The persona's primary goals and motivations.",
+    },
+    responseStyle: {
+      type: 'STRING',
+      description: "A description of the persona's communication style. Include details like their use of slang, emojis, formality, tone, and any scenario-based variations (e.g., how they talk when happy vs. angry).",
+    },
+    minWpm: {
+      type: 'NUMBER',
+      description: "The persona's minimum typing speed in words per minute (WPM). This should reflect their age, tech-savviness, and personality. Must be an integer.",
+    },
+    maxWpm: {
+      type: 'NUMBER',
+      description: "The persona's maximum typing speed in words per minute (WPM). This MUST be exactly 5 more than minWpm. Must be an integer.",
+    },
+  },
+  required: ['name', 'relation', 'age', 'traits', 'backstory', 'goals', 'responseStyle', 'minWpm', 'maxWpm'],
+};
+
 
 export async function generatePersonaFromPrompt(input: GeneratePersonaFromPromptInput): Promise<GeneratePersonaFromPromptOutput> {
 
@@ -58,7 +102,7 @@ Be creative and ensure all the generated details are consistent with each other,
     contents: [{ parts: [{ text: promptText }] }],
     generationConfig: {
       responseMimeType: 'application/json',
-      responseSchema: GeneratePersonaFromPromptOutputSchema,
+      responseSchema: GeneratePersonaFromPromptOutputOpenAPISchema,
     },
      safetySettings: [
         { category: 'HARM_CATEGORY_HATE_SPEECH', threshold: 'BLOCK_ONLY_HIGH' },

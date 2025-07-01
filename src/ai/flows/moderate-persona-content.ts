@@ -27,6 +27,22 @@ export const ModeratePersonaContentOutputSchema = z.object({
 });
 export type ModeratePersonaContentOutput = z.infer<typeof ModeratePersonaContentOutputSchema>;
 
+// Manually define the OpenAPI schema for the Gemini API
+const ModeratePersonaContentOutputOpenAPISchema = {
+    type: 'OBJECT',
+    properties: {
+        isSafe: {
+            type: 'BOOLEAN',
+            description: 'Whether the content is safe and adheres to all rules.',
+        },
+        reason: {
+            type: 'STRING',
+            description: 'A brief, technical explanation for an internal reviewer if the content is not safe. Empty if safe.',
+        },
+    },
+    required: ['isSafe', 'reason'],
+};
+
 export async function moderatePersonaContent(input: ModeratePersonaContentInput): Promise<ModeratePersonaContentOutput> {
   let promptText = `You are an AI content moderator. Your task is to review the following persona details and determine if they violate critical content policies. Be precise and avoid flagging content based on weak inferences.
 
@@ -65,7 +81,7 @@ Analyze all fields below.
     contents: [{ parts: [{ text: promptText }] }],
     generationConfig: {
       responseMimeType: 'application/json',
-      responseSchema: ModeratePersonaContentOutputSchema,
+      responseSchema: ModeratePersonaContentOutputOpenAPISchema,
       temperature: 0.0,
     },
      safetySettings: [

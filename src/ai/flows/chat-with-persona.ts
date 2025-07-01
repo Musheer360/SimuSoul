@@ -52,6 +52,30 @@ const ChatWithPersonaOutputSchema = z.object({
 });
 export type ChatWithPersonaOutput = z.infer<typeof ChatWithPersonaOutputSchema>;
 
+// Manually define the OpenAPI schema for the Gemini API
+const ChatWithPersonaOutputOpenAPISchema = {
+  type: 'OBJECT',
+  properties: {
+    response: {
+      type: 'ARRAY',
+      items: { type: 'STRING' },
+      description: 'An array of response messages from the persona, split into natural conversational chunks to simulate a real-time conversation. Should be between 1 and 5 messages.',
+    },
+    newMemories: {
+      type: 'ARRAY',
+      items: { type: 'STRING' },
+      description: 'A list of new or updated facts to add to memory. A memory should be a full, self-contained sentence.',
+    },
+    removedMemories: {
+      type: 'ARRAY',
+      items: { type: 'STRING' },
+      description: 'A list of old memories to remove, typically because they have been updated by a new memory.',
+    },
+  },
+  required: ['response'],
+};
+
+
 function buildChatPrompt(input: ChatWithPersonaInput): string {
     // This function constructs the full prompt string from the input object.
     // It's kept separate for clarity and potential reuse.
@@ -150,7 +174,7 @@ function buildChatPrompt(input: ChatWithPersonaInput): string {
 
   ---
   **Current Conversation History (Short-Term Context)**
-  This is the ongoing conversation you are having right now. Use it to understand follow-up questions. The 'assistant' role is you, ${input.personaName}. The 'user' is the person you are talking to.
+  This is the ongoing conversation you are having right now. The 'assistant' role is you, ${input.personaName}. The 'user' is the person you are talking to.
   `;
   
   if (input.chatHistory && input.chatHistory.length > 0) {
@@ -203,7 +227,7 @@ export async function chatWithPersona(
     contents: [{ parts: [{ text: prompt }] }],
     generationConfig: {
       responseMimeType: 'application/json',
-      responseSchema: ChatWithPersonaOutputSchema,
+      responseSchema: ChatWithPersonaOutputOpenAPISchema,
       temperature: 0.85,
     },
     safetySettings: [
