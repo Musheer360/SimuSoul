@@ -1,12 +1,12 @@
 
-
 'use client';
 
 import { useEffect, useState, useRef, FormEvent, useMemo, useCallback, memo } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useParams, useRouter, useSearchParams } from 'next/navigation';
-import { chatAction, generateChatTitleAction } from '@/app/actions';
+import { chatWithPersona } from '@/ai/flows/chat-with-persona';
+import { generateChatTitle } from '@/ai/flows/generate-chat-title';
 import type { Persona, UserDetails, ChatMessage, ChatSession } from '@/lib/types';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Textarea } from '@/components/ui/textarea';
@@ -47,7 +47,6 @@ import { MemoryItem } from '@/components/memory-item';
 
 const TYPING_PLACEHOLDER = 'IS_TYPING_PLACEHOLDER_8f4a7b1c';
 
-// Memoized component to render a single chat message, preventing re-renders on input change.
 const ChatMessageItem = memo(function ChatMessageItem({
   message,
   isFirstInSequence,
@@ -119,7 +118,6 @@ const ChatMessageItem = memo(function ChatMessageItem({
 function PersonaChatSkeleton() {
   return (
     <div className="flex h-full">
-      {/* Left Sidebar Skeleton */}
       <div className="w-80 bg-card/80 backdrop-blur-sm border-r hidden md:flex flex-col">
           <div className="p-4 space-y-4">
               <div className="flex items-center gap-4">
@@ -140,7 +138,6 @@ function PersonaChatSkeleton() {
               <Skeleton className="h-10 w-full" />
           </div>
       </div>
-      {/* Right Chat Panel Skeleton */}
       <div className="flex-1 flex flex-col bg-background/80 backdrop-blur-sm">
         <header className="p-2 border-b flex items-center gap-2"><Skeleton className="h-8 w-48" /></header>
         <div className="flex-1 p-6" />
@@ -165,6 +162,7 @@ export default function PersonaChatPage() {
   
   const [input, setInput] = useState('');
   const [error, setError] = useState<string | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [isManagementDialogOpen, setIsManagementDialogOpen] = useState(false);
@@ -188,12 +186,9 @@ export default function PersonaChatPage() {
   }, [persona]);
 
   useEffect(() => {
-    // This effect handles cleaning up empty "New Chat" sessions.
-    // It runs when the active chat changes, and also when the component unmounts.
     const handleCleanup = (chatIdToClean: string | null | undefined) => {
       if (!chatIdToClean) return;
 
-      // Use the ref to get the most up-to-date persona data.
       const personaNow = personaRef.current;
       if (personaNow?.chats) {
         const chat = personaNow.chats.find(c => c.id === chatIdToClean);
@@ -202,22 +197,14 @@ export default function PersonaChatPage() {
             ...personaNow,
             chats: personaNow.chats.filter(c => c.id !== chatIdToClean),
           };
-          // Update the state to reflect the change in the UI (e.g., the sidebar)
           setPersona(updatedPersona);
-          // Persist the change to the database.
           savePersona(updatedPersona);
         }
       }
     };
-
-    // When the activeChatId changes, we want to clean up the *previous* chat.
     handleCleanup(prevActiveChatIdRef.current);
-
-    // At the end of the effect, update the ref to the current ID for the next run.
     prevActiveChatIdRef.current = activeChatId;
 
-    // Return a cleanup function that will run on UNMOUNT.
-    // It will check the very last active chat.
     return () => {
       handleCleanup(prevActiveChatIdRef.current);
     }
@@ -274,21 +261,15 @@ export default function PersonaChatPage() {
     if (!persona) return;
     
     const chatIdFromQuery = searchParams.get('chat');
-    
-    // Check if the chat from the query parameter exists in the persona's chats
     const chatExists = persona.chats.some(c => c.id === chatIdFromQuery);
     
     if (chatIdFromQuery && chatExists) {
-        // If it exists, set it as the active chat
         setActiveChatId(chatIdFromQuery);
     } else if (sortedChats.length > 0) {
-        // If it doesn't exist, or there's no chat ID, default to the most recently updated chat
         const mostRecentChat = sortedChats[0];
         setActiveChatId(mostRecentChat.id);
-        // Update the URL to reflect the active chat, preventing invalid states
         router.replace(`/persona/${persona.id}?chat=${mostRecentChat.id}`, { scroll: false });
     } else {
-        // If there are no chats at all, create a new one
         const now = Date.now();
         const newChatSession: ChatSession = {
             id: crypto.randomUUID(),
@@ -303,13 +284,11 @@ export default function PersonaChatPage() {
         };
         setPersona(updatedPersona);
         savePersona(updatedPersona).then(() => {
-            // After saving, set the new chat as active and update the URL
             setActiveChatId(newChatSession.id);
             router.replace(`/persona/${persona.id}?chat=${newChatSession.id}`, { scroll: false });
         });
     }
 }, [persona, searchParams, router, sortedChats]);
-
 
   const activeChat = useMemo(() => {
     return persona?.chats.find(c => c.id === activeChatId);
@@ -331,7 +310,6 @@ export default function PersonaChatPage() {
 
   const handleInputInteraction = () => {
     if (!isMobile) return;
-
     setTimeout(() => {
         if (scrollAreaRef.current) {
             const scrollContainer = scrollAreaRef.current.querySelector('div');
@@ -345,13 +323,14 @@ export default function PersonaChatPage() {
   
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
-    if (!input.trim() || !persona || !activeChat || !activeChatId) return;
+    if (isSubmitting || !input.trim() || !persona || !activeChat || !activeChatId) return;
+
+    setIsSubmitting(true);
   
     const userMessage: ChatMessage = { role: 'user', content: input };
     const userInput = input;
     const isNewChat = messages.length === 0;
   
-    // 1. Optimistic user message update
     let currentMessages = [...messages, userMessage];
     let personaForUpdates = {
       ...persona,
@@ -366,7 +345,6 @@ export default function PersonaChatPage() {
     if (textareaRef.current) textareaRef.current.style.height = 'auto';
     setError(null);
   
-    // 2. Add the first typing indicator
     const typingIndicatorMessage: ChatMessage = { role: 'assistant', content: TYPING_PLACEHOLDER };
     currentMessages.push(typingIndicatorMessage);
     personaForUpdates = {
@@ -377,34 +355,102 @@ export default function PersonaChatPage() {
     };
     setPersona(personaForUpdates);
   
-    // 3. API Call
     const now = new Date();
     const currentDateTime = now.toLocaleString('en-US', {
-      weekday: 'long',
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric',
-      hour: 'numeric',
-      minute: '2-digit',
-      hour12: true,
+      weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', hour: 'numeric', minute: '2-digit', hour12: true,
     });
     const currentDateForMemory = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
   
-    const { gemini: userApiKeys } = await getApiKeys();
+    try {
+      const res = await chatWithPersona({
+        persona, userDetails, chatHistory: messages, message: userInput, currentDateTime, currentDateForMemory,
+      });
 
-    const res = await chatAction({
-      persona,
-      userDetails,
-      chatHistory: messages,
-      message: userInput,
-      currentDateTime,
-      currentDateForMemory,
-      apiKey: userApiKeys,
-    });
-  
-    // Error Handling
-    if (res.error) {
-      setError(res.error);
+      let finalMemories = persona.memories || [];
+      const memoryWasUpdated = (res.newMemories?.length || 0) > 0 || (res.removedMemories?.length || 0) > 0;
+    
+      if (memoryWasUpdated) {
+        const memoriesToDelete = new Set(res.removedMemories || []);
+        finalMemories = finalMemories.filter(mem => !memoriesToDelete.has(mem));
+        const memoriesToAdd = res.newMemories || [];
+        finalMemories = [...finalMemories, ...memoriesToAdd];
+    
+        setGlowingMessageIndex(messages.length);
+        setTimeout(() => setGlowingMessageIndex(null), 1500);
+    
+        if (!isMobile) {
+          setIsMemoryButtonGlowing(true);
+          setTimeout(() => setIsMemoryButtonGlowing(false), 1500);
+        }
+      }
+    
+      let personaForLoop = { ...persona, chats: personaForUpdates.chats, memories: finalMemories };
+      let finalTitle = activeChat.title;
+    
+      if (isNewChat && res.response && res.response[0]) {
+        generateChatTitle({ userMessage: userInput, assistantResponse: res.response[0] })
+          .then(titleResult => {
+            if (titleResult.title) {
+              finalTitle = titleResult.title;
+              setPersona(currentPersona => {
+                if (!currentPersona) return null;
+                return {
+                  ...currentPersona,
+                  chats: currentPersona.chats.map(c =>
+                    c.id === activeChatId ? { ...c, title: titleResult.title! } : c
+                  ),
+                };
+              });
+            }
+          });
+      }
+    
+      if (res.response && res.response.length > 0) {
+        let messagesForThisTurn = [...personaForLoop.chats.find(c => c.id === activeChatId)!.messages];
+    
+        for (let i = 0; i < res.response.length; i++) {
+          const messageContent = res.response[i];
+    
+          if (i > 0) {
+            const { minWpm = 35, maxWpm = 40 } = persona;
+            const wpm = Math.floor(Math.random() * (maxWpm - minWpm + 1)) + minWpm;
+            const words = messageContent.split(/\s+/).filter(Boolean).length;
+            const typingTimeMs = (words / wpm) * 60 * 1000;
+            const delay = Math.max(750, Math.min(typingTimeMs, 4000));
+            await new Promise(resolve => setTimeout(resolve, delay));
+          }
+    
+          const typingIndex = messagesForThisTurn.findIndex(m => m.content === TYPING_PLACEHOLDER);
+          if (typingIndex !== -1) {
+            messagesForThisTurn[typingIndex] = { role: 'assistant', content: messageContent };
+          }
+    
+          if (i < res.response.length - 1) {
+            messagesForThisTurn.push(typingIndicatorMessage);
+          }
+    
+          const currentPersonaState = {
+            ...personaForLoop,
+            chats: personaForLoop.chats.map(c =>
+              c.id === activeChatId
+                ? { ...c, messages: [...messagesForThisTurn], updatedAt: Date.now(), title: finalTitle }
+                : c
+            ),
+          };
+          setPersona(currentPersonaState);
+          personaForLoop = currentPersonaState;
+          await savePersona(currentPersonaState);
+        }
+      } else {
+        let messagesForThisTurn = [...personaForLoop.chats.find(c => c.id === activeChatId)!.messages];
+        const finalMessages = messagesForThisTurn.filter(m => m.content !== TYPING_PLACEHOLDER);
+        const finalPersonaState = { ...personaForLoop, chats: personaForLoop.chats.map(c => c.id === activeChatId ? { ...c, messages: finalMessages } : c) };
+        setPersona(finalPersonaState);
+        await savePersona(finalPersonaState);
+      }
+    } catch (err: any) {
+      console.error(err);
+      setError(err.message || 'An unknown error occurred.');
       const finalMessages = currentMessages.filter(m => m.content !== TYPING_PLACEHOLDER);
       const finalPersonaState = {
         ...personaForUpdates,
@@ -413,104 +459,8 @@ export default function PersonaChatPage() {
         ),
       };
       setPersona(finalPersonaState);
-      return;
-    }
-  
-    // 4. Handle Memories
-    let finalMemories = persona.memories || [];
-    const memoryWasUpdated = (res.newMemories?.length || 0) > 0 || (res.removedMemories?.length || 0) > 0;
-  
-    if (memoryWasUpdated) {
-      const memoriesToDelete = new Set(res.removedMemories || []);
-      finalMemories = finalMemories.filter(mem => !memoriesToDelete.has(mem));
-      const memoriesToAdd = res.newMemories || [];
-      finalMemories = [...finalMemories, ...memoriesToAdd];
-  
-      setGlowingMessageIndex(messages.length);
-      setTimeout(() => setGlowingMessageIndex(null), 1500);
-  
-      if (!isMobile) {
-        setIsMemoryButtonGlowing(true);
-        setTimeout(() => setIsMemoryButtonGlowing(false), 1500);
-      }
-    }
-  
-    let personaForLoop = { ...persona, chats: personaForUpdates.chats, memories: finalMemories };
-    let finalTitle = activeChat.title;
-  
-    // Generate title in the background without blocking the message stream
-    if (isNewChat && res.response && res.response[0]) {
-      generateChatTitleAction({
-        userMessage: userInput,
-        assistantResponse: res.response[0],
-        apiKey: userApiKeys,
-      }).then(titleResult => {
-        if (titleResult.title) {
-          finalTitle = titleResult.title;
-          // Update React state to show the new title in the UI
-          setPersona(currentPersona => {
-            if (!currentPersona) return null;
-            return {
-              ...currentPersona,
-              chats: currentPersona.chats.map(c =>
-                c.id === activeChatId
-                  ? { ...c, title: titleResult.title! }
-                  : c
-              ),
-            };
-          });
-        }
-      });
-    }
-  
-    // 5. Process responses
-    if (res.response && res.response.length > 0) {
-      let messagesForThisTurn = [...personaForLoop.chats.find(c => c.id === activeChatId)!.messages];
-  
-      for (let i = 0; i < res.response.length; i++) {
-        const messageContent = res.response[i];
-  
-        // Typing delay only applies to subsequent messages
-        if (i > 0) {
-          const { minWpm = 35, maxWpm = 40 } = persona;
-          const wpm = Math.floor(Math.random() * (maxWpm - minWpm + 1)) + minWpm;
-          const words = messageContent.split(/\s+/).filter(Boolean).length;
-          const typingTimeMs = (words / wpm) * 60 * 1000;
-          const delay = Math.max(750, Math.min(typingTimeMs, 4000));
-          await new Promise(resolve => setTimeout(resolve, delay));
-        }
-  
-        // Replace the current typing indicator with the actual message
-        const typingIndex = messagesForThisTurn.findIndex(m => m.content === TYPING_PLACEHOLDER);
-        if (typingIndex !== -1) {
-          messagesForThisTurn[typingIndex] = { role: 'assistant', content: messageContent };
-        }
-  
-        // If there's another message coming, add a new typing indicator
-        if (i < res.response.length - 1) {
-          messagesForThisTurn.push(typingIndicatorMessage);
-        }
-  
-        // Update state and save, ensuring the latest title from the ref is included
-        const currentPersonaState = {
-          ...personaForLoop,
-          chats: personaForLoop.chats.map(c =>
-            c.id === activeChatId
-              ? { ...c, messages: [...messagesForThisTurn], updatedAt: Date.now(), title: finalTitle }
-              : c
-          ),
-        };
-        setPersona(currentPersonaState);
-        personaForLoop = currentPersonaState;
-        await savePersona(currentPersonaState);
-      }
-    } else {
-      // No response from AI, just remove the indicator
-      let messagesForThisTurn = [...personaForLoop.chats.find(c => c.id === activeChatId)!.messages];
-      const finalMessages = messagesForThisTurn.filter(m => m.content !== TYPING_PLACEHOLDER);
-      const finalPersonaState = { ...personaForLoop, chats: personaForLoop.chats.map(c => c.id === activeChatId ? { ...c, messages: finalMessages } : c) };
-      setPersona(finalPersonaState);
-      await savePersona(finalPersonaState);
+    } finally {
+      setIsSubmitting(false);
     }
   };
   
@@ -620,7 +570,6 @@ export default function PersonaChatPage() {
   return (
     <>
       <div className="flex h-full">
-          {/* Overlay for mobile drawer */}
           <div
             onClick={() => setIsSidebarOpen(false)}
             className={cn(
@@ -628,7 +577,6 @@ export default function PersonaChatPage() {
               isSidebarOpen ? "block" : "hidden"
             )}
           />
-          {/* Left Sidebar */}
           <div className={cn(
               "transition-transform duration-300 ease-in-out flex flex-col bg-card/80 backdrop-blur-sm",
               "fixed bottom-0 left-0 top-16 z-30 w-80 border-r md:static md:bottom-auto md:top-auto md:h-auto md:w-auto md:transform-none md:transition-all",
@@ -777,7 +725,6 @@ export default function PersonaChatPage() {
             </div>
           </div>
           
-          {/* Right Chat Panel */}
           <div className="flex-1 flex flex-col bg-background/80 backdrop-blur-sm min-w-0">
              <header className="flex items-center justify-between h-16 gap-2 md:gap-4 px-4 border-b flex-shrink-0">
                 <div className="flex items-center gap-2 md:w-auto w-full">
@@ -790,7 +737,6 @@ export default function PersonaChatPage() {
                         </Button>
                     </div>
                     <div className="flex-1 md:hidden">
-                        {/* Spacer for mobile view to push the sidebar toggle to the right */}
                     </div>
                     <div className="md:hidden">
                         <Button variant="ghost" size="icon" onClick={() => setIsSidebarOpen(!isSidebarOpen)}>
@@ -859,14 +805,15 @@ export default function PersonaChatPage() {
                                 rows={1}
                                 placeholder={`Message ${persona.name}...`}
                                 className="flex-1 resize-none border-0 bg-transparent p-2 text-base shadow-none focus-visible:ring-0 max-h-40 overflow-y-auto"
+                                disabled={isSubmitting}
                             />
                             <Button
                                 type="submit"
                                 size="icon"
-                                disabled={!input.trim()}
+                                disabled={!input.trim() || isSubmitting}
                                 className="h-10 w-10 rounded-md flex-shrink-0"
                             >
-                                <Send className="h-5 w-5" />
+                                {isSubmitting ? <Loader2 className="h-5 w-5 animate-spin" /> : <Send className="h-5 w-5" />}
                             </Button>
                             </form>
                         </div>

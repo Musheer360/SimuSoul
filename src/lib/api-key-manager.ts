@@ -1,14 +1,13 @@
-'use server';
+
+'use client';
+
+import { getApiKeys } from '@/lib/db';
+
+const GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/';
 
 let userKeyIndex = 0;
 
-/**
- * Gets the next key from the user's provided list in a round-robin fashion.
- * @param customKeys The list of keys provided by the user.
- * @returns The next API key to use.
- */
 function getRoundRobinUserKey(customKeys: string[]): string {
-  // Ensure the index is always valid, even if the key list changes.
   if (userKeyIndex >= customKeys.length) {
     userKeyIndex = 0;
   }
@@ -18,37 +17,49 @@ function getRoundRobinUserKey(customKeys: string[]): string {
 }
 
 /**
- * Wraps an AI API call with failover and round-robin logic for user-provided API keys.
- * It requires custom keys to be provided and will throw an error if none are available.
- * @param apiCallFn The function to execute, which receives a single API key.
- * @param customKeys An array of user-provided keys from settings.
- * @returns The result of the successful API call.
+ * Executes a direct, client-side fetch call to the Gemini API with failover logic.
+ * @param model The Gemini model to use (e.g., 'gemini-pro:generateContent').
+ * @param body The request body for the API call.
+ * @returns The JSON response from the API.
  */
-export async function callWithFailover<T>(
-  apiCallFn: (apiKey: string) => Promise<T>,
-  customKeys?: string[]
+export async function callGeminiApi<T>(
+  model: string,
+  body: Record<string, any>
 ): Promise<T> {
+  const { gemini: customKeys } = await getApiKeys();
   const validKeys = customKeys?.filter(Boolean) || [];
 
   if (validKeys.length === 0) {
-    throw new Error("No API key provided. Please add your Gemini API key in the settings page to use the application.");
+    throw new Error('No API key provided. Please add your Gemini API key in the settings page to use the application.');
   }
 
   let lastError: Error | null = null;
-  
-  // Try each key once, starting from the current round-robin index.
   const attempts = validKeys.length;
+
   for (let i = 0; i < attempts; i++) {
     const keyToTry = getRoundRobinUserKey(validKeys);
+    const url = `${GEMINI_API_URL}${model}?key=${keyToTry}`;
+
     try {
-      // On success, return the result.
-      return await apiCallFn(keyToTry);
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(body),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(`API Error (${response.status}): ${errorData?.error?.message || 'Unknown error'}`);
+      }
+
+      return await response.json();
     } catch (error: any) {
       lastError = error;
       console.warn(`API key ending in ...${keyToTry.slice(-4)} failed. Retrying with next key.`);
     }
   }
-
-  // If the loop completes, all keys have failed.
+  
   throw new Error(`All provided API keys failed. Last error: ${lastError?.message || 'Unknown error'}`);
 }

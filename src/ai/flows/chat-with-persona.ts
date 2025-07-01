@@ -1,19 +1,14 @@
 
-'use server';
+'use client';
 
 /**
- * @fileOverview This file defines a Genkit flow for chatting with a user-created persona.
- *
- * - chatWithPersona - A function that initiates the chat with a specified persona.
- * - ChatWithPersonaInput - The input type for the chatWithPersona function.
- * - ChatWithPersonaOutput - The return type for the chatWithPersona function.
+ * @fileOverview This file defines a client-side function for chatting with a persona.
+ * It constructs the prompt, calls the Gemini API directly, and parses the response.
  */
 
-import {genkit} from 'genkit';
-import {googleAI} from '@genkit-ai/googleai';
-import {ai} from '@/ai/genkit';
-import {z} from 'genkit';
-import { callWithFailover } from '@/lib/api-key-manager';
+import { callGeminiApi } from '@/lib/api-key-manager';
+import type { ChatMessage, Persona, UserDetails } from '@/lib/types';
+import { z } from 'zod';
 
 const ChatMessageSchema = z.object({
   role: z.enum(['user', 'assistant']),
@@ -35,7 +30,6 @@ const ChatWithPersonaInputSchema = z.object({
   currentDateTime: z.string().describe('The current date and time when the user sends the message.'),
   currentDateForMemory: z.string().describe('The current date in YYYY-MM-DD format for creating memories.'),
   message: z.string().describe('The user\'s message to the persona.'),
-  apiKey: z.array(z.string()).optional().describe('An optional list of custom Gemini API keys.'),
 });
 export type ChatWithPersonaInput = z.infer<typeof ChatWithPersonaInputSchema>;
 
@@ -58,14 +52,15 @@ const ChatWithPersonaOutputSchema = z.object({
 });
 export type ChatWithPersonaOutput = z.infer<typeof ChatWithPersonaOutputSchema>;
 
-export async function chatWithPersona(input: ChatWithPersonaInput): Promise<ChatWithPersonaOutput> {
-  return chatWithPersonaFlow(input);
-}
-
-const promptText = `You are a character actor playing the role of {{personaName}}. You MUST strictly adhere to the persona's character, knowledge, and communication style.
+function buildChatPrompt(input: ChatWithPersonaInput): string {
+    // This function constructs the full prompt string from the input object.
+    // It's kept separate for clarity and potential reuse.
+    // Handlebars-style syntax is used for easy readability.
+    
+    let prompt = `You are a character actor playing the role of ${input.personaName}. You MUST strictly adhere to the persona's character, knowledge, and communication style.
 
   **Time & Context Awareness:**
-  - For your awareness, the current date and time is **{{currentDateTime}}**.
+  - For your awareness, the current date and time is **${input.currentDateTime}**.
   - **Do NOT state the time unless the user specifically asks for it.**
   - Instead, use this information to make your conversation feel natural. For example, your greetings should match the time of day (e.g., "Good morning", "Good evening"), and you can comment if the user is messaging you very late or very early.
   - **CRITICAL GREETING RULE:** If the chat history is not empty, you are in an ongoing conversation. **DO NOT GREET THE USER AGAIN.** No "hello," "hi," etc. Continue the conversation fluidly. Only greet the user on the very first message of a brand new chat.
@@ -91,33 +86,50 @@ const promptText = `You are a character actor playing the role of {{personaName}
   ---
   **Persona Profile**
 
-  **Name:** {{personaName}}
-  {{#if personaAge}}**Age:** {{personaAge}}{{/if}}
+  **Name:** ${input.personaName}`;
+
+  if (input.personaAge) {
+      prompt += `\n**Age:** ${input.personaAge}`;
+  }
+
+  prompt += `
   **Your Persona Description (Your entire world and knowledge):**
-  {{personaDescription}}
+  ${input.personaDescription}
 
   **Your Response Style Guide:**
-  {{responseStyle}}
+  ${input.responseStyle}
 
   ---
   **Your Relationship Context**
 
-  You are speaking to the user.
-  {{#if userDetails.name}}Their name is {{userDetails.name}}.{{else}}You do not know their name yet.{{/if}}
-  Your relationship to them is: **{{personaRelation}}**. You must treat them according to this relationship at all times.
-  {{#if userDetails.aboutMe}}Here is some more information about them: {{userDetails.aboutMe}}.{{/if}}
+  You are speaking to the user.`;
+
+  if (input.userDetails?.name) {
+      prompt += `Their name is ${input.userDetails.name}.`;
+  } else {
+      prompt += `You do not know their name yet.`;
+  }
+
+  prompt += `\nYour relationship to them is: **${input.personaRelation}**. You must treat them according to this relationship at all times.`;
+
+  if (input.userDetails?.aboutMe) {
+      prompt += `\nHere is some more information about them: ${input.userDetails.aboutMe}.`;
+  }
+
+  prompt += `
 
   ---
   **Memories (Long-Term Facts about the user)**
 
-  You have the following memories about the user. Use them to inform your response.
-  {{#if existingMemories}}
-  {{#each existingMemories}}
-  - {{this}}
-  {{/each}}
-  {{else}}
-  (You have no memories of the user yet.)
-  {{/if}}
+  You have the following memories about the user. Use them to inform your response.`;
+
+  if (input.existingMemories && input.existingMemories.length > 0) {
+      prompt += `\n${input.existingMemories.map(mem => `- ${mem}`).join('\n')}`;
+  } else {
+      prompt += `\n(You have no memories of the user yet.)`;
+  }
+
+  prompt += `
 
   ---
   **Memory Management Rules & Your Task**
@@ -130,72 +142,84 @@ const promptText = `You are a character actor playing the role of {{personaName}
     - **Existing Memory:** "2023-05-10: The user has a pet cat."
     - **User's New Message:** "My cat's name is Joe."
     - **Your Action:**
-      - Add to \`newMemories\`: ["2024-07-03: The user has a pet cat named Joe."]
+      - Add to \`newMemories\`: ["${input.currentDateForMemory}: The user has a pet cat named Joe."]
       - Add to \`removedMemories\`: ["2023-05-10: The user has a pet cat."]
   - **Create New Memories:** If a fact is entirely new and unrelated to existing memories, add it to the 'newMemories' array.
-  - **Memory Format:** A memory MUST be a concise, self-contained sentence, formatted as \`YYYY-MM-DD: The memory text.\`. You MUST use the following date for any new memories: **{{currentDateForMemory}}**.
+  - **Memory Format:** A memory MUST be a concise, self-contained sentence, formatted as \`YYYY-MM-DD: The memory text.\`. You MUST use the following date for any new memories: **${input.currentDateForMemory}**.
   - **No Changes:** If there are no new or updated facts, return empty arrays for 'newMemories' and 'removedMemories'.
 
   ---
   **Current Conversation History (Short-Term Context)**
-  This is the ongoing conversation you are having right now. Use it to understand follow-up questions. The 'assistant' role is you, {{personaName}}. The 'user' is the person you are talking to.
+  This is the ongoing conversation you are having right now. Use it to understand follow-up questions. The 'assistant' role is you, ${input.personaName}. The 'user' is the person you are talking to.
+  `;
   
-  {{#if chatHistory}}
-  {{#each chatHistory}}
-  **{{this.role}}**: {{this.content}}
-  {{/each}}
-  {{/if}}
+  if (input.chatHistory && input.chatHistory.length > 0) {
+      prompt += `\n${input.chatHistory.map(msg => `**${msg.role}**: ${msg.content}`).join('\n')}`;
+  }
+  
+  prompt += `
 
   ---
   **User's new message to you:**
-  {{message}}`;
+  ${input.message}`;
+  
+  return prompt;
+}
 
-const chatWithPersonaFlow = ai.defineFlow(
-  {
-    name: 'chatWithPersonaFlow',
-    inputSchema: ChatWithPersonaInputSchema,
-    outputSchema: ChatWithPersonaOutputSchema,
-  },
-  async (input) => {
-    return callWithFailover(async (apiKey) => {
-      const dynamicAi = genkit({
-        plugins: [googleAI({ apiKey })],
-      });
-
-      const chatWithPersonaPrompt = dynamicAi.definePrompt({
-        name: 'chatWithPersonaPrompt_dynamic',
-        model: 'googleai/gemini-2.5-flash',
-        input: { schema: ChatWithPersonaInputSchema },
-        output: { schema: ChatWithPersonaOutputSchema },
-        prompt: promptText,
-        config: {
-            temperature: 0.85,
-            safetySettings: [
-              {
-                category: 'HARM_CATEGORY_HATE_SPEECH',
-                threshold: 'BLOCK_ONLY_HIGH',
-              },
-              {
-                category: 'HARM_CATEGORY_DANGEROUS_CONTENT',
-                threshold: 'BLOCK_ONLY_HIGH',
-              },
-              {
-                category: 'HARM_CATEGORY_HARASSMENT',
-                threshold: 'BLOCK_ONLY_HIGH',
-              },
-              {
-                category: 'HARM_CATEGORY_SEXUALLY_EXPLICIT',
-                threshold: 'BLOCK_ONLY_HIGH',
-              },
-            ],
-          },
-      });
-
-      const { output } = await chatWithPersonaPrompt(input);
-      if (!output) {
-        throw new Error('The AI model returned no output.');
-      }
-      return output;
-    }, input.apiKey);
+export async function chatWithPersona(
+  payload: {
+    persona: Persona;
+    userDetails: UserDetails;
+    chatHistory: ChatMessage[];
+    message: string;
+    currentDateTime: string;
+    currentDateForMemory: string;
   }
-);
+): Promise<ChatWithPersonaOutput> {
+  const { persona, userDetails, chatHistory, message, currentDateTime, currentDateForMemory } = payload;
+  
+  const personaDescription = `Backstory: ${persona.backstory}\nTraits: ${persona.traits}\nGoals: ${persona.goals}`;
+
+  const input: ChatWithPersonaInput = {
+    personaName: persona.name,
+    personaRelation: persona.relation,
+    personaAge: persona.age,
+    personaDescription,
+    responseStyle: persona.responseStyle,
+    userDetails: {
+      name: userDetails.name,
+      aboutMe: userDetails.about
+    },
+    existingMemories: persona.memories,
+    chatHistory,
+    message,
+    currentDateTime,
+    currentDateForMemory,
+  };
+
+  const prompt = buildChatPrompt(input);
+
+  const requestBody = {
+    contents: [{ parts: [{ text: prompt }] }],
+    generationConfig: {
+      responseMimeType: 'application/json',
+      responseSchema: ChatWithPersonaOutputSchema,
+      temperature: 0.85,
+    },
+    safetySettings: [
+        { category: 'HARM_CATEGORY_HATE_SPEECH', threshold: 'BLOCK_ONLY_HIGH' },
+        { category: 'HARM_CATEGORY_DANGEROUS_CONTENT', threshold: 'BLOCK_ONLY_HIGH' },
+        { category: 'HARM_CATEGORY_HARASSMENT', threshold: 'BLOCK_ONLY_HIGH' },
+        { category: 'HARM_CATEGORY_SEXUALLY_EXPLICIT', threshold: 'BLOCK_ONLY_HIGH' },
+    ],
+  };
+
+  const response = await callGeminiApi<any>('gemini-1.5-flash:generateContent', requestBody);
+
+  if (!response.candidates || !response.candidates[0].content.parts[0].text) {
+    throw new Error('Invalid response from AI model.');
+  }
+
+  const jsonResponse = JSON.parse(response.candidates[0].content.parts[0].text);
+  return ChatWithPersonaOutputSchema.parse(jsonResponse);
+}

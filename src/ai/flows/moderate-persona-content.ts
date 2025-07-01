@@ -1,19 +1,14 @@
-'use server';
+
+'use client';
+
 /**
- * @fileOverview This file defines a Genkit flow for moderating persona content.
- *
- * - moderatePersonaContent - A function that checks persona details against content policies.
- * - ModeratePersonaContentInput - The input type for the function.
- * - ModeratePersonaContentOutput - The return type for the function.
+ * @fileOverview This file defines a client-side function for moderating persona content.
  */
 
-import { genkit } from 'genkit';
-import { googleAI } from '@genkit-ai/googleai';
-import { ai } from '@/ai/genkit';
-import { z } from 'genkit';
-import { callWithFailover } from '@/lib/api-key-manager';
+import { callGeminiApi } from '@/lib/api-key-manager';
+import { z } from 'zod';
 
-const ModeratePersonaContentInputSchema = z.object({
+export const ModeratePersonaContentInputSchema = z.object({
   name: z.string(),
   relation: z.string(),
   age: z.number().optional(),
@@ -21,11 +16,10 @@ const ModeratePersonaContentInputSchema = z.object({
   backstory: z.string(),
   goals: z.string(),
   responseStyle: z.string(),
-  apiKey: z.array(z.string()).optional(),
 });
 export type ModeratePersonaContentInput = z.infer<typeof ModeratePersonaContentInputSchema>;
 
-const ModeratePersonaContentOutputSchema = z.object({
+export const ModeratePersonaContentOutputSchema = z.object({
   isSafe: z.boolean().describe('Whether the content is safe and adheres to all rules.'),
   reason: z
     .string()
@@ -34,10 +28,7 @@ const ModeratePersonaContentOutputSchema = z.object({
 export type ModeratePersonaContentOutput = z.infer<typeof ModeratePersonaContentOutputSchema>;
 
 export async function moderatePersonaContent(input: ModeratePersonaContentInput): Promise<ModeratePersonaContentOutput> {
-  return moderatePersonaContentFlow(input);
-}
-
-const promptText = `You are an AI content moderator. Your task is to review the following persona details and determine if they violate critical content policies. Be precise and avoid flagging content based on weak inferences.
+  let promptText = `You are an AI content moderator. Your task is to review the following persona details and determine if they violate critical content policies. Be precise and avoid flagging content based on weak inferences.
 
 **Content Policies:**
 
@@ -56,62 +47,49 @@ Analyze all fields below.
 - If the content adheres to ALL rules, set \`isSafe\` to \`true\`.
 
 **Persona Content to Review:**
-- Name: {{name}}
-- Relationship: {{relation}}
-{{#if age}}- Age: {{age}}{{/if}}
-- Traits: {{traits}}
-- Backstory: {{backstory}}
-- Goals: {{goals}}
-- Response Style: {{responseStyle}}
-`;
+- Name: ${input.name}
+- Relationship: ${input.relation}`;
 
-const moderatePersonaContentFlow = ai.defineFlow(
-  {
-    name: 'moderatePersonaContentFlow',
-    inputSchema: ModeratePersonaContentInputSchema,
-    outputSchema: ModeratePersonaContentOutputSchema,
-  },
-  async (input) => {
-    return callWithFailover(async (apiKey) => {
-      const dynamicAi = genkit({
-        plugins: [googleAI({ apiKey })],
-      });
-
-      const prompt = dynamicAi.definePrompt({
-        name: 'moderatePersonaContentPrompt_dynamic',
-        model: 'googleai/gemini-2.5-flash',
-        input: { schema: ModeratePersonaContentInputSchema },
-        output: { schema: ModeratePersonaContentOutputSchema },
-        prompt: promptText,
-        config: {
-          temperature: 0.0, // Be deterministic for moderation
-          safetySettings: [
-            {
-              category: 'HARM_CATEGORY_HATE_SPEECH',
-              threshold: 'BLOCK_ONLY_HIGH',
-            },
-            {
-              category: 'HARM_CATEGORY_DANGEROUS_CONTENT',
-              threshold: 'BLOCK_ONLY_HIGH',
-            },
-            {
-              category: 'HARM_CATEGORY_HARASSMENT',
-              threshold: 'BLOCK_ONLY_HIGH',
-            },
-            {
-              category: 'HARM_CATEGORY_SEXUALLY_EXPLICIT',
-              threshold: 'BLOCK_ONLY_HIGH',
-            },
-          ],
-        },
-      });
-
-      const { output } = await prompt(input);
-      if (!output) {
-        // Fail closed - if moderation doesn't respond, assume it's unsafe.
-        return { isSafe: false, reason: 'Content could not be verified by the moderation service.' };
-      }
-      return output;
-    }, input.apiKey);
+  if (input.age) {
+    promptText += `\n- Age: ${input.age}`;
   }
-);
+
+  promptText += `
+- Traits: ${input.traits}
+- Backstory: ${input.backstory}
+- Goals: ${input.goals}
+- Response Style: ${input.responseStyle}
+`;
+  
+  const requestBody = {
+    contents: [{ parts: [{ text: promptText }] }],
+    generationConfig: {
+      responseMimeType: 'application/json',
+      responseSchema: ModeratePersonaContentOutputSchema,
+      temperature: 0.0,
+    },
+     safetySettings: [
+        { category: 'HARM_CATEGORY_HATE_SPEECH', threshold: 'BLOCK_ONLY_HIGH' },
+        { category: 'HARM_CATEGORY_DANGEROUS_CONTENT', threshold: 'BLOCK_ONLY_HIGH' },
+        { category: 'HARM_CATEGORY_HARASSMENT', threshold: 'BLOCK_ONLY_HIGH' },
+        { category: 'HARM_CATEGORY_SEXUALLY_EXPLICIT', threshold: 'BLOCK_ONLY_HIGH' },
+    ],
+  };
+
+  try {
+    const response = await callGeminiApi<any>('gemini-1.5-flash:generateContent', requestBody);
+    
+    if (!response.candidates || !response.candidates[0].content.parts[0].text) {
+      // Fail closed - if moderation doesn't respond, assume it's unsafe.
+      return { isSafe: false, reason: 'Content could not be verified by the moderation service.' };
+    }
+    
+    const jsonResponse = JSON.parse(response.candidates[0].content.parts[0].text);
+    return ModeratePersonaContentOutputSchema.parse(jsonResponse);
+
+  } catch (error) {
+     // Fail closed on any other error during moderation.
+     console.error("Moderation API call failed:", error);
+     return { isSafe: false, reason: 'An error occurred during content moderation.' };
+  }
+}
