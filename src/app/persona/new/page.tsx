@@ -25,7 +25,7 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Loader2, Sparkles, Wand2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { savePersona } from '@/lib/db';
+import { savePersona, getApiKeys } from '@/lib/db';
 
 function SubmitButton() {
   const { pending } = useFormStatus();
@@ -50,6 +50,11 @@ export default function NewPersonaPage() {
   const router = useRouter();
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
+  const [apiKeys, setApiKeys] = useState<string[]>([]);
+
+  useEffect(() => {
+    getApiKeys().then(keys => setApiKeys(keys.gemini));
+  }, []);
 
   const [formKey, setFormKey] = useState(0);
   const [defaultValues, setDefaultValues] = useState({
@@ -102,7 +107,8 @@ export default function NewPersonaPage() {
   const handleGenerateFullPersona = async () => {
     if (!prompt) return;
     setIsGeneratingFull(true);
-    const result = await generatePersonaFromPromptAction(prompt);
+    const { gemini: userApiKeys } = await getApiKeys();
+    const result = await generatePersonaFromPromptAction({ prompt, apiKey: userApiKeys });
     setIsGeneratingFull(false);
 
     if (result.success && result.personaData) {
@@ -142,7 +148,8 @@ export default function NewPersonaPage() {
       return;
     }
     setIsGeneratingDetails(true);
-    const result = await generatePersonaDetailsAction(name, relation);
+    const { gemini: userApiKeys } = await getApiKeys();
+    const result = await generatePersonaDetailsAction({ name, relation, apiKey: userApiKeys });
     setIsGeneratingDetails(false);
 
     if (result.success && result.details) {
@@ -187,6 +194,7 @@ export default function NewPersonaPage() {
                   <form action={dispatch} className="space-y-6" key={formKey}>
                     <input type="hidden" name="minWpm" value={defaultValues.minWpm} />
                     <input type="hidden" name="maxWpm" value={defaultValues.maxWpm} />
+                    <input type="hidden" name="apiKeys" value={JSON.stringify(apiKeys)} />
                   <div className="space-y-2">
                       <Label htmlFor="name">Name</Label>
                       <Input

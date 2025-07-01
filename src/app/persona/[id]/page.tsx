@@ -42,7 +42,7 @@ import { FormattedMessage } from '@/components/formatted-message';
 import { useToast } from '@/hooks/use-toast';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { AnimatedChatTitle } from '@/components/animated-chat-title';
-import { getPersona, savePersona, deletePersona, getUserDetails } from '@/lib/db';
+import { getPersona, savePersona, deletePersona, getUserDetails, getApiKeys } from '@/lib/db';
 import { MemoryItem } from '@/components/memory-item';
 
 const TYPING_PLACEHOLDER = 'IS_TYPING_PLACEHOLDER_8f4a7b1c';
@@ -92,7 +92,7 @@ const ChatMessageItem = memo(function ChatMessageItem({
       )}
     >
       <div className={cn(
-        "max-w-[85%] rounded-lg px-4 py-2.5",
+        "max-w-[85%] rounded-lg px-4 py-2.5 min-w-0",
         message.role === 'user'
           ? 'bg-primary text-primary-foreground'
           : 'bg-secondary',
@@ -274,15 +274,21 @@ export default function PersonaChatPage() {
     if (!persona) return;
     
     const chatIdFromQuery = searchParams.get('chat');
+    
+    // Check if the chat from the query parameter exists in the persona's chats
     const chatExists = persona.chats.some(c => c.id === chatIdFromQuery);
-
+    
     if (chatIdFromQuery && chatExists) {
-      setActiveChatId(chatIdFromQuery);
+        // If it exists, set it as the active chat
+        setActiveChatId(chatIdFromQuery);
+    } else if (sortedChats.length > 0) {
+        // If it doesn't exist, or there's no chat ID, default to the most recently updated chat
+        const mostRecentChat = sortedChats[0];
+        setActiveChatId(mostRecentChat.id);
+        // Update the URL to reflect the active chat, preventing invalid states
+        router.replace(`/persona/${persona.id}?chat=${mostRecentChat.id}`, { scroll: false });
     } else {
-      const existingNewChat = persona.chats.find(c => c.title === 'New Chat');
-      if (existingNewChat) {
-        router.replace(`/persona/${persona.id}?chat=${existingNewChat.id}`, { scroll: false });
-      } else {
+        // If there are no chats at all, create a new one
         const now = Date.now();
         const newChatSession: ChatSession = {
             id: crypto.randomUUID(),
@@ -293,15 +299,17 @@ export default function PersonaChatPage() {
         };
         const updatedPersona = {
             ...persona,
-            chats: [newChatSession, ...(persona.chats || [])],
+            chats: [newChatSession],
         };
         setPersona(updatedPersona);
         savePersona(updatedPersona).then(() => {
+            // After saving, set the new chat as active and update the URL
+            setActiveChatId(newChatSession.id);
             router.replace(`/persona/${persona.id}?chat=${newChatSession.id}`, { scroll: false });
         });
-      }
     }
-  }, [persona, searchParams, router]);
+}, [persona, searchParams, router, sortedChats]);
+
 
   const activeChat = useMemo(() => {
     return persona?.chats.find(c => c.id === activeChatId);
@@ -382,6 +390,8 @@ export default function PersonaChatPage() {
     });
     const currentDateForMemory = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
   
+    const { gemini: userApiKeys } = await getApiKeys();
+
     const res = await chatAction({
       persona,
       userDetails,
@@ -389,6 +399,7 @@ export default function PersonaChatPage() {
       message: userInput,
       currentDateTime,
       currentDateForMemory,
+      apiKey: userApiKeys,
     });
   
     // Error Handling
@@ -430,6 +441,7 @@ export default function PersonaChatPage() {
       const titleResult = await generateChatTitleAction({
         userMessage: userInput,
         assistantResponse: res.response[0],
+        apiKey: userApiKeys,
       });
   
       if (titleResult.title) {
