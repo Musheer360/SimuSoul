@@ -11,6 +11,11 @@ import { moderatePersonaContent } from '@/ai/flows/moderate-persona-content';
 import type { Persona, UserDetails, ChatMessage, CreatePersonaState, UpdatePersonaState } from '@/lib/types';
 import { getApiKeys } from '@/lib/db';
 
+const GENERIC_MODERATION_ERROR = 'This content does not meet the safety guidelines. Please modify it and try again.';
+const GENERIC_MODERATION_ERROR_PROMPT = 'The generated content does not meet the safety guidelines. Please try a different prompt.';
+const GENERIC_MODERATION_ERROR_DETAILS = 'The generated content does not meet the safety guidelines. Please modify your inputs and try again.';
+
+
 // New helper to handle empty string for optional number fields
 const emptyStringAsUndefined = z.preprocess((val) => (val === '' ? undefined : val), z.any());
 
@@ -74,7 +79,7 @@ export async function createPersonaAction(
     if (!moderationResult.isSafe) {
       return {
         success: false,
-        message: `Persona content violates guidelines. Reason: ${moderationResult.reason}`,
+        message: GENERIC_MODERATION_ERROR,
       };
     }
 
@@ -133,7 +138,7 @@ export async function generatePersonaDetailsAction(payload: { name: string; rela
     if (!moderationResult.isSafe) {
         return {
             success: false,
-            error: `The generated persona details violate content guidelines. Reason: ${moderationResult.reason}. Please try different inputs.`
+            error: GENERIC_MODERATION_ERROR_DETAILS
         };
     }
 
@@ -161,7 +166,7 @@ export async function generatePersonaFromPromptAction(payload: { prompt: string;
     if (!moderationResult.isSafe) {
         return {
             success: false,
-            error: `The generated persona violates content guidelines. Reason: ${moderationResult.reason}. Please try a different prompt.`
+            error: GENERIC_MODERATION_ERROR_PROMPT
         };
     }
 
@@ -285,7 +290,7 @@ export async function updatePersonaAction(
     if (!moderationResult.isSafe) {
         return {
             success: false,
-            message: `Persona content violates guidelines. Reason: ${moderationResult.reason}`,
+            message: GENERIC_MODERATION_ERROR,
         };
     }
 

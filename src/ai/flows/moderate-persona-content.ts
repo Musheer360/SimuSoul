@@ -28,7 +28,7 @@ const ModeratePersonaContentOutputSchema = z.object({
   isSafe: z.boolean().describe('Whether the content is safe and adheres to all rules.'),
   reason: z
     .string()
-    .describe('A brief, user-facing explanation if the content is not safe. Empty if safe.'),
+    .describe('A brief, technical explanation for an internal reviewer if the content is not safe. Empty if safe.'),
 });
 export type ModeratePersonaContentOutput = z.infer<typeof ModeratePersonaContentOutputSchema>;
 
@@ -52,7 +52,7 @@ const promptText = `You are an AI content moderator with a very strict set of ru
 
 **Your Task:**
 
-Review the following persona details. Analyze all fields. If ANY part of the content violates ANY of the policies above, you MUST set \`isSafe\` to \`false\` and provide a brief, neutral reason for the violation. The reason should be suitable to show to a user (e.g., "Content includes topics related to sexuality."). If the content is perfectly fine and follows all rules, set \`isSafe\` to \`true\` and the reason to an empty string.
+Review the following persona details. Analyze all fields. If ANY part of the content violates ANY of the policies above, you MUST set \`isSafe\` to \`false\` and provide a brief, technical reason for the violation for internal review (e.g., "Violates sexuality policy."). If the content is perfectly fine and follows all rules, set \`isSafe\` to \`true\` and the reason to an empty string.
 
 **Persona Content to Review:**
 - Name: {{name}}
