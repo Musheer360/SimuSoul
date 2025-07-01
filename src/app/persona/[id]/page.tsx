@@ -345,7 +345,7 @@ export default function PersonaChatPage() {
   
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
-    if (!input.trim() || !persona || !activeChatId) return;
+    if (!input.trim() || !persona || !activeChat || !activeChatId) return;
   
     const userMessage: ChatMessage = { role: 'user', content: input };
     const userInput = input;
@@ -416,7 +416,7 @@ export default function PersonaChatPage() {
       return;
     }
   
-    // 4. Handle Memories & Title before message streaming
+    // 4. Handle Memories
     let finalMemories = persona.memories || [];
     const memoryWasUpdated = (res.newMemories?.length || 0) > 0 || (res.removedMemories?.length || 0) > 0;
   
@@ -436,22 +436,31 @@ export default function PersonaChatPage() {
     }
   
     let personaForLoop = { ...persona, chats: personaForUpdates.chats, memories: finalMemories };
+    const finalTitleRef = useRef(activeChat.title);
   
+    // Generate title in the background without blocking the message stream
     if (isNewChat && res.response && res.response[0]) {
-      const titleResult = await generateChatTitleAction({
+      generateChatTitleAction({
         userMessage: userInput,
         assistantResponse: res.response[0],
         apiKey: userApiKeys,
+      }).then(titleResult => {
+        if (titleResult.title) {
+          finalTitleRef.current = titleResult.title;
+          // Update React state to show the new title in the UI
+          setPersona(currentPersona => {
+            if (!currentPersona) return null;
+            return {
+              ...currentPersona,
+              chats: currentPersona.chats.map(c =>
+                c.id === activeChatId
+                  ? { ...c, title: titleResult.title! }
+                  : c
+              ),
+            };
+          });
+        }
       });
-  
-      if (titleResult.title) {
-        personaForLoop = {
-          ...personaForLoop,
-          chats: personaForLoop.chats.map(c =>
-            c.id === activeChatId ? { ...c, title: titleResult.title! } : c
-          ),
-        };
-      }
     }
   
     // 5. Process responses
@@ -461,7 +470,7 @@ export default function PersonaChatPage() {
       for (let i = 0; i < res.response.length; i++) {
         const messageContent = res.response[i];
   
-        // Typing delay
+        // Typing delay only applies to subsequent messages
         if (i > 0) {
           const { minWpm = 35, maxWpm = 40 } = persona;
           const wpm = Math.floor(Math.random() * (maxWpm - minWpm + 1)) + minWpm;
@@ -482,12 +491,12 @@ export default function PersonaChatPage() {
           messagesForThisTurn.push(typingIndicatorMessage);
         }
   
-        // Update state and save
+        // Update state and save, ensuring the latest title from the ref is included
         const currentPersonaState = {
           ...personaForLoop,
           chats: personaForLoop.chats.map(c =>
             c.id === activeChatId
-              ? { ...c, messages: [...messagesForThisTurn], updatedAt: Date.now() }
+              ? { ...c, messages: [...messagesForThisTurn], updatedAt: Date.now(), title: finalTitleRef.current }
               : c
           ),
         };
