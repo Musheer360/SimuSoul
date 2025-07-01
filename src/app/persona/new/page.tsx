@@ -26,6 +26,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Loader2, Sparkles, Wand2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { savePersona, getApiKeys } from '@/lib/db';
+import type { GeneratePersonaFromPromptOutput } from '@/ai/flows/generate-full-persona';
 
 function SubmitButton() {
   const { pending } = useFormStatus();
@@ -57,7 +58,7 @@ export default function NewPersonaPage() {
   }, []);
 
   const [formKey, setFormKey] = useState(0);
-  const [defaultValues, setDefaultValues] = useState({
+  const [defaultValues, setDefaultValues] = useState<GeneratePersonaFromPromptOutput & { age?: number }>({
     name: '',
     relation: '',
     age: undefined,
@@ -113,7 +114,7 @@ export default function NewPersonaPage() {
     setIsGeneratingFull(false);
 
     if (result.success && result.personaData) {
-      setDefaultValues({ ...result.personaData, age: undefined });
+      setDefaultValues(result.personaData);
       setFormKey((k) => k + 1);
       setActiveTab('manual');
       toast({

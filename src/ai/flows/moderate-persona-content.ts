@@ -16,6 +16,7 @@ import { callWithFailover } from '@/lib/api-key-manager';
 const ModeratePersonaContentInputSchema = z.object({
   name: z.string(),
   relation: z.string(),
+  age: z.number().optional(),
   traits: z.string(),
   backstory: z.string(),
   goals: z.string(),
@@ -46,8 +47,8 @@ const promptText = `You are an AI content moderator. Your task is to review the 
     *   **Religion:** Depictions of religious figures or direct engagement with religious themes.
 
 2.  **Minor Safety Policy:**
-    *   The persona MUST NOT be a minor (under 18).
-    *   **Your Guideline:** Do not flag content as minor-related unless the text *explicitly* states the character is under 18 or describes them in a context that is unambiguously related to childhood (e.g., "attends middle school"). Ambiguous or youthful-sounding traits in an adult character are NOT a violation. If age is not specified, assume the character is an adult unless there is clear evidence to the contrary.
+    *   The persona MUST NOT be a minor (under 18). The provided age, if any, MUST be 18 or greater.
+    *   **Your Guideline:** Do not flag content as minor-related unless the text *explicitly* states the character is under 18, describes them in a context that is unambiguously related to childhood (e.g., "attends middle school"), or their provided age is less than 18. Ambiguous or youthful-sounding traits in an adult character are NOT a violation. If age is not specified, assume the character is an adult unless there is clear evidence to the contrary.
 
 **Your Task:**
 Analyze all fields below.
@@ -57,6 +58,7 @@ Analyze all fields below.
 **Persona Content to Review:**
 - Name: {{name}}
 - Relationship: {{relation}}
+{{#if age}}- Age: {{age}}{{/if}}
 - Traits: {{traits}}
 - Backstory: {{backstory}}
 - Goals: {{goals}}

@@ -23,6 +23,7 @@ export type GeneratePersonaFromPromptInput = z.infer<typeof GeneratePersonaFromP
 const GeneratePersonaFromPromptOutputSchema = z.object({
   name: z.string().describe("A creative and fitting name for the persona."),
   relation: z.string().describe("The persona's relationship to the user, like 'best friend' or 'arch-nemesis'."),
+  age: z.number().min(18).describe("The persona's age. Must be 18 or older."),
   traits: z.string().describe("The persona's key traits and characteristics."),
   backstory: z.string().describe("The persona's detailed backstory."),
   goals: z.string().describe("The persona's primary goals and motivations."),
@@ -49,11 +50,12 @@ User's Prompt: "{{prompt}}"
 Generate all of the following details for this new character, strictly adhering to the content restrictions above:
 - Name: A unique and fitting name. The name MUST NOT include nicknames in quotes (e.g., do not generate "Aurora 'Rory' Chip").
 - Relationship: A plausible relationship to the user (e.g., friend, mentor, rival).
+- Age: The character's age, which MUST be 18 or older.
 - Traits: A short, punchy list of their most defining characteristics.
 - Backstory: A concise but evocative summary of their life history.
 - Goals: What drives them forward? What do they want to achieve?
 - Response Style: Define their communication habits. Are they formal or informal? Do they use emojis, slang, or curse words? How does their tone change with their mood (e.g., happy, angry, casual)? Be specific.
-- Typing Speed: Based on the persona's age, personality, and tech-savviness, determine a realistic typing speed range. A young, tech-savvy person might type between 45-50 WPM. An older, less technical person might type between 20-25 WPM. You MUST generate a 'minWpm' and a 'maxWpm'. The 'maxWpm' MUST be exactly 5 WPM higher than the 'minWpm'.
+- Typing Speed: Based on the persona's generated age, personality, and tech-savviness, determine a realistic typing speed range. A young, tech-savvy person might type between 45-50 WPM. An older, less technical person might type between 20-25 WPM. You MUST generate a 'minWpm' and a 'maxWpm'. The 'maxWpm' MUST be exactly 5 WPM higher than the 'minWpm'.
 
 Be creative and ensure all the generated details are consistent with each other, the original prompt, and the content restrictions.
 `;
