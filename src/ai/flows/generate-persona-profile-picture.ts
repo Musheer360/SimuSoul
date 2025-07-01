@@ -23,25 +23,20 @@ export async function generatePersonaProfilePicture(input: GeneratePersonaProfil
 
   const requestBody = {
     contents: [{ parts: [{ text: prompt }] }],
-    // Explicitly ask the API to use its built-in image generation tool.
-    // This is the most reliable way to request an image.
-    tools: [{
-      "image_generation": {}
-    }],
   };
 
   const response = await callGeminiApi<any>('gemini-1.5-flash:generateContent', requestBody);
 
-  // When the image_generation tool is used, the API returns the image data
-  // inside a 'functionResponse' part.
-  const imageGenerationPart = response.candidates?.[0]?.content?.parts?.find(
-    (part: any) => part.functionResponse?.name === 'image_generation'
+  // The model returns image data in an 'inlineData' part.
+  const imagePart = response.candidates?.[0]?.content?.parts?.find(
+    (part: any) => part.inlineData
   );
 
-  const imageDataUri = imageGenerationPart?.functionResponse?.response?.images?.[0]?.dataUri;
+  const imageData = imagePart?.inlineData;
 
-  if (imageDataUri) {
-    return { profilePictureDataUri: imageDataUri };
+  if (imageData?.data && imageData?.mimeType) {
+    const dataUri = `data:${imageData.mimeType};base64,${imageData.data}`;
+    return { profilePictureDataUri: dataUri };
   }
 
   // If image generation fails, the API might return a text explanation.
