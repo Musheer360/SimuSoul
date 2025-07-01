@@ -1,3 +1,4 @@
+
 'use server';
 
 /**
@@ -158,11 +159,11 @@ const chatWithPersonaFlow = ai.defineFlow(
     return callWithFailover(async (apiKey) => {
       const dynamicAi = genkit({
         plugins: [googleAI({ apiKey })],
-        model: 'googleai/gemini-2.5-flash',
       });
 
       const chatWithPersonaPrompt = dynamicAi.definePrompt({
         name: 'chatWithPersonaPrompt_dynamic',
+        model: 'googleai/gemini-2.5-flash',
         input: { schema: ChatWithPersonaInputSchema },
         output: { schema: ChatWithPersonaOutputSchema },
         prompt: promptText,

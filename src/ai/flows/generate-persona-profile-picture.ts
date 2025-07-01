@@ -45,7 +45,6 @@ const generatePersonaProfilePictureFlow = ai.defineFlow(
     return callWithFailover(async (apiKey) => {
       const dynamicAi = genkit({
         plugins: [googleAI({ apiKey })],
-        model: 'googleai/gemini-2.5-flash',
       });
 
       const {media} = await dynamicAi.generate({

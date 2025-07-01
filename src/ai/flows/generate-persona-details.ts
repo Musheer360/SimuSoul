@@ -1,3 +1,4 @@
+
 'use server';
 /**
  * @fileOverview This file defines a Genkit flow for generating persona details based on a name.
@@ -64,11 +65,11 @@ const generatePersonaDetailsFlow = ai.defineFlow(
     return callWithFailover(async (apiKey) => {
       const dynamicAi = genkit({
         plugins: [googleAI({ apiKey })],
-        model: 'googleai/gemini-2.5-flash',
       });
 
       const prompt = dynamicAi.definePrompt({
         name: 'generatePersonaDetailsPrompt_dynamic',
+        model: 'googleai/gemini-2.5-flash',
         input: {schema: GeneratePersonaDetailsInputSchema},
         output: {schema: GeneratePersonaDetailsOutputSchema},
         prompt: promptText,

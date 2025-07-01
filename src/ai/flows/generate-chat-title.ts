@@ -1,3 +1,4 @@
+
 'use server';
 /**
  * @fileOverview This file defines a Genkit flow for generating a concise chat title.
@@ -47,11 +48,11 @@ const generateChatTitleFlow = ai.defineFlow(
     return callWithFailover(async (apiKey) => {
       const dynamicAi = genkit({
         plugins: [googleAI({ apiKey })],
-        model: 'googleai/gemini-2.5-flash',
       });
       
       const prompt = dynamicAi.definePrompt({
         name: 'generateChatTitlePrompt_dynamic',
+        model: 'googleai/gemini-2.5-flash',
         input: {schema: GenerateChatTitleInputSchema},
         output: {schema: GenerateChatTitleOutputSchema},
         prompt: promptText,
