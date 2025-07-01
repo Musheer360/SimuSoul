@@ -57,7 +57,7 @@ export default function PersonasPage() {
             <h1 className="text-3xl font-bold font-headline tracking-tight">Your Personas</h1>
             <p className="text-muted-foreground mt-1">Manage your AI companions or create new ones.</p>
           </div>
-          <Button asChild className="w-full sm:w-auto">
+          <Button asChild size="lg" className="w-full sm:w-auto">
             <Link href="/persona/new">
               <PlusCircle className="mr-2" /> Create New Persona
             </Link>
