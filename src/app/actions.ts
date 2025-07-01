@@ -7,7 +7,9 @@ import { chatWithPersona } from '@/ai/flows/chat-with-persona';
 import { generatePersonaDetails } from '@/ai/flows/generate-persona-details';
 import { generatePersonaFromPrompt } from '@/ai/flows/generate-full-persona';
 import { generateChatTitle } from '@/ai/flows/generate-chat-title';
+import { moderatePersonaContent } from '@/ai/flows/moderate-persona-content';
 import type { Persona, UserDetails, ChatMessage, CreatePersonaState, UpdatePersonaState } from '@/lib/types';
+import { getApiKeys } from '@/lib/db';
 
 // New helper to handle empty string for optional number fields
 const emptyStringAsUndefined = z.preprocess((val) => (val === '' ? undefined : val), z.any());
@@ -58,6 +60,24 @@ export async function createPersonaAction(
     const { name, relation, age, traits, backstory, goals, responseStyle, minWpm, maxWpm } = validatedFields.data;
     const userApiKeys = validatedFields.data.apiKeys ? JSON.parse(validatedFields.data.apiKeys) : [];
 
+    // Final content moderation check
+    const moderationResult = await moderatePersonaContent({
+      name,
+      relation,
+      traits,
+      backstory,
+      goals,
+      responseStyle,
+      apiKey: userApiKeys,
+    });
+
+    if (!moderationResult.isSafe) {
+      return {
+        success: false,
+        message: `Persona content violates guidelines. Reason: ${moderationResult.reason}`,
+      };
+    }
+
     const profilePictureResponse = await generatePersonaProfilePicture({
       personaTraits: `A visual depiction of a character who is: ${traits}. Name: ${name}.`,
       apiKey: userApiKeys,
@@ -101,6 +121,22 @@ export async function generatePersonaDetailsAction(payload: { name: string; rela
         personaRelation: payload.relation, 
         apiKey: payload.apiKey 
     });
+
+    // Moderation check on generated details
+    const moderationResult = await moderatePersonaContent({
+        name: payload.name,
+        relation: payload.relation,
+        ...details,
+        apiKey: payload.apiKey,
+    });
+
+    if (!moderationResult.isSafe) {
+        return {
+            success: false,
+            error: `The generated persona details violate content guidelines. Reason: ${moderationResult.reason}. Please try different inputs.`
+        };
+    }
+
     return { success: true, details };
   } catch (error) {
     console.error(error);
@@ -115,6 +151,20 @@ export async function generatePersonaFromPromptAction(payload: { prompt: string;
       return { success: false, error: 'A prompt is required to generate a persona.' };
     }
     const personaData = await generatePersonaFromPrompt({ prompt: payload.prompt, apiKey: payload.apiKey });
+
+    // Moderation check on fully generated persona
+    const moderationResult = await moderatePersonaContent({
+        ...personaData,
+        apiKey: payload.apiKey,
+    });
+
+    if (!moderationResult.isSafe) {
+        return {
+            success: false,
+            error: `The generated persona violates content guidelines. Reason: ${moderationResult.reason}. Please try a different prompt.`
+        };
+    }
+
     return { success: true, personaData };
   } catch (error)
   {
@@ -216,6 +266,27 @@ export async function updatePersonaAction(
         message: 'Invalid form data.',
         errors: validatedFields.error.flatten().fieldErrors,
       };
+    }
+    
+    const { name, relation, traits, backstory, goals, responseStyle } = validatedFields.data;
+    const { gemini: userApiKeys } = await getApiKeys();
+    
+    // Final content moderation check for updates
+    const moderationResult = await moderatePersonaContent({
+        name,
+        relation,
+        traits,
+        backstory,
+        goals,
+        responseStyle,
+        apiKey: userApiKeys,
+    });
+
+    if (!moderationResult.isSafe) {
+        return {
+            success: false,
+            message: `Persona content violates guidelines. Reason: ${moderationResult.reason}`,
+        };
     }
 
     return { success: true, persona: validatedFields.data };
