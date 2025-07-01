@@ -167,12 +167,12 @@ export default function SettingsPage() {
               </div>
             </div>
 
-            <div className="flex justify-between items-center pt-4">
-              <Button variant="outline" onClick={() => router.back()} disabled={isSaving} size="lg">
+            <div className="flex w-full gap-4 pt-4">
+              <Button variant="outline" onClick={() => router.back()} disabled={isSaving} size="lg" className="flex-1">
                 <ArrowLeft className="mr-2 h-4 w-4" />
                 Back
               </Button>
-              <Button onClick={handleSave} disabled={isSaving} size="lg">
+              <Button onClick={handleSave} disabled={isSaving} size="lg" className="flex-1">
                  {isSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                 Save Changes
               </Button>
