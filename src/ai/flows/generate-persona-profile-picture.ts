@@ -25,9 +25,6 @@ export async function generatePersonaProfilePicture(input: GeneratePersonaProfil
     contents: [{ parts: [{ text: prompt }] }],
     generationConfig: {
       responseModalities: ['TEXT', 'IMAGE'],
-      thinkingConfig: {
-        thinkingBudget: 0,
-      },
     },
   };
 
