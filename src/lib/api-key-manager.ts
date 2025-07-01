@@ -18,7 +18,7 @@ function getRoundRobinUserKey(customKeys: string[]): string {
 }
 
 /**
- * Wraps an API call with failover and round-robin logic for user-provided API keys.
+ * Wraps an AI API call with failover and round-robin logic for user-provided API keys.
  * It requires custom keys to be provided and will throw an error if none are available.
  * @param apiCallFn The function to execute, which receives a single API key.
  * @param customKeys An array of user-provided keys from settings.
