@@ -436,7 +436,7 @@ export default function PersonaChatPage() {
     }
   
     let personaForLoop = { ...persona, chats: personaForUpdates.chats, memories: finalMemories };
-    const finalTitleRef = useRef(activeChat.title);
+    let finalTitle = activeChat.title;
   
     // Generate title in the background without blocking the message stream
     if (isNewChat && res.response && res.response[0]) {
@@ -446,7 +446,7 @@ export default function PersonaChatPage() {
         apiKey: userApiKeys,
       }).then(titleResult => {
         if (titleResult.title) {
-          finalTitleRef.current = titleResult.title;
+          finalTitle = titleResult.title;
           // Update React state to show the new title in the UI
           setPersona(currentPersona => {
             if (!currentPersona) return null;
@@ -496,7 +496,7 @@ export default function PersonaChatPage() {
           ...personaForLoop,
           chats: personaForLoop.chats.map(c =>
             c.id === activeChatId
-              ? { ...c, messages: [...messagesForThisTurn], updatedAt: Date.now(), title: finalTitleRef.current }
+              ? { ...c, messages: [...messagesForThisTurn], updatedAt: Date.now(), title: finalTitle }
               : c
           ),
         };
