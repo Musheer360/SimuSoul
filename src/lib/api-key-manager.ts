@@ -1,74 +1,54 @@
 'use server';
 
-// Added the two new keys to a hardcoded list as requested.
-const hardcodedKeys = [
-  'AIzaSyBW9E2ki_FYhM7utlaBV3oxCTcECjM0M-8',
-  'AIzaSyColbtdfV0a_BU1-k7apw-WIVX12YmEvTQ',
-];
+let userKeyIndex = 0;
 
-const serverApiKeys = [
-  ...hardcodedKeys,
-  ...(process.env.GEMINI_API_KEYS || '').split(','),
-  process.env.GEMINI_API_KEY,
-]
-  .map(k => k?.trim())
-  .filter(Boolean) as string[];
-
-let keyIndex = 0;
-
-function getRoundRobinKey(): string | undefined {
-  if (serverApiKeys.length === 0) {
-    return undefined;
+/**
+ * Gets the next key from the user's provided list in a round-robin fashion.
+ * @param customKeys The list of keys provided by the user.
+ * @returns The next API key to use.
+ */
+function getRoundRobinUserKey(customKeys: string[]): string {
+  // Ensure the index is always valid, even if the key list changes.
+  if (userKeyIndex >= customKeys.length) {
+    userKeyIndex = 0;
   }
-  const key = serverApiKeys[keyIndex];
-  keyIndex = (keyIndex + 1) % serverApiKeys.length;
+  const key = customKeys[userKeyIndex];
+  userKeyIndex = (userKeyIndex + 1) % customKeys.length;
   return key;
 }
 
 /**
- * Wraps an API call with failover logic. It prioritizes custom keys if provided,
- * otherwise it uses the server-side key pool.
+ * Wraps an API call with failover and round-robin logic for user-provided API keys.
+ * It requires custom keys to be provided and will throw an error if none are available.
  * @param apiCallFn The function to execute, which receives a single API key.
- * @param customKeys An optional array of user-provided keys.
+ * @param customKeys An array of user-provided keys from settings.
  * @returns The result of the successful API call.
  */
 export async function callWithFailover<T>(
   apiCallFn: (apiKey: string) => Promise<T>,
   customKeys?: string[]
 ): Promise<T> {
-  // If user provides valid keys, use them.
-  if (customKeys && customKeys.length > 0) {
-    let lastError: Error | null = null;
-    for (const key of customKeys) {
-        try {
-            return await apiCallFn(key);
-        } catch (error: any) {
-            lastError = error;
-            console.warn(`Custom API key ending in ...${key.slice(-4)} failed. Retrying with next key.`);
-        }
-    }
-    throw new Error(`All custom API keys failed. Last error: ${lastError?.message || 'Unknown error'}`);
+  const validKeys = customKeys?.filter(Boolean) || [];
+
+  if (validKeys.length === 0) {
+    throw new Error("No API key provided. Please add your Gemini API key in the settings page to use the application.");
   }
 
-  // Otherwise, use the server-side pool.
-  const numServerKeys = serverApiKeys.length;
-  if (numServerKeys === 0) {
-    throw new Error("No server-side API keys are configured and no custom key was provided.");
-  }
-
-  let lastServerError: Error | null = null;
-  for (let i = 0; i < numServerKeys; i++) {
-    const apiKey = getRoundRobinKey();
-    if (!apiKey) continue;
-
+  let lastError: Error | null = null;
+  
+  // Try each key once, starting from the current round-robin index.
+  const attempts = validKeys.length;
+  for (let i = 0; i < attempts; i++) {
+    const keyToTry = getRoundRobinUserKey(validKeys);
     try {
-      return await apiCallFn(apiKey);
+      // On success, return the result.
+      return await apiCallFn(keyToTry);
     } catch (error: any) {
-      lastServerError = error;
-      console.warn(`Server API key ending in ...${apiKey.slice(-4)} failed. Retrying with next key.`);
+      lastError = error;
+      console.warn(`API key ending in ...${keyToTry.slice(-4)} failed. Retrying with next key.`);
     }
   }
 
-  // If the loop completes, all server keys have failed.
-  throw new Error(`All server-side API keys failed. Last error: ${lastServerError?.message || 'Unknown error'}`);
+  // If the loop completes, all keys have failed.
+  throw new Error(`All provided API keys failed. Last error: ${lastError?.message || 'Unknown error'}`);
 }
