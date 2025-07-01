@@ -93,7 +93,7 @@ Analyze all fields below.
   };
 
   try {
-    const response = await callGeminiApi<any>('gemini-1.5-flash:generateContent', requestBody);
+    const response = await callGeminiApi<any>('gemini-2.5-flash:generateContent', requestBody);
     
     if (!response.candidates || !response.candidates[0].content.parts[0].text) {
       // Fail closed - if moderation doesn't respond, assume it's unsafe.
