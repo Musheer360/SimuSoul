@@ -843,16 +843,16 @@ export default function PersonaChatPage() {
       
       {persona && (
         <Dialog open={isMemoryDialogOpen} onOpenChange={handleMemoryDialogChange}>
-            <DialogContent className="w-full h-full flex flex-col sm:h-auto sm:w-full sm:max-w-md sm:rounded-lg" showCloseButton={false}>
+            <DialogContent className="flex h-full max-h-[85vh] w-full max-w-md flex-col" showCloseButton={false}>
                 <DialogHeader>
                     <DialogTitle>Memories for {persona.name}</DialogTitle>
                     <DialogDescription>
                        These are the memories this persona has about you. They are updated automatically during conversation.
                     </DialogDescription>
                 </DialogHeader>
-                <div className="space-y-4 py-4 flex-1 min-h-0">
-                    <ScrollArea className="h-full border rounded-md">
-                        <div className="p-4 space-y-2">
+                <div className="flex-1 space-y-4 py-4 min-h-0">
+                    <ScrollArea className="h-full rounded-md border">
+                        <div className="space-y-2 p-4">
                             {(persona.memories || []).length > 0 ? (
                                 [...persona.memories].sort().map((memory) => (
                                     <MemoryItem
@@ -862,7 +862,7 @@ export default function PersonaChatPage() {
                                     />
                                 ))
                             ) : (
-                                <p className="text-sm text-muted-foreground text-center py-4">No memories yet.</p>
+                                <p className="py-4 text-center text-sm text-muted-foreground">No memories yet.</p>
                             )}
                         </div>
                     </ScrollArea>

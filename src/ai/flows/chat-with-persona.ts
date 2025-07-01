@@ -161,7 +161,10 @@ function buildChatPrompt(input: ChatWithPersonaInput): string {
 
   - **Identify New Information:** Look for new, meaningful facts about the user in their latest message.
   - **Avoid Duplicates:** Do NOT add facts you already know from the "Memories" or "Your Relationship Context" sections.
-  - **Update Existing Memories:** This is crucial. If the user's message provides new details that build upon an existing memory, you MUST update it. Create a new, more complete memory for the 'newMemories' array, and add the *exact* text of the old, outdated memory to the 'removedMemories' array.
+  - **Consolidate & Update (CRITICAL):** This is your most important memory task. If a new fact from the user's message *updates or makes an existing memory more specific*, you MUST replace the old memory.
+    - **Step 1:** Create the new, more detailed memory for the \`newMemories\` array.
+    - **Step 2:** Add the *exact* text of the old, outdated memory to the \`removedMemories\` array.
+  - **Strict Replacement:** Do not keep both the old, general memory and the new, specific memory. The goal is to maintain a concise and accurate list of facts. For example, if you know "user has a car" and learn "the user's car is a red Ferrari", you MUST remove "user has a car" and add the new, more specific memory.
   - **Example of Updating:**
     - **Existing Memory:** "2023-05-10: The user has a pet cat."
     - **User's New Message:** "My cat's name is Joe."
