@@ -31,8 +31,8 @@ export async function generatePersonaProfilePicture(input: GeneratePersonaProfil
     },
   };
 
-  // Use the specified model for all requests, including image generation.
-  const response = await callGeminiApi<any>('gemini-2.5-flash:generateContent', requestBody);
+  // Use the specified model for image generation, as it's a specialized task.
+  const response = await callGeminiApi<any>('gemini-2.0-flash-preview-image-generation:generateContent', requestBody);
 
   // The model returns image data in an 'inlineData' part.
   const imagePart = response.candidates?.[0]?.content?.parts?.find(
