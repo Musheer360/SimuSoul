@@ -18,7 +18,7 @@ export const GeneratePersonaDetailsOutputSchema = z.object({
   traits: z.string().describe("The persona's key traits and characteristics."),
   backstory: z.string().describe("The persona's detailed backstory."),
   goals: z.string().describe("The persona's primary goals and motivations."),
-  responseStyle: z.string().describe("A description of the persona's communication style. Include details like their use of slang, emojis, formality, tone, and any scenario-based variations (e.g., how they talk when happy vs. angry)."),
+  responseStyle: z.string().describe("A detailed description of the persona's communication style. Must include details like formality, use of slang/emojis, and crucially, their typing habits (e.g., perfect grammar vs. common typos and lowercase text)."),
   minWpm: z.number().describe("The persona's minimum typing speed in words per minute (WPM). This should reflect their age, tech-savviness, and personality. Must be an integer."),
   maxWpm: z.number().describe("The persona's maximum typing speed in words per minute (WPM). This should be 10-15 WPM higher than minWpm. Must be an integer."),
 });
@@ -42,7 +42,7 @@ const GeneratePersonaDetailsOutputOpenAPISchema = {
     },
     responseStyle: {
       type: 'STRING',
-      description: "A description of the persona's communication style. Include details like their use of slang, emojis, formality, tone, and any scenario-based variations (e.g., how they talk when happy vs. angry).",
+      description: "A detailed description of the persona's communication style. Must include details like formality, use of slang/emojis, and crucially, their typing habits (e.g., perfect grammar vs. common typos and lowercase text).",
     },
     minWpm: {
       type: 'NUMBER',
@@ -73,7 +73,7 @@ Generate the following details for this character, strictly adhering to the cont
 - Traits: A short, punchy list of their most defining characteristics.
 - Backstory: A concise but evocative summary of their life history.
 - Goals: What drives them forward? What do they want to achieve?
-- Response Style: Define their communication habits. Are they formal or informal? Do they use emojis, slang, or curse words? How does their tone change with their mood (e.g., happy, angry, casual)? Be specific.
+- Response Style: Define their communication habits. Are they formal or informal? Do they use emojis, slang, or curse words? **Crucially, describe their typing style: Do they make common typos and punctuation errors (e.g., all lowercase, no periods), or is their grammar and spelling always perfect?** How does their tone change with their mood (e.g., happy, angry, casual)? Be specific.
 - Typing Speed: Based on the persona's name, relationship, and implied characteristics, determine a realistic typing speed range in words per minute (WPM). A very fast, young, tech-savvy person might type between 45-60 WPM. An average adult might be between 30-45 WPM. An older, less technical person might type between 15-25 WPM. You MUST generate a 'minWpm' and a 'maxWpm'. The 'maxWpm' MUST be between 10 and 15 WPM higher than the 'minWpm'. This range represents their typing speed variation.
 
 Make the details creative, consistent, and inspiring, while strictly following all content rules.
