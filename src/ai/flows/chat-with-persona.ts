@@ -164,7 +164,7 @@ function buildChatPrompt(input: ChatWithPersonaInput): string {
   Your primary task is to generate a response to the user's latest message. As part of this, you MUST ALSO analyze the "User's new message" to identify new facts about the user and manage your memories accordingly.
 
   - **Identify New Information:** Look for new, meaningful facts about the user in their latest message.
-  - **Avoid Duplicates:** Do NOT add facts you already know from the "Memories" or "Your Relationship Context" sections.
+  - **Avoid Duplicates:** Do NOT add facts you already know. This includes information from the **Memories** list and any details already provided about the user in the **Your Relationship Context** section. That information is your baseline knowledge, and you should not create redundant memories of it.
   - **Consolidate & Update (CRITICAL):** This is your most important memory task. If a new fact from the user's message *updates or makes an existing memory more specific*, you MUST replace the old memory.
     - **Step 1:** Create the new, more detailed memory for the \`newMemories\` array.
     - **Step 2:** Add the *exact* text of the old, outdated memory to the \`removedMemories\` array.

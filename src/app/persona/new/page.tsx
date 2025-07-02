@@ -7,7 +7,7 @@ import { generatePersonaDetails } from '@/ai/flows/generate-persona-details';
 import { generatePersonaFromPrompt, GeneratePersonaFromPromptOutput } from '@/ai/flows/generate-full-persona';
 import { generatePersonaProfilePicture } from '@/ai/flows/generate-persona-profile-picture';
 import { moderatePersonaContent } from '@/ai/flows/moderate-persona-content';
-import type { Persona, ChatSession } from '@/lib/types';
+import type { Persona, ChatSession, UserDetails } from '@/lib/types';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -23,7 +23,7 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Loader2, Sparkles, Wand2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { savePersona } from '@/lib/db';
+import { savePersona, getUserDetails } from '@/lib/db';
 
 const GENERIC_MODERATION_ERROR = 'This content does not meet the safety guidelines. Please modify it and try again.';
 const GENERIC_MODERATION_ERROR_PROMPT = 'The generated content does not meet the safety guidelines. Please try a different prompt.';
@@ -95,8 +95,18 @@ export default function NewPersonaPage() {
   const [isCreating, setIsCreating] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  const [userDetails, setUserDetails] = useState<UserDetails | null>(null);
+
   const nameRef = useRef<HTMLInputElement>(null);
   const relationRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    async function loadUserDetails() {
+        const details = await getUserDetails();
+        setUserDetails(details);
+    }
+    loadUserDetails();
+  }, []);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
@@ -111,7 +121,7 @@ export default function NewPersonaPage() {
     setIsGeneratingFull(true);
     setError(null);
     try {
-      const result = await generatePersonaFromPrompt({ prompt });
+      const result = await generatePersonaFromPrompt({ prompt, aboutUser: userDetails?.about });
       const moderationResult = await moderatePersonaContent({ ...result, age: result.age || undefined });
 
       if (!moderationResult.isSafe) {
@@ -144,7 +154,7 @@ export default function NewPersonaPage() {
     setIsGeneratingDetails(true);
     setError(null);
     try {
-      const result = await generatePersonaDetails({ personaName: name, personaRelation: relation });
+      const result = await generatePersonaDetails({ personaName: name, personaRelation: relation, aboutUser: userDetails?.about });
       const moderationResult = await moderatePersonaContent({ name, relation, ...result });
 
       if (!moderationResult.isSafe) {
@@ -199,7 +209,9 @@ export default function NewPersonaPage() {
       });
 
       const profilePictureResponse = await generatePersonaProfilePicture({
-        personaTraits: `A visual depiction of a character who is: ${dataToValidate.traits}. Name: ${dataToValidate.name}.`,
+        personaName: dataToValidate.name,
+        personaTraits: dataToValidate.traits,
+        personaBackstory: dataToValidate.backstory,
       });
 
       if (!profilePictureResponse.profilePictureDataUri) {

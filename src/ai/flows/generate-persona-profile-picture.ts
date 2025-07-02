@@ -9,7 +9,9 @@ import { callGeminiApi } from '@/lib/api-key-manager';
 import { z } from 'zod';
 
 export const GeneratePersonaProfilePictureInputSchema = z.object({
+  personaName: z.string(),
   personaTraits: z.string(),
+  personaBackstory: z.string(),
 });
 export type GeneratePersonaProfilePictureInput = z.infer<typeof GeneratePersonaProfilePictureInputSchema>;
 
@@ -19,7 +21,13 @@ export const GeneratePersonaProfilePictureOutputSchema = z.object({
 export type GeneratePersonaProfilePictureOutput = z.infer<typeof GeneratePersonaProfilePictureOutputSchema>;
 
 export async function generatePersonaProfilePicture(input: GeneratePersonaProfilePictureInput): Promise<GeneratePersonaProfilePictureOutput> {
-  const prompt = `Create a photorealistic, cinematic portrait of a character up to their mid-body. The character should be facing the camera. The character is described as: ${input.personaTraits}`;
+  const prompt = `Create a photorealistic, cinematic portrait of a character named ${input.personaName} up to their mid-body. The character should be facing the camera. Use the following details to create a visual representation that captures their essence, personality, and vibe.
+
+**Character Vibe & Traits:**
+${input.personaTraits}
+
+**Backstory Context:**
+${input.personaBackstory}`;
 
   const requestBody = {
     contents: [{ parts: [{ text: prompt }] }],

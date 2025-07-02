@@ -11,6 +11,7 @@ import { z } from 'zod';
 
 export const GeneratePersonaFromPromptInputSchema = z.object({
   prompt: z.string(),
+  aboutUser: z.string().optional().describe("Information about the user for whom the persona is being created."),
 });
 export type GeneratePersonaFromPromptInput = z.infer<typeof GeneratePersonaFromPromptInputSchema>;
 
@@ -82,6 +83,11 @@ export async function generatePersonaFromPrompt(input: GeneratePersonaFromPrompt
 - **Gender:** The persona MUST be strictly either male or female. Do not create characters that are non-binary, gender-fluid, or any other gender identity.
 - **Religion:** You MUST NOT create any persona that is a religious figure, deity, or has any association with real-world religions. The character's backstory and goals must be completely secular.
 - **Controversial Topics:** You MUST NOT create personas related to or that express views on sensitive or controversial topics, including but not limited to politics, sexuality (including LGBTQ+ identities), or social activism. Keep the persona's identity and story neutral and broadly appealing.
+${input.aboutUser ? `
+**User Context (The person you are creating this for):**
+This persona will be interacting with a user described as: "${input.aboutUser}".
+Use this information to inspire the persona's backstory, traits, and especially their relationship to the user, ensuring it feels plausible and connected.
+` : ''}
 
 User's Prompt: "${input.prompt}"
 
