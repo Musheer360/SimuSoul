@@ -107,6 +107,7 @@ Be creative and ensure all the generated details are consistent with each other,
   const requestBody = {
     contents: [{ parts: [{ text: promptText }] }],
     generationConfig: {
+      temperature: 1.0,
       responseMimeType: 'application/json',
       responseSchema: GeneratePersonaFromPromptOutputOpenAPISchema,
       thinkingConfig: {

@@ -233,6 +233,7 @@ export async function chatWithPersona(
   const requestBody = {
     contents: [{ parts: [{ text: prompt }] }],
     generationConfig: {
+      temperature: 1.0,
       responseMimeType: 'application/json',
       responseSchema: ChatWithPersonaOutputOpenAPISchema,
       thinkingConfig: {

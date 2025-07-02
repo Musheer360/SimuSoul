@@ -88,6 +88,7 @@ Make the details creative, consistent, and inspiring, while strictly following a
   const requestBody = {
     contents: [{ parts: [{ text: promptText }] }],
     generationConfig: {
+      temperature: 1.0,
       responseMimeType: 'application/json',
       responseSchema: GeneratePersonaDetailsOutputOpenAPISchema,
       thinkingConfig: {
