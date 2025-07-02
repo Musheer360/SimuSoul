@@ -411,14 +411,16 @@ export default function PersonaChatPage() {
         for (let i = 0; i < res.response.length; i++) {
           const messageContent = res.response[i];
     
-          if (i > 0) {
-            const { minWpm = 35, maxWpm = 40 } = persona;
-            const wpm = Math.floor(Math.random() * (maxWpm - minWpm + 1)) + minWpm;
-            const words = messageContent.split(/\s+/).filter(Boolean).length;
-            const typingTimeMs = (words / wpm) * 60 * 1000;
-            const delay = Math.max(750, Math.min(typingTimeMs, 4000));
-            await new Promise(resolve => setTimeout(resolve, delay));
-          }
+          const { minWpm, maxWpm } = persona;
+          const wpm = Math.floor(Math.random() * (maxWpm - minWpm + 1)) + minWpm;
+          const words = messageContent.split(/\s+/).filter(Boolean).length;
+          const typingTimeMs = (words / wpm) * 60 * 1000;
+          
+          const minDelay = i === 0 ? 900 : 500;
+          const maxDelay = 4000;
+          const delay = Math.max(minDelay, Math.min(typingTimeMs, maxDelay));
+          
+          await new Promise(resolve => setTimeout(resolve, delay));
     
           const typingIndex = messagesForThisTurn.findIndex(m => m.content === TYPING_PLACEHOLDER);
           if (typingIndex !== -1) {

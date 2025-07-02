@@ -24,7 +24,7 @@ export const GeneratePersonaFromPromptOutputSchema = z.object({
   goals: z.string().describe("The persona's primary goals and motivations."),
   responseStyle: z.string().describe("A description of the persona's communication style. Include details like their use of slang, emojis, formality, tone, and any scenario-based variations (e.g., how they talk when happy vs. angry)."),
   minWpm: z.number().describe("The persona's minimum typing speed in words per minute (WPM). This should reflect their age, tech-savviness, and personality. Must be an integer."),
-  maxWpm: z.number().describe("The persona's maximum typing speed in words per minute (WPM). This MUST be exactly 5 more than minWpm. Must be an integer."),
+  maxWpm: z.number().describe("The persona's maximum typing speed in words per minute (WPM). This should be 10-15 WPM higher than minWpm. Must be an integer."),
 });
 export type GeneratePersonaFromPromptOutput = z.infer<typeof GeneratePersonaFromPromptOutputSchema>;
 
@@ -66,7 +66,7 @@ const GeneratePersonaFromPromptOutputOpenAPISchema = {
     },
     maxWpm: {
       type: 'NUMBER',
-      description: "The persona's maximum typing speed in words per minute (WPM). This MUST be exactly 5 more than minWpm. Must be an integer.",
+      description: "The persona's maximum typing speed in words per minute (WPM). This should be 10-15 WPM higher than minWpm. Must be an integer.",
     },
   },
   required: ['name', 'relation', 'age', 'traits', 'backstory', 'goals', 'responseStyle', 'minWpm', 'maxWpm'],
@@ -93,7 +93,7 @@ Generate all of the following details for this new character, strictly adhering 
 - Backstory: A concise but evocative summary of their life history.
 - Goals: What drives them forward? What do they want to achieve?
 - Response Style: Define their communication habits. Are they formal or informal? Do they use emojis, slang, or curse words? How does their tone change with their mood (e.g., happy, angry, casual)? Be specific.
-- Typing Speed: Based on the persona's generated age, personality, and tech-savviness, determine a realistic typing speed range. A young, tech-savvy person might type between 45-50 WPM. An older, less technical person might type between 20-25 WPM. You MUST generate a 'minWpm' and a 'maxWpm'. The 'maxWpm' MUST be exactly 5 WPM higher than the 'minWpm'.
+- Typing Speed: Based on the persona's generated age, personality, and tech-savviness, determine a realistic typing speed range in words per minute (WPM). A very fast, young, tech-savvy person might type between 45-60 WPM. An average adult might be between 30-45 WPM. An older, less technical person might type between 15-25 WPM. You MUST generate a 'minWpm' and a 'maxWpm'. The 'maxWpm' MUST be between 10 and 15 WPM higher than the 'minWpm'. This range represents their typing speed variation.
 
 Be creative and ensure all the generated details are consistent with each other, the original prompt, and the content restrictions.
 `;
