@@ -36,33 +36,3 @@ export interface UserDetails {
 export interface ApiKeys {
   gemini: string[];
 }
-
-export interface CreatePersonaState {
-  message?: string | null;
-  errors?: {
-    name?: string[];
-    relation?: string[];
-    age?: string[];
-    traits?: string[];
-    backstory?: string[];
-    goals?: string[];
-    responseStyle?: string[];
-  };
-  success?: boolean;
-  persona?: Omit<Persona, 'id' | 'chats' | 'memories'> | null;
-}
-
-export interface UpdatePersonaState {
-  message?: string | null;
-  errors?: {
-    name?: string[];
-    relation?: string[];
-    age?: string[];
-    traits?: string[];
-    backstory?: string[];
-    goals?: string[];
-    responseStyle?: string[];
-  };
-  success?: boolean;
-  persona?: Omit<Persona, 'chats' | 'memories'> | null;
-}
