@@ -7,7 +7,7 @@ import { generatePersonaDetails } from '@/ai/flows/generate-persona-details';
 import { generatePersonaFromPrompt, GeneratePersonaFromPromptOutput } from '@/ai/flows/generate-full-persona';
 import { generatePersonaProfilePicture } from '@/ai/flows/generate-persona-profile-picture';
 import { moderatePersonaContent } from '@/ai/flows/moderate-persona-content';
-import type { Persona } from '@/lib/types';
+import type { Persona, ChatSession } from '@/lib/types';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -30,6 +30,45 @@ const GENERIC_MODERATION_ERROR_PROMPT = 'The generated content does not meet the
 const GENERIC_MODERATION_ERROR_DETAILS = 'The generated content does not meet the safety guidelines. Please modify your inputs and try again.';
 
 const emptyStringAsUndefined = (val: string | number | undefined) => (val === '' || val === undefined ? undefined : Number(val));
+
+const compressImage = (dataUri: string, quality = 0.8): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      if (typeof window === 'undefined') {
+        return resolve(dataUri);
+      }
+      const img = new Image();
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        const MAX_WIDTH = 1024;
+        const MAX_HEIGHT = 1024;
+        let width = img.width;
+        let height = img.height;
+
+        if (width > height) {
+          if (width > MAX_WIDTH) {
+            height *= MAX_WIDTH / width;
+            width = MAX_WIDTH;
+          }
+        } else {
+          if (height > MAX_HEIGHT) {
+            width *= MAX_HEIGHT / height;
+            height = MAX_HEIGHT;
+          }
+        }
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        if (!ctx) {
+          return reject(new Error('Could not get canvas context'));
+        }
+        ctx.drawImage(img, 0, 0, width, height);
+        resolve(canvas.toDataURL('image/jpeg', quality));
+      };
+      img.onerror = (err) => reject(err);
+      img.src = dataUri;
+    });
+};
+
 
 export default function NewPersonaPage() {
   const router = useRouter();
@@ -153,6 +192,11 @@ export default function NewPersonaPage() {
       if (!moderationResult.isSafe) {
         throw new Error(GENERIC_MODERATION_ERROR);
       }
+      
+      toast({
+        title: 'Generating Profile Picture...',
+        description: 'This may take a moment. Please wait.',
+      });
 
       const profilePictureResponse = await generatePersonaProfilePicture({
         personaTraits: `A visual depiction of a character who is: ${dataToValidate.traits}. Name: ${dataToValidate.name}.`,
@@ -161,20 +205,36 @@ export default function NewPersonaPage() {
       if (!profilePictureResponse.profilePictureDataUri) {
         throw new Error('Failed to generate profile picture.');
       }
+      
+      const compressedDataUri = await compressImage(profilePictureResponse.profilePictureDataUri);
+
+      const now = Date.now();
+      const newChat: ChatSession = {
+        id: crypto.randomUUID(),
+        title: 'New Chat',
+        messages: [],
+        createdAt: now,
+        updatedAt: now,
+      };
 
       const newPersona: Persona = {
         id: crypto.randomUUID(),
         ...dataToValidate,
-        profilePictureUrl: profilePictureResponse.profilePictureDataUri,
-        chats: [],
+        profilePictureUrl: compressedDataUri,
+        chats: [newChat],
         memories: [],
       };
 
       await savePersona(newPersona);
-      router.push(`/persona/${newPersona.id}`);
+      router.push(`/persona/${newPersona.id}?chat=${newChat.id}`);
 
     } catch (err: any) {
       setError(err.message || 'An unknown error occurred during persona creation.');
+      toast({
+        variant: 'destructive',
+        title: 'Creation Failed',
+        description: err.message || 'An unknown error occurred.',
+      });
     } finally {
       setIsCreating(false);
     }
