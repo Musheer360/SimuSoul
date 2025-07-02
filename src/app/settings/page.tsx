@@ -157,7 +157,7 @@ export default function SettingsPage() {
                 ))}
                 {apiKeys.gemini.length < 5 && (
                   <Button variant="outline" onClick={handleAddKey} className="w-full justify-start text-muted-foreground">
-                    <PlusCircle className="mr-2 h-4 w-4" />
+                    <PlusCircle className="h-4 w-4" />
                     Add another API key
                   </Button>
                 )}
@@ -167,13 +167,13 @@ export default function SettingsPage() {
               </div>
             </div>
 
-            <div className="flex w-full gap-4 pt-4">
-              <Button variant="outline" onClick={() => router.back()} disabled={isSaving} size="lg" className="flex-1">
-                <ArrowLeft className="mr-2 h-4 w-4" />
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-4">
+              <Button variant="outline" onClick={() => router.back()} disabled={isSaving} size="lg">
+                <ArrowLeft className="h-4 w-4" />
                 Back
               </Button>
-              <Button onClick={handleSave} disabled={isSaving} size="lg" className="flex-1">
-                 {isSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              <Button onClick={handleSave} disabled={isSaving} size="lg">
+                 {isSaving && <Loader2 className="h-4 w-4 animate-spin" />}
                 Save Changes
               </Button>
             </div>
