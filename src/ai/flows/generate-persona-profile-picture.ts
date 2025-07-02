@@ -21,7 +21,21 @@ export const GeneratePersonaProfilePictureOutputSchema = z.object({
 export type GeneratePersonaProfilePictureOutput = z.infer<typeof GeneratePersonaProfilePictureOutputSchema>;
 
 export async function generatePersonaProfilePicture(input: GeneratePersonaProfilePictureInput): Promise<GeneratePersonaProfilePictureOutput> {
-  const prompt = `Create a photorealistic, cinematic portrait of a character named ${input.personaName} up to their mid-body. The character should be facing the camera. Use the following details to create a visual representation that captures their essence, personality, and vibe.
+  const prompt = `You are an expert in creating authentic and believable profile pictures. Your task is to generate an image that a real person would use for their social media profile.
+
+The style of the photo should be directly inspired by the character's personality and backstory.
+- For a professional or serious persona, create a clean, well-lit headshot.
+- For a casual, artistic, or adventurous persona, create a more candid shot, a selfie, or a photo taken in a natural environment (like a cafe, a park, or during a hobby).
+
+**Instructions:**
+- Generate a realistic, high-quality headshot or bust-up photo.
+- Avoid overly perfect, airbrushed, or stereotypical "stock photo" looks. Aim for authenticity.
+- The lighting should be natural or look like it comes from a realistic source.
+- The background should be simple or contextually relevant to the character's life or profession.
+
+Use the following details to bring the character to life in their profile picture:
+
+**Character Name:** ${input.personaName}
 
 **Character Vibe & Traits:**
 ${input.personaTraits}
