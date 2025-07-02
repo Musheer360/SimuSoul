@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useState, useEffect } from 'react';
@@ -169,11 +170,11 @@ export default function SettingsPage() {
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-4">
               <Button variant="outline" onClick={() => router.back()} disabled={isSaving} size="lg">
-                <ArrowLeft className="h-4 w-4" />
+                <ArrowLeft />
                 Back
               </Button>
               <Button onClick={handleSave} disabled={isSaving} size="lg">
-                 {isSaving && <Loader2 className="h-4 w-4 animate-spin" />}
+                 {isSaving && <Loader2 className="animate-spin" />}
                 Save Changes
               </Button>
             </div>

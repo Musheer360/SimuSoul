@@ -246,12 +246,13 @@ export default function NewPersonaPage() {
                         <Label htmlFor="traits">Traits & Details</Label>
                         <Button
                             type="button"
-                            variant="link"
+                            variant="ghost"
                             size="sm"
                             onClick={handleGenerateDetails}
                             disabled={isGeneratingDetails}
+                            className="text-primary hover:text-primary"
                         >
-                            {isGeneratingDetails ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Wand2 className="mr-2 h-4 w-4" />}
+                            {isGeneratingDetails ? <Loader2 className="animate-spin" /> : <Wand2 />}
                             Generate Details
                         </Button>
                       </div>
