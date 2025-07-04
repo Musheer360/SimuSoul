@@ -19,7 +19,7 @@ export type GeneratePersonaFromPromptInput = z.infer<typeof GeneratePersonaFromP
 
 export const GeneratePersonaFromPromptOutputSchema = z.object({
   name: z.string().describe("A creative and fitting name for the persona."),
-  relation: z.string().describe("The persona's relationship to the user, like 'best friend' or 'arch-nemesis'."),
+  relation: z.string().describe("The persona's relationship to the user, like 'best friend' or 'arch-nemesis'. This must be a maximum of two words."),
   age: z.number().min(18).describe("The persona's age. Must be 18 or older."),
   traits: z.string().describe("The persona's key traits and characteristics."),
   backstory: z.string().describe("The persona's detailed backstory."),
@@ -40,7 +40,7 @@ const GeneratePersonaFromPromptOutputOpenAPISchema = {
     },
     relation: {
       type: 'STRING',
-      description: "The persona's relationship to the user, like 'best friend' or 'arch-nemesis'.",
+      description: "The persona's relationship to the user, like 'best friend' or 'arch-nemesis'. This must be a maximum of two words.",
     },
     age: {
       type: 'NUMBER',
@@ -108,7 +108,7 @@ User's Prompt: "${prompt}"
 
 Generate all of the following details for this new character, strictly adhering to the content restrictions above:
 - Name: A unique and fitting name. The name MUST NOT include nicknames in quotes (e.g., do not generate "Aurora 'Rory' Chip").
-- Relationship: A plausible relationship to ${userIdentifier} (e.g., friend, mentor, rival).
+- Relationship: A plausible relationship to ${userIdentifier} (e.g., best friend, mentor, rival). The relationship MUST be a maximum of two words.
 - Age: The character's age, which MUST be 18 or older.
 - Traits: A short, punchy list of their most defining characteristics.
 - Backstory: A concise but evocative summary of their life history.
