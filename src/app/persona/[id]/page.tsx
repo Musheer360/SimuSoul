@@ -188,11 +188,11 @@ export default function PersonaChatPage() {
   
   const handleSummarizeChat = useCallback(async (chatId: string) => {
     const currentPersona = personaRef.current;
-    if (!currentPersona || !userDetails.enableChatSummaries) return;
+    if (!currentPersona || !(userDetails.enableChatSummaries ?? true)) return;
 
     const chatToSummarize = currentPersona.chats.find(c => c.id === chatId);
 
-    if (chatToSummarize && chatToSummarize.messages.length > 4 && !chatToSummarize.summary) {
+    if (chatToSummarize && chatToSummarize.messages.length > 4) {
         try {
             console.log(`Summarizing chat: ${chatToSummarize.title}`);
             const result = await summarizeChat({ chatHistory: chatToSummarize.messages });
@@ -217,8 +217,8 @@ export default function PersonaChatPage() {
 
       const personaNow = personaRef.current;
       if (personaNow?.chats) {
-        const chat = personaNow.chats.find(c => c.id === chatIdToClean);
         // Clean up empty new chats
+        const chat = personaNow.chats.find(c => c.id === chatIdToClean);
         if (chat && chat.title === 'New Chat' && chat.messages.length === 0) {
           const updatedPersona = {
             ...personaNow,
@@ -239,6 +239,9 @@ export default function PersonaChatPage() {
 
     return () => {
       handleCleanup(prevActiveChatIdRef.current);
+      if (prevActiveChatIdRef.current) {
+        handleSummarizeChat(prevActiveChatIdRef.current);
+      }
     }
   }, [activeChatId, handleSummarizeChat]);
 

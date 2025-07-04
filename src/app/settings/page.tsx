@@ -105,7 +105,7 @@ export default function SettingsPage() {
       <div className="container py-8 max-w-2xl mx-auto">
         <Card className="bg-card/80 backdrop-blur-sm border border-border/20">
           <CardHeader className="text-center">
-            <CardTitle className="font-headline text-3xl">Settings</CardTitle>
+            <CardTitle className="font-headline text-3xl md:text-4xl">Settings</CardTitle>
             <CardDescription>
               Customize your experience. Your details are saved locally in your browser's database.
             </CardDescription>
@@ -150,7 +150,7 @@ export default function SettingsPage() {
                 </div>
                 <Switch
                   id="chat-summaries"
-                  checked={userDetails.enableChatSummaries}
+                  checked={userDetails.enableChatSummaries ?? true}
                   onCheckedChange={handleSummariesToggle}
                 />
               </div>
@@ -182,7 +182,7 @@ export default function SettingsPage() {
                 ))}
                 {apiKeys.gemini.length < 5 && (
                   <Button variant="outline" onClick={handleAddKey} className="w-full justify-start text-muted-foreground">
-                    <PlusCircle className="h-4 w-4" />
+                    <PlusCircle className="mr-2 h-4 w-4" />
                     Add another API key
                   </Button>
                 )}
@@ -198,7 +198,7 @@ export default function SettingsPage() {
                 Back
               </Button>
               <Button onClick={handleSave} disabled={isSaving} size="lg">
-                 {isSaving && <Loader2 className="animate-spin" />}
+                 {isSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                 Save Changes
               </Button>
             </div>

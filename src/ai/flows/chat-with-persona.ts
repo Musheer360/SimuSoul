@@ -7,7 +7,7 @@
  */
 
 import { callGeminiApi } from '@/lib/api-key-manager';
-import type { ChatMessage, Persona, UserDetails } from '@/lib/types';
+import type { ChatMessage, Persona, UserDetails, ChatSession } from '@/lib/types';
 import { z } from 'zod';
 
 const ChatMessageSchema = z.object({
@@ -229,9 +229,11 @@ export async function chatWithPersona(
   
   const personaDescription = `Backstory: ${persona.backstory}\nTraits: ${persona.traits}\nGoals: ${persona.goals}`;
 
-  const chatSummaries = userDetails.enableChatSummaries
+  const chatSummaries = (userDetails.enableChatSummaries ?? true)
     ? allChats
         .filter(c => c.summary)
+        .sort((a, b) => (b.updatedAt || b.createdAt) - (a.updatedAt || a.createdAt))
+        .slice(0, 5)
         .map(c => ({
             date: new Date(c.updatedAt || c.createdAt).toLocaleDateString(),
             summary: c.summary!,
