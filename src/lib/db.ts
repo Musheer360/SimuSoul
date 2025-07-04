@@ -64,10 +64,17 @@ export async function deletePersona(id: string): Promise<void> {
 
 // UserDetails operations
 const USER_DETAILS_KEY = 'currentUser';
+const defaultUserDetails: UserDetails = {
+    name: '',
+    about: '',
+    hasAcceptedTerms: false,
+    enableChatSummaries: true,
+};
 export async function getUserDetails(): Promise<UserDetails> {
-    if (!dbPromise) return { name: '', about: '', hasAcceptedTerms: false };
+    if (!dbPromise) return defaultUserDetails;
     const db = await dbPromise;
-    return (await db.get(USER_DETAILS_STORE, USER_DETAILS_KEY)) || { name: '', about: '', hasAcceptedTerms: false };
+    const details = await db.get(USER_DETAILS_STORE, USER_DETAILS_KEY);
+    return { ...defaultUserDetails, ...details };
 }
 
 export async function saveUserDetails(details: UserDetails): Promise<void> {

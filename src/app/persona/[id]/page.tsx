@@ -7,6 +7,7 @@ import Link from 'next/link';
 import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import { chatWithPersona } from '@/ai/flows/chat-with-persona';
 import { generateChatTitle } from '@/ai/flows/generate-chat-title';
+import { summarizeChat } from '@/ai/flows/summarize-chat';
 import type { Persona, UserDetails, ChatMessage, ChatSession } from '@/lib/types';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Textarea } from '@/components/ui/textarea';
@@ -184,6 +185,31 @@ export default function PersonaChatPage() {
   useEffect(() => {
     personaRef.current = persona;
   }, [persona]);
+  
+  const handleSummarizeChat = useCallback(async (chatId: string) => {
+    const currentPersona = personaRef.current;
+    if (!currentPersona || !userDetails.enableChatSummaries) return;
+
+    const chatToSummarize = currentPersona.chats.find(c => c.id === chatId);
+
+    if (chatToSummarize && chatToSummarize.messages.length > 4 && !chatToSummarize.summary) {
+        try {
+            console.log(`Summarizing chat: ${chatToSummarize.title}`);
+            const result = await summarizeChat({ chatHistory: chatToSummarize.messages });
+            const updatedPersona = {
+                ...currentPersona,
+                chats: currentPersona.chats.map(c =>
+                    c.id === chatId ? { ...c, summary: result.summary } : c
+                ),
+            };
+            setPersona(updatedPersona);
+            await savePersona(updatedPersona);
+            console.log(`Summary saved for chat: ${chatToSummarize.title}`);
+        } catch (e) {
+            console.error("Failed to summarize chat:", e);
+        }
+    }
+  }, [userDetails.enableChatSummaries]);
 
   useEffect(() => {
     const handleCleanup = (chatIdToClean: string | null | undefined) => {
@@ -192,6 +218,7 @@ export default function PersonaChatPage() {
       const personaNow = personaRef.current;
       if (personaNow?.chats) {
         const chat = personaNow.chats.find(c => c.id === chatIdToClean);
+        // Clean up empty new chats
         if (chat && chat.title === 'New Chat' && chat.messages.length === 0) {
           const updatedPersona = {
             ...personaNow,
@@ -202,13 +229,18 @@ export default function PersonaChatPage() {
         }
       }
     };
+
+    if (prevActiveChatIdRef.current && prevActiveChatIdRef.current !== activeChatId) {
+        handleSummarizeChat(prevActiveChatIdRef.current);
+    }
+    
     handleCleanup(prevActiveChatIdRef.current);
     prevActiveChatIdRef.current = activeChatId;
 
     return () => {
       handleCleanup(prevActiveChatIdRef.current);
     }
-  }, [activeChatId]);
+  }, [activeChatId, handleSummarizeChat]);
 
   useEffect(() => {
     async function loadPageData() {
@@ -222,9 +254,15 @@ export default function PersonaChatPage() {
       ]);
       setPersona(p || null);
       setUserDetails(ud);
+      
+      if (!isMobile) {
+        setIsSidebarOpen(true);
+      } else {
+        setIsSidebarOpen(false);
+      }
     }
     loadPageData();
-  }, [id]);
+  }, [id, isMobile]);
 
   const handleNewChat = useCallback(async () => {
     if (!persona) return;
@@ -362,8 +400,10 @@ export default function PersonaChatPage() {
     const currentDateForMemory = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
   
     try {
+      const allChatsForContext = persona.chats.filter(c => c.id !== activeChatId);
+
       const res = await chatWithPersona({
-        persona, userDetails, chatHistory: messages, message: userInput, currentDateTime, currentDateForMemory,
+        persona, userDetails, chatHistory: messages, message: userInput, currentDateTime, currentDateForMemory, allChats: allChatsForContext
       });
 
       let finalMemories = persona.memories || [];
