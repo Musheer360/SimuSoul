@@ -8,9 +8,21 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog';
+import { Separator } from '@/components/ui/separator';
 import { ArrowLeft, Loader2, PlusCircle, Trash2 } from 'lucide-react';
 import type { UserDetails, ApiKeys } from '@/lib/types';
-import { getUserDetails, saveUserDetails, getApiKeys, saveApiKeys } from '@/lib/db';
+import { getUserDetails, saveUserDetails, getApiKeys, saveApiKeys, clearDatabase } from '@/lib/db';
 import { useToast } from '@/hooks/use-toast';
 
 export default function SettingsPage() {
@@ -20,6 +32,7 @@ export default function SettingsPage() {
   const [apiKeys, setApiKeys] = useState<ApiKeys>({ gemini: [''] });
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
+  const [isClearing, setIsClearing] = useState(false);
 
   useEffect(() => {
     async function loadSettings() {
@@ -84,6 +97,26 @@ export default function SettingsPage() {
       });
     } finally {
       setIsSaving(false);
+    }
+  };
+
+  const handleClearDatabase = async () => {
+    setIsClearing(true);
+    try {
+        await clearDatabase();
+        toast({
+            title: 'Application Reset',
+            description: 'All data has been cleared. The application will now reload.',
+        });
+        // The clearDatabase function will handle page reload.
+    } catch (error) {
+        console.error('Failed to clear database:', error);
+        toast({
+            variant: 'destructive',
+            title: 'Reset Failed',
+            description: 'Could not clear all data. Please try again.',
+        });
+        setIsClearing(false);
     }
   };
 
@@ -166,6 +199,45 @@ export default function SettingsPage() {
                    Your keys are stored locally and used for all AI requests. If left empty, a server-provided key will be used.
                  </p>
               </div>
+            </div>
+
+            <Separator />
+            
+            <div className="space-y-4 rounded-lg border border-destructive/50 p-4">
+                <h3 className="font-semibold font-headline text-xl text-destructive">Danger Zone</h3>
+                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                    <div>
+                        <p className="font-medium">Reset Application</p>
+                        <p className="text-sm text-muted-foreground">
+                            This will permanently delete all your personas, chats, settings, and API keys. This action is irreversible.
+                        </p>
+                    </div>
+                    <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                            <Button variant="destructive" className="w-full sm:w-auto flex-shrink-0">
+                                <Trash2 className="mr-2 h-4 w-4" /> Clear All Data
+                            </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                            <AlertDialogHeader>
+                                <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+                                <AlertDialogDescription>
+                                    This will permanently delete everything, including all personas, chats, memories, and your user settings. This action cannot be undone and the application will reload.
+                                </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                <AlertDialogAction
+                                    className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                                    onClick={handleClearDatabase}
+                                    disabled={isClearing}
+                                >
+                                    {isClearing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : 'Yes, delete everything'}
+                                </AlertDialogAction>
+                            </AlertDialogFooter>
+                        </AlertDialogContent>
+                    </AlertDialog>
+                </div>
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-4">

@@ -1,4 +1,4 @@
-import { openDB, type DBSchema } from 'idb';
+import { openDB, deleteDB, type DBSchema } from 'idb';
 import type { Persona, UserDetails, ApiKeys } from '@/lib/types';
 
 const DB_NAME = 'PersonaForgeDB';
@@ -94,4 +94,15 @@ export async function saveApiKeys(keys: ApiKeys): Promise<void> {
     if (!dbPromise) throw new Error("Database not available on server.");
     const db = await dbPromise;
     await db.put(API_KEYS_STORE, keys, API_KEYS_KEY);
+}
+
+// Function to wipe the entire database
+export async function clearDatabase(): Promise<void> {
+    if (!dbPromise) throw new Error("Database not available on server.");
+    // Close the connection before deleting
+    const db = await dbPromise;
+    db.close();
+    await deleteDB(DB_NAME);
+    // Reload the application to re-initialize state and re-trigger setup
+    window.location.href = '/';
 }
