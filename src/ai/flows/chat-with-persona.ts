@@ -81,6 +81,8 @@ const ChatWithPersonaOutputOpenAPISchema = {
 
 
 function buildChatPrompt(input: ChatWithPersonaInput): string {
+    const userIdentifier = input.userDetails?.name || 'the user';
+
     let prompt = `You are a character actor playing the role of ${input.personaName}. You MUST strictly adhere to the persona's character, knowledge, and communication style.
 
   **Core Instructions & Content Restrictions (NON-NEGOTIABLE):**
@@ -132,12 +134,10 @@ function buildChatPrompt(input: ChatWithPersonaInput): string {
   ---
   **Your Relationship Context**
 
-  You are speaking to the user.`;
+  You are speaking to ${userIdentifier}.`;
 
-  if (input.userDetails?.name) {
-      prompt += `Their name is ${input.userDetails.name}.`;
-  } else {
-      prompt += `You do not know their name yet.`;
+  if (!input.userDetails?.name) {
+      prompt += ` You do not know their name yet.`;
   }
 
   prompt += `\nYour relationship to them is: **${input.personaRelation}**. You must treat them according to this relationship at all times.`;
@@ -149,14 +149,14 @@ function buildChatPrompt(input: ChatWithPersonaInput): string {
   prompt += `
 
   ---
-  **Memories (Long-Term Facts about the user)**
+  **Memories (Long-Term Facts about ${userIdentifier})**
 
-  You have the following memories about the user. Use them to inform your response.`;
+  You have the following memories about ${userIdentifier}. Use them to inform your response.`;
 
   if (input.existingMemories && input.existingMemories.length > 0) {
       prompt += `\n${input.existingMemories.map(mem => `- ${mem}`).join('\n')}`;
   } else {
-      prompt += `\n(You have no memories of the user yet.)`;
+      prompt += `\n(You have no memories of ${userIdentifier} yet.)`;
   }
   
   if (input.chatSummaries && input.chatSummaries.length > 0) {
@@ -164,7 +164,7 @@ function buildChatPrompt(input: ChatWithPersonaInput): string {
     
 ---
 **Past Conversation Summaries**
-You can use these summaries of your past conversations with the user to maintain long-term context.
+You can use these summaries of your past conversations with ${userIdentifier} to maintain long-term context.
 `
     input.chatSummaries.forEach(summary => {
         prompt += `
@@ -178,22 +178,22 @@ ${summary.summary}
 
   ---
   **Memory Management Rules & Your Task**
-  Your primary task is to generate a response to the user's latest message. As part of this, you MUST ALSO analyze the "User's new message" to identify new facts about the user and manage your memories accordingly.
+  Your primary task is to generate a response to ${userIdentifier}'s latest message. As part of this, you MUST ALSO analyze the "${userIdentifier}'s new message" to identify new facts about ${userIdentifier} and manage your memories accordingly.
 
-  - **Identify New Information:** Look for new, meaningful facts about the user in their latest message.
-  - **Avoid Duplicates (CRITICAL):** Do NOT add facts you already know. This includes information from the **Memories** list and, most importantly, any details already provided about the user in the **Your Relationship Context** section (their name, their 'about me' description, etc.). That information is your baseline knowledge; DO NOT create redundant memories of it.
-  - **Consolidate & Update (CRITICAL):** This is your most important memory task. If a new fact from the user's message *updates or makes an existing memory more specific*, you MUST replace the old memory.
+  - **Identify New Information:** Look for new, meaningful facts about ${userIdentifier} in their latest message.
+  - **Avoid Duplicates (CRITICAL):** Do NOT add facts you already know. This includes information from the **Memories** list and, most importantly, any details already provided about ${userIdentifier} in the **Your Relationship Context** section (their name, their 'about me' description, etc.). That information is your baseline knowledge; DO NOT create redundant memories of it.
+  - **Consolidate & Update (CRITICAL):** This is your most important memory task. If a new fact from ${userIdentifier}'s message *updates or makes an existing memory more specific*, you MUST replace the old memory.
     - **Step 1:** Create the new, more detailed memory for the \`newMemories\` array.
     - **Step 2:** Add the *exact* text of the old, outdated memory to the \`removedMemories\` array.
-  - **Strict Replacement:** Do not keep both the old, general memory and the new, specific memory. The goal is to maintain a concise and accurate list of facts. For example, if you know "user has a car" and learn "the user's car is a red Ferrari", you MUST remove "user has a car" and add the new, more specific memory.
+  - **Strict Replacement:** Do not keep both the old, general memory and the new, specific memory. The goal is to maintain a concise and accurate list of facts. For example, if you know "${userIdentifier} has a car" and learn "${userIdentifier}'s car is a red Ferrari", you MUST remove "${userIdentifier} has a car" and add the new, more specific memory.
   - **Example of Updating:**
     - **Existing Memory:** "2023-05-10: The user has a pet cat."
     - **User's New Message:** "My cat's name is Joe."
     - **Your Action:**
-      - Add to \`newMemories\`: ["${input.currentDateForMemory}: The user has a pet cat named Joe."]
+      - Add to \`newMemories\`: ["${input.currentDateForMemory}: ${userIdentifier} has a pet cat named Joe."]
       - Add to \`removedMemories\`: ["2023-05-10: The user has a pet cat."]
   - **Create New Memories:** If a fact is entirely new and unrelated to existing memories, add it to the 'newMemories' array.
-  - **Memory Format:** A memory MUST be a concise, self-contained sentence, formatted as \`YYYY-MM-DD: The memory text.\`. You MUST use the following date for any new memories: **${input.currentDateForMemory}**.
+  - **Memory Format:** A memory MUST be a concise, self-contained sentence, formatted as \`YYYY-MM-DD: The memory text.\`. When creating memories, refer to the person you are chatting with as "${userIdentifier}". You MUST use the following date for any new memories: **${input.currentDateForMemory}**.
   - **No Changes:** If there are no new or updated facts, return empty arrays for 'newMemories' and 'removedMemories'.
 
   ---
@@ -208,7 +208,7 @@ ${summary.summary}
   prompt += `
 
   ---
-  **User's new message to you:**
+  **${userIdentifier}'s new message to you:**
   ${input.message}`;
   
   return prompt;

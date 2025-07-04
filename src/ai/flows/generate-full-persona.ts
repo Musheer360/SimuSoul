@@ -11,7 +11,8 @@ import { z } from 'zod';
 
 export const GeneratePersonaFromPromptInputSchema = z.object({
   prompt: z.string(),
-  aboutUser: z.string().optional().describe("Information about the user for whom the persona is being created."),
+  userName: z.string().optional().describe("The name of the user for whom the persona is being created."),
+  userAbout: z.string().optional().describe("Information about the user for whom the persona is being created."),
 });
 export type GeneratePersonaFromPromptInput = z.infer<typeof GeneratePersonaFromPromptInputSchema>;
 
@@ -75,6 +76,24 @@ const GeneratePersonaFromPromptOutputOpenAPISchema = {
 
 
 export async function generatePersonaFromPrompt(input: GeneratePersonaFromPromptInput): Promise<GeneratePersonaFromPromptOutput> {
+  const { prompt, userName, userAbout } = input;
+  const userIdentifier = userName || 'the user';
+  
+  let userContextPrompt = '';
+  if (userName || userAbout) {
+    userContextPrompt += `\n**User Context (The person you are creating this for):**\n`;
+    if (userName) {
+      userContextPrompt += `This persona will be interacting with ${userName}.`;
+      if (userAbout) {
+        userContextPrompt += ` Here's a bit about them: "${userAbout}".\n`;
+      } else {
+        userContextPrompt += `\n`;
+      }
+    } else { // only userAbout exists
+      userContextPrompt += `This persona will be interacting with a user described as: "${userAbout}".\n`;
+    }
+    userContextPrompt += `Use this information to inspire the persona's backstory, traits, and especially their relationship to ${userIdentifier}, ensuring it feels plausible and connected.`;
+  }
 
   const promptText = `You are a world-class creative writer and character designer. Based on the user's prompt, generate a complete, ready-to-use fictional persona.
 
@@ -83,17 +102,13 @@ export async function generatePersonaFromPrompt(input: GeneratePersonaFromPrompt
 - **Gender:** The persona MUST be strictly either male or female. Do not create characters that are non-binary, gender-fluid, or any other gender identity.
 - **Religion:** You MUST NOT create any persona that is a religious figure, deity, or has any association with real-world religions. The character's backstory and goals must be completely secular.
 - **Controversial Topics:** You MUST NOT create personas related to or that express views on sensitive or controversial topics, including but not to politics, sexuality (including LGBTQ+ identities), or social activism. Keep the persona's identity and story neutral and broadly appealing.
-${input.aboutUser ? `
-**User Context (The person you are creating this for):**
-This persona will be interacting with a user described as: "${input.aboutUser}".
-Use this information to inspire the persona's backstory, traits, and especially their relationship to the user, ensuring it feels plausible and connected.
-` : ''}
+${userContextPrompt}
 
-User's Prompt: "${input.prompt}"
+User's Prompt: "${prompt}"
 
 Generate all of the following details for this new character, strictly adhering to the content restrictions above:
 - Name: A unique and fitting name. The name MUST NOT include nicknames in quotes (e.g., do not generate "Aurora 'Rory' Chip").
-- Relationship: A plausible relationship to the user (e.g., friend, mentor, rival).
+- Relationship: A plausible relationship to ${userIdentifier} (e.g., friend, mentor, rival).
 - Age: The character's age, which MUST be 18 or older.
 - Traits: A short, punchy list of their most defining characteristics.
 - Backstory: A concise but evocative summary of their life history.

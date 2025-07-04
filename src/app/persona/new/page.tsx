@@ -121,7 +121,11 @@ export default function NewPersonaPage() {
     setIsGeneratingFull(true);
     setError(null);
     try {
-      const result = await generatePersonaFromPrompt({ prompt, aboutUser: userDetails?.about });
+      const result = await generatePersonaFromPrompt({
+        prompt,
+        userName: userDetails?.name,
+        userAbout: userDetails?.about,
+      });
       const moderationResult = await moderatePersonaContent({ ...result, age: result.age || undefined });
 
       if (!moderationResult.isSafe) {
@@ -154,7 +158,12 @@ export default function NewPersonaPage() {
     setIsGeneratingDetails(true);
     setError(null);
     try {
-      const result = await generatePersonaDetails({ personaName: name, personaRelation: relation, aboutUser: userDetails?.about });
+      const result = await generatePersonaDetails({
+        personaName: name,
+        personaRelation: relation,
+        userName: userDetails?.name,
+        userAbout: userDetails?.about
+      });
       const moderationResult = await moderatePersonaContent({ name, relation, ...result });
 
       if (!moderationResult.isSafe) {
