@@ -756,7 +756,7 @@ export default function PersonaChatPage() {
                                </AlertDialogHeader>
                                <AlertDialogFooter>
                                  <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                 <AlertDialogAction className="bg-destructive text-destructive-foreground hover:bg-destructive/90" onClick={() => { handleDeletePersona(); setIsManagementDialogOpen(false); }}>
+                                 <AlertDialogAction className="bg-destructive text-destructive-foreground hover:bg-destructive/90" onClick={handleDeletePersona}>
                                    Delete
                                  </AlertDialogAction>
                                </AlertDialogFooter>
