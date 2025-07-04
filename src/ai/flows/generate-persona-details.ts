@@ -65,7 +65,7 @@ export async function generatePersonaDetails(input: GeneratePersonaDetailsInput)
 - **Age:** The persona you create MUST be clearly an adult (18 years or older). Do not create characters that are minors.
 - **Gender:** The persona MUST be strictly either male or female. Do not create characters that are non-binary, gender-fluid, or any other gender identity.
 - **Religion:** You MUST NOT create any persona that is a religious figure, deity, or has any association with real-world religions. The character's backstory and goals must be completely secular.
-- **Controversial Topics:** You MUST NOT create personas related to or that express views on sensitive or controversial topics, including but not limited to politics, sexuality (including LGBTQ+ identities), or social activism. Keep the persona's identity and story neutral and broadly appealing.
+- **Controversial Topics:** You MUST NOT create personas related to or that express views on sensitive or controversial topics, including but not to politics, sexuality (including LGBTQ+ identities), or social activism. Keep the persona's identity and story neutral and broadly appealing.
 ${input.aboutUser ? `
 **User Context (The person you are creating this for):**
 This persona will be interacting with a user described as: "${input.aboutUser}".
@@ -103,7 +103,7 @@ Make the details creative, consistent, and inspiring, while strictly following a
     ],
   };
 
-  const response = await callGeminiApi<any>('gemini-1.5-flash:generateContent', requestBody);
+  const response = await callGeminiApi<any>('gemini-2.5-flash:generateContent', requestBody);
   
   if (!response.candidates || !response.candidates[0].content.parts[0].text) {
     throw new Error('Invalid response from AI model for detail generation.');

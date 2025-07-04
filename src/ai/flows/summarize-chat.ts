@@ -52,10 +52,13 @@ Generate the summary now.
     generationConfig: {
       responseMimeType: 'application/json',
       responseSchema: SummarizeChatOutputOpenAPISchema,
+      thinkingConfig: {
+        thinkingBudget: 0,
+      },
     },
   };
 
-  const response = await callGeminiApi<any>('gemini-1.5-flash:generateContent', requestBody);
+  const response = await callGeminiApi<any>('gemini-2.5-flash:generateContent', requestBody);
   
   if (!response.candidates || !response.candidates[0].content.parts[0].text) {
     throw new Error('Invalid response from AI model for summary generation.');

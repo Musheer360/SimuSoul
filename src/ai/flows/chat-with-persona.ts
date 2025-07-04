@@ -264,6 +264,9 @@ export async function chatWithPersona(
       temperature: 1.1,
       responseMimeType: 'application/json',
       responseSchema: ChatWithPersonaOutputOpenAPISchema,
+      thinkingConfig: {
+        thinkingBudget: 0,
+      },
     },
     safetySettings: [
         { category: 'HARM_CATEGORY_HATE_SPEECH', threshold: 'BLOCK_ONLY_HIGH' },
@@ -273,7 +276,7 @@ export async function chatWithPersona(
     ],
   };
 
-  const response = await callGeminiApi<any>('gemini-1.5-flash:generateContent', requestBody);
+  const response = await callGeminiApi<any>('gemini-2.5-flash:generateContent', requestBody);
 
   if (!response.candidates || !response.candidates[0].content.parts[0].text) {
     throw new Error('Invalid response from AI model.');
