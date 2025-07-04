@@ -176,6 +176,10 @@ export default function PersonaChatPage() {
   const [glowingMessageIndex, setGlowingMessageIndex] = useState<number | null>(null);
   const [isMemoryButtonGlowing, setIsMemoryButtonGlowing] = useState(false);
 
+  const [touchStartX, setTouchStartX] = useState<number | null>(null);
+  const [touchMoveX, setTouchMoveX] = useState<number | null>(null);
+  const sidebarRef = useRef<HTMLDivElement>(null);
+
   const scrollAreaRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const formRef = useRef<HTMLFormElement>(null);
@@ -591,6 +595,45 @@ export default function PersonaChatPage() {
       setIsMemoryDialogOpen(open);
   }, []);
 
+  const handleTouchStart = useCallback((e: React.TouchEvent<HTMLDivElement>) => {
+    if (!isMobile || !isSidebarOpen) return;
+    setTouchMoveX(null);
+    setTouchStartX(e.targetTouches[0].clientX);
+  }, [isMobile, isSidebarOpen]);
+
+  const handleTouchMove = useCallback((e: React.TouchEvent<HTMLDivElement>) => {
+    if (touchStartX === null) return;
+    const currentX = e.targetTouches[0].clientX;
+    const deltaX = currentX - touchStartX;
+    if (deltaX < 0) { // Only track left swipes (closing)
+      setTouchMoveX(currentX);
+    } else {
+      setTouchMoveX(touchStartX); // Prevent swiping right
+    }
+  }, [touchStartX]);
+
+  const handleTouchEnd = useCallback(() => {
+    if (touchStartX === null) return;
+    
+    let shouldClose = false;
+    if (touchMoveX !== null) {
+      const deltaX = touchMoveX - touchStartX;
+      const sidebarWidth = sidebarRef.current?.offsetWidth || 320;
+      
+      if (deltaX < -(sidebarWidth / 3)) { // Swiped more than 1/3
+        shouldClose = true;
+      }
+    }
+
+    if (shouldClose) {
+      setIsSidebarOpen(false);
+    }
+
+    // Reset touch state
+    setTouchStartX(null);
+    setTouchMoveX(null);
+  }, [touchStartX, touchMoveX]);
+
   if (persona === undefined) {
     return <PersonaChatSkeleton />;
   }
@@ -616,6 +659,16 @@ export default function PersonaChatPage() {
     );
   }
 
+  let swipeTransform: React.CSSProperties = {};
+  let transitionClass = 'transition-transform duration-300 ease-in-out';
+  
+  if (isMobile && touchStartX !== null && touchMoveX !== null) {
+    const deltaX = touchMoveX - touchStartX;
+    const transformX = Math.min(0, deltaX);
+    swipeTransform = { transform: `translateX(${transformX}px)`, transition: 'none' };
+    transitionClass = '';
+  }
+
   return (
     <>
       <div className="flex h-full">
@@ -626,10 +679,18 @@ export default function PersonaChatPage() {
               isSidebarOpen ? "block" : "hidden"
             )}
           />
-          <div className={cn(
-              "transition-transform duration-300 ease-in-out flex flex-col bg-card/80 backdrop-blur-sm",
+          <div 
+            ref={sidebarRef}
+            onTouchStart={handleTouchStart}
+            onTouchMove={handleTouchMove}
+            onTouchEnd={handleTouchEnd}
+            onTouchCancel={handleTouchEnd}
+            style={swipeTransform}
+            className={cn(
+              transitionClass,
+              "flex flex-col bg-card/80 backdrop-blur-sm",
               "fixed bottom-0 left-0 top-16 z-30 w-80 border-r md:static md:bottom-auto md:top-auto md:h-auto md:w-auto md:transform-none md:transition-all",
-              isSidebarOpen ? "translate-x-0" : "-translate-x-full",
+              (touchStartX === null) && (isSidebarOpen ? "translate-x-0" : "-translate-x-full"),
               isSidebarOpen ? "md:w-80" : "md:w-0 md:p-0 md:opacity-0 md:border-r-0",
               !isSidebarOpen && "md:overflow-hidden"
           )}>
@@ -810,7 +871,7 @@ export default function PersonaChatPage() {
                 {activeChatId && activeChat ? (
                 <>
                     <ScrollArea className="flex-1" ref={scrollAreaRef}>
-                      <div className="max-w-3xl mx-auto px-4">
+                      <div className="max-w-3xl mx-auto p-4">
                         {messages.map((message, index) => {
                            const isFirstInSequence = !messages[index - 1] || messages[index - 1].role !== message.role;
                            const isLastInSequence = !messages[index + 1] || messages[index + 1].role !== message.role;
