@@ -269,6 +269,10 @@ export default function PersonaChatPage() {
 
   const handleNewChat = useCallback(async () => {
     if (!persona) return;
+    
+    if (isMobile) {
+      setIsSidebarOpen(false);
+    }
 
     const existingNewChat = persona.chats.find(c => c.title === 'New Chat');
     if (existingNewChat) {
@@ -291,7 +295,7 @@ export default function PersonaChatPage() {
     setPersona(updatedPersona);
     await savePersona(updatedPersona);
     router.push(`/persona/${persona.id}?chat=${newChat.id}`);
-  }, [persona, router]);
+  }, [persona, router, isMobile]);
   
   const sortedChats = useMemo(() => {
     if (!persona?.chats) return [];
@@ -736,7 +740,13 @@ export default function PersonaChatPage() {
                     {sortedChats.length > 0 ? (
                       <div className="space-y-1">
                       {sortedChats.map(chat => (
-                        <Link key={chat.id} href={`/persona/${persona.id}?chat=${chat.id}`} className="block group" scroll={false}>
+                        <Link 
+                            key={chat.id} 
+                            href={`/persona/${persona.id}?chat=${chat.id}`} 
+                            className="block group" 
+                            scroll={false}
+                            onClick={() => { if (isMobile) setIsSidebarOpen(false); }}
+                        >
                            <div className={cn(
                                 "flex justify-between items-center p-3 rounded-md transition-colors",
                                 activeChatId === chat.id

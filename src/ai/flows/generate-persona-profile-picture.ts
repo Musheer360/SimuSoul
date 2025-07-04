@@ -21,17 +21,18 @@ export const GeneratePersonaProfilePictureOutputSchema = z.object({
 export type GeneratePersonaProfilePictureOutput = z.infer<typeof GeneratePersonaProfilePictureOutputSchema>;
 
 export async function generatePersonaProfilePicture(input: GeneratePersonaProfilePictureInput): Promise<GeneratePersonaProfilePictureOutput> {
-  const prompt = `You are an expert in creating authentic and believable profile pictures. Your task is to generate an image that a real person would use for their social media profile.
+  const prompt = `You are an expert art director specializing in character portraits for social media. Your task is to generate a profile picture that is authentic and believable, but in a semi-realistic, digitally painted art style. It should not look like a photograph.
 
-The style of the photo should be directly inspired by the character's personality and backstory.
-- For a professional or serious persona, create a clean, well-lit headshot.
-- For a casual, artistic, or adventurous persona, create a more candid shot, a selfie, or a photo taken in a natural environment (like a cafe, a park, or during a hobby).
+The style of the portrait should be directly inspired by the character's personality and backstory.
+- For a professional or serious persona, create a clean, well-composed, painted headshot.
+- For a casual, artistic, or adventurous persona, create a more dynamic painted portrait, perhaps with a more expressive pose or interesting lighting that reflects their hobby or environment.
 
-**Instructions:**
-- Generate a realistic, high-quality headshot or bust-up photo.
-- Avoid overly perfect, airbrushed, or stereotypical "stock photo" looks. Aim for authenticity.
-- The lighting should be natural or look like it comes from a realistic source.
-- The background should be simple or contextually relevant to the character's life or profession.
+**Style Instructions (CRITICAL):**
+- **Art Style:** Generate a high-quality, semi-realistic, digitally painted portrait. Think modern concept art or a high-end graphic novel. It should have a clear artistic touch.
+- **AVOID PHOTOREALISM:** Do not generate a photograph. The image must look like a digital painting.
+- **Authenticity over Perfection:** Avoid overly airbrushed or generic "anime" looks. The character should feel unique and real, despite being illustrated.
+- **Lighting:** Use natural or dramatic lighting that complements the character's mood and setting.
+- **Background:** Keep the background simple, painterly, or contextually relevant to the character.
 
 Use the following details to bring the character to life in their profile picture:
 
