@@ -810,7 +810,7 @@ export default function PersonaChatPage() {
                 {activeChatId && activeChat ? (
                 <>
                     <ScrollArea className="flex-1" ref={scrollAreaRef}>
-                      <div className="max-w-3xl mx-auto p-4">
+                      <div className="max-w-3xl mx-auto px-4">
                         {messages.map((message, index) => {
                            const isFirstInSequence = !messages[index - 1] || messages[index - 1].role !== message.role;
                            const isLastInSequence = !messages[index + 1] || messages[index + 1].role !== message.role;
