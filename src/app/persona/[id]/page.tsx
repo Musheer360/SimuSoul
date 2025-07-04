@@ -188,7 +188,7 @@ export default function PersonaChatPage() {
   
   const handleSummarizeChat = useCallback(async (chatId: string) => {
     const currentPersona = personaRef.current;
-    if (!currentPersona || !(userDetails.enableChatSummaries ?? true)) return;
+    if (!currentPersona) return;
 
     const chatToSummarize = currentPersona.chats.find(c => c.id === chatId);
 
@@ -209,7 +209,7 @@ export default function PersonaChatPage() {
             console.error("Failed to summarize chat:", e);
         }
     }
-  }, [userDetails.enableChatSummaries]);
+  }, []);
 
   useEffect(() => {
     const handleCleanup = (chatIdToClean: string | null | undefined) => {

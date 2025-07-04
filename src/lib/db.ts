@@ -68,7 +68,6 @@ const defaultUserDetails: UserDetails = {
     name: '',
     about: '',
     hasAcceptedTerms: false,
-    enableChatSummaries: true,
 };
 export async function getUserDetails(): Promise<UserDetails> {
     if (!dbPromise) return defaultUserDetails;

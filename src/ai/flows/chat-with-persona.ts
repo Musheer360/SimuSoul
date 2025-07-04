@@ -30,7 +30,6 @@ const ChatWithPersonaInputSchema = z.object({
   currentDateTime: z.string().describe('The current date and time when the user sends the message.'),
   currentDateForMemory: z.string().describe('The current date in YYYY-MM-DD format for creating memories.'),
   message: z.string().describe('The user\'s message to the persona.'),
-  enableChatSummaries: z.boolean().optional().describe('Whether to use past chat summaries for context.'),
   chatSummaries: z.array(z.object({
     date: z.string(),
     summary: z.string(),
@@ -159,7 +158,7 @@ function buildChatPrompt(input: ChatWithPersonaInput): string {
       prompt += `\n(You have no memories of the user yet.)`;
   }
   
-  if (input.enableChatSummaries && input.chatSummaries && input.chatSummaries.length > 0) {
+  if (input.chatSummaries && input.chatSummaries.length > 0) {
     prompt += `
     
 ---
@@ -229,16 +228,14 @@ export async function chatWithPersona(
   
   const personaDescription = `Backstory: ${persona.backstory}\nTraits: ${persona.traits}\nGoals: ${persona.goals}`;
 
-  const chatSummaries = (userDetails.enableChatSummaries ?? true)
-    ? allChats
-        .filter(c => c.summary)
-        .sort((a, b) => (b.updatedAt || b.createdAt) - (a.updatedAt || a.createdAt))
-        .slice(0, 5)
-        .map(c => ({
-            date: new Date(c.updatedAt || c.createdAt).toLocaleDateString(),
-            summary: c.summary!,
-        }))
-    : [];
+  const chatSummaries = allChats
+    .filter(c => c.summary)
+    .sort((a, b) => (b.updatedAt || b.createdAt) - (a.updatedAt || a.createdAt))
+    .slice(0, 5)
+    .map(c => ({
+        date: new Date(c.updatedAt || c.createdAt).toLocaleDateString(),
+        summary: c.summary!,
+    }));
 
   const input: ChatWithPersonaInput = {
     personaName: persona.name,
@@ -255,7 +252,6 @@ export async function chatWithPersona(
     message,
     currentDateTime,
     currentDateForMemory,
-    enableChatSummaries: userDetails.enableChatSummaries,
     chatSummaries,
   };
 

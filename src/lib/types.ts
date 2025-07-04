@@ -32,7 +32,6 @@ export interface UserDetails {
   name: string;
   about: string;
   hasAcceptedTerms?: boolean;
-  enableChatSummaries?: boolean;
 }
 
 export interface ApiKeys {

@@ -7,7 +7,6 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Switch } from '@/components/ui/switch';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { ArrowLeft, Loader2, PlusCircle, Trash2 } from 'lucide-react';
 import type { UserDetails, ApiKeys } from '@/lib/types';
@@ -17,7 +16,7 @@ import { useToast } from '@/hooks/use-toast';
 export default function SettingsPage() {
   const { toast } = useToast();
   const router = useRouter();
-  const [userDetails, setUserDetails] = useState<UserDetails>({ name: '', about: '', enableChatSummaries: true });
+  const [userDetails, setUserDetails] = useState<UserDetails>({ name: '', about: '' });
   const [apiKeys, setApiKeys] = useState<ApiKeys>({ gemini: [''] });
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
@@ -35,10 +34,6 @@ export default function SettingsPage() {
 
   const handleUserDetailsChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     setUserDetails(prev => ({ ...prev, [e.target.name]: e.target.value }));
-  };
-
-  const handleSummariesToggle = (checked: boolean) => {
-    setUserDetails(prev => ({ ...prev, enableChatSummaries: checked }));
   };
 
   const handleApiKeyChange = (index: number, value: string) => {
@@ -133,25 +128,6 @@ export default function SettingsPage() {
                   className="resize-none"
                   placeholder="A short description of you, can also be a URL."
                   rows={6}
-                />
-              </div>
-            </div>
-
-            <div className="space-y-4">
-              <h3 className="font-semibold font-headline text-xl text-foreground">AI Settings</h3>
-              <div className="flex items-center justify-between rounded-lg border p-4">
-                <div className="space-y-0.5">
-                  <Label htmlFor="chat-summaries" className="text-base">
-                    Enable Chat Summaries
-                  </Label>
-                  <p className="text-sm text-muted-foreground">
-                    Allow personas to remember past conversations for better context.
-                  </p>
-                </div>
-                <Switch
-                  id="chat-summaries"
-                  checked={userDetails.enableChatSummaries ?? true}
-                  onCheckedChange={handleSummariesToggle}
                 />
               </div>
             </div>
