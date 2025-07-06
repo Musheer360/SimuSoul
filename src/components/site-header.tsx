@@ -10,7 +10,7 @@ export function SiteHeader() {
         <div className="flex flex-1 items-center justify-start">
            <Link href="/" className="flex items-center space-x-2 group">
             <span className="font-bold text-2xl font-headline text-primary group-hover:text-foreground transition-colors duration-300">
-                PersonaForge
+                SimuSoul
             </span>
             </Link>
         </div>

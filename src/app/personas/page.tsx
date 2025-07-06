@@ -140,7 +140,7 @@ export default function PersonasPage() {
             <div className="p-6 rounded-full bg-primary/10 mb-6">
               <Bot className="h-16 w-16 text-primary" />
             </div>
-            <h3 className="text-2xl font-medium font-headline">Your Forge is Empty</h3>
+            <h3 className="text-2xl font-medium font-headline">Your Collection is Empty</h3>
             <p className="mt-2 text-base text-muted-foreground max-w-sm">
               You haven't created any personas yet. Click the button above to bring your first character to life.
             </p>

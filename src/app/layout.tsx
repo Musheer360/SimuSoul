@@ -6,7 +6,7 @@ import { cn } from '@/lib/utils';
 import { ThemeProvider } from '@/components/theme-provider';
 
 export const metadata: Metadata = {
-  title: 'PersonaForge',
+  title: 'SimuSoul',
   description: 'Create and chat with AI personas.',
 };
 

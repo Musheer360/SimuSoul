@@ -1,13 +1,13 @@
 import { openDB, deleteDB, type DBSchema } from 'idb';
 import type { Persona, UserDetails, ApiKeys } from '@/lib/types';
 
-const DB_NAME = 'PersonaForgeDB';
+const DB_NAME = 'SimuSoulDB';
 const DB_VERSION = 1;
 const PERSONAS_STORE = 'personas';
 const USER_DETAILS_STORE = 'userDetails';
 const API_KEYS_STORE = 'apiKeys';
 
-interface PersonaForgeDBSchema extends DBSchema {
+interface SimuSoulDBSchema extends DBSchema {
   [PERSONAS_STORE]: {
     key: string;
     value: Persona;
@@ -26,7 +26,7 @@ interface PersonaForgeDBSchema extends DBSchema {
 // On the server, dbPromise will be null.
 const dbPromise =
   typeof window !== 'undefined'
-    ? openDB<PersonaForgeDBSchema>(DB_NAME, DB_VERSION, {
+    ? openDB<SimuSoulDBSchema>(DB_NAME, DB_VERSION, {
         upgrade(db) {
           if (!db.objectStoreNames.contains(PERSONAS_STORE)) {
             db.createObjectStore(PERSONAS_STORE, { keyPath: 'id' });
