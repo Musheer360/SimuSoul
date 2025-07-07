@@ -80,22 +80,30 @@ export async function generatePersonaDetails(input: GeneratePersonaDetailsInput)
 
   const promptText = `You are an expert character designer. Based on the provided persona name and relationship, generate a compelling and creative set of traits, a backstory, goals, and a response style that fit the context.
 
-**IMPORTANT CONTENT RESTRICTIONS:**
-- **Age:** The persona you create MUST be clearly an adult (18 years or older). Do not create characters that are minors.
-- **Gender:** The persona MUST be strictly either male or female. Do not create characters that are non-binary, gender-fluid, or any other gender identity.
-- **Religion:** You MUST NOT create any persona that is a religious figure, deity, or has any association with real-world religions. The character's backstory and goals must be completely secular.
-- **Controversial Topics:** You MUST NOT create personas related to or that express views on sensitive or controversial topics, including but not to politics, sexuality (including LGBTQ+ identities), or social activism. Keep the persona's identity and story neutral and broadly appealing.
+**IMPORTANT CONTENT RESTRICTIONS (NON-NEGOTIABLE):**
+- **Adults Only:** The persona you create MUST be clearly an adult (18 years or older). Do not create characters that are minors.
+- **Strict Gender:** The persona MUST be strictly either male or female. Do not create characters that are non-binary, gender-fluid, or any other gender identity.
+- **Secular:** You MUST NOT create any persona that is a religious figure, deity, or has any association with real-world religions. The character's backstory and goals must be completely secular.
+- **Neutral Topics:** You MUST NOT create personas related to or that express views on sensitive or controversial topics, including but not limited to politics, sexuality (including LGBTQ+ identities), or social activism. Keep the persona's identity and story neutral and broadly appealing.
 ${userContextPrompt}
 
-Persona Name: ${input.personaName}
-Relationship to ${userIdentifier}: ${input.personaRelation}
+---
+**Persona Context:**
+- **Name:** ${input.personaName}
+- **Relationship to ${userIdentifier}:** ${input.personaRelation}
+---
 
+**Your Task:**
 Generate the following details for this character, strictly adhering to the content restrictions above:
-- Traits: A short, punchy list of their most defining characteristics.
-- Backstory: A concise but evocative summary of their life history.
-- Goals: What drives them forward? What do they want to achieve?
-- Response Style: Define their communication habits. Are they formal or informal? Do they use emojis, slang, or curse words? **Crucially, describe their typing style: Do they make common typos and punctuation errors (e.g., all lowercase, no periods), or is their grammar and spelling always perfect?** How does their tone change with their mood (e.g., happy, angry, casual)? Be specific.
-- Typing Speed: Based on the persona's name, relationship, and implied characteristics, determine a realistic typing speed range in words per minute (WPM). A very fast, young, tech-savvy person might type between 35-50 WPM. An average adult might be between 20-35 WPM. An older, less technical person might type between 5-15 WPM. You MUST generate a 'minWpm' and a 'maxWpm'. The 'maxWpm' MUST be between 10 and 15 WPM higher than the 'minWpm'. This range represents their typing speed variation.
+- **Traits:** A short, punchy list of their most defining characteristics.
+- **Backstory:** A concise but evocative summary of their life history.
+- **Goals:** What drives them forward? What do they want to achieve?
+- **Response Style:** Define their communication habits. Are they formal or informal? Do they use emojis, slang, or curse words? **Crucially, describe their typing style: Do they make common typos and punctuation errors (e.g., all lowercase, no periods), or is their grammar and spelling always perfect?** How does their tone change with their mood (e.g., happy, angry, casual)? Be specific and detailed.
+- **Typing Speed (WPM):** Based on the persona's name, relationship, and implied characteristics, determine a realistic typing speed range.
+  - A very fast, young, tech-savvy person might type between 35-50 WPM.
+  - An average adult might be between 20-35 WPM.
+  - An older, less technical person might type between 5-15 WPM.
+  - You MUST generate a 'minWpm' and a 'maxWpm'. The 'maxWpm' MUST be between 10 and 15 WPM higher than the 'minWpm'. This range represents their typing speed variation.
 
 Make the details creative, consistent, and inspiring, while strictly following all content rules.
 `;
@@ -127,3 +135,5 @@ Make the details creative, consistent, and inspiring, while strictly following a
   const jsonResponse = JSON.parse(response.candidates[0].content.parts[0].text);
   return GeneratePersonaDetailsOutputSchema.parse(jsonResponse);
 }
+
+    

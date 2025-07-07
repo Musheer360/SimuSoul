@@ -32,13 +32,15 @@ const GenerateChatTitleOutputOpenAPISchema = {
 };
 
 export async function generateChatTitle(input: GenerateChatTitleInput): Promise<GenerateChatTitleOutput> {
-  const prompt = `Based on the following first user message and the first AI response, create a concise and descriptive chat title. The title MUST be a maximum of 4-5 words.
+  const prompt = `You are a title generator. Your task is to create a very short, descriptive chat title based on the first user message and the first AI response.
 
-User Message: "${input.userMessage}"
-AI Response: "${input.assistantResponse}"
+**CRITICAL RULE:** The title MUST be a maximum of 4-5 words.
 
-Generate a short title that captures the essence of this initial exchange.
-`;
+**CONTEXT:**
+- **User's First Message:** "${input.userMessage}"
+- **AI's First Response:** "${input.assistantResponse}"
+
+Now, generate the title.`;
 
   const requestBody = {
     contents: [{ parts: [{ text: prompt }] }],
@@ -60,3 +62,5 @@ Generate a short title that captures the essence of this initial exchange.
   const jsonResponse = JSON.parse(response.candidates[0].content.parts[0].text);
   return GenerateChatTitleOutputSchema.parse(jsonResponse);
 }
+
+    

@@ -97,26 +97,34 @@ export async function generatePersonaFromPrompt(input: GeneratePersonaFromPrompt
 
   const promptText = `You are a world-class creative writer and character designer. Based on the user's prompt, generate a complete, ready-to-use fictional persona.
 
-**IMPORTANT CONTENT RESTRICTIONS:**
-- **Age:** The persona you create MUST be clearly an adult (18 years or older). Do not create characters that are minors.
-- **Gender:** The persona MUST be strictly either male or female. Do not create characters that are non-binary, gender-fluid, or any other gender identity.
-- **Religion:** You MUST NOT create any persona that is a religious figure, deity, or has any association with real-world religions. The character's backstory and goals must be completely secular.
-- **Controversial Topics:** You MUST NOT create personas related to or that express views on sensitive or controversial topics, including but not to politics, sexuality (including LGBTQ+ identities), or social activism. Keep the persona's identity and story neutral and broadly appealing.
+**IMPORTANT CONTENT RESTRICTIONS (NON-NEGOTIABLE):**
+- **Adults Only:** The persona you create MUST be clearly an adult (18 years or older). Do not create characters that are minors.
+- **Strict Gender:** The persona MUST be strictly either male or female. Do not create characters that are non-binary, gender-fluid, or any other gender identity.
+- **Secular:** You MUST NOT create any persona that is a religious figure, deity, or has any association with real-world religions. The character's backstory and goals must be completely secular.
+- **Neutral Topics:** You MUST NOT create personas related to or that express views on sensitive or controversial topics, including but not limited to politics, sexuality (including LGBTQ+ identities), or social activism. Keep the persona's identity and story neutral and broadly appealing.
 ${userContextPrompt}
 
-User's Prompt: "${prompt}"
+---
+**User's Prompt:** "${prompt}"
+---
 
-Generate all of the following details for this new character, strictly adhering to the content restrictions above:
-- Name: A unique and fitting name. The name MUST NOT include nicknames in quotes (e.g., do not generate "Aurora 'Rory' Chip").
-- Relationship: A plausible relationship to ${userIdentifier} (e.g., best friend, mentor, rival). The relationship MUST be a maximum of two words.
-- Age: The character's age, which MUST be 18 or older.
-- Traits: A short, punchy list of their most defining characteristics.
-- Backstory: A concise but evocative summary of their life history.
-- Goals: What drives them forward? What do they want to achieve?
-- Response Style: Define their communication habits. Are they formal or informal? Do they use emojis, slang, or curse words? **Crucially, describe their typing style: Do they make common typos and punctuation errors (e.g., all lowercase, no periods), or is their grammar and spelling always perfect?** How does their tone change with their mood (e.g., happy, angry, casual)? Be specific.
-- Typing Speed: Based on the persona's generated age, personality, and tech-savviness, determine a realistic typing speed range in words per minute (WPM). A very fast, young, tech-savvy person might type between 35-50 WPM. An average adult might be between 20-35 WPM. An older, less technical person might type between 5-15 WPM. You MUST generate a 'minWpm' and a 'maxWpm'. The 'maxWpm' MUST be between 10 and 15 WPM higher than the 'minWpm'. This range represents their typing speed variation.
+**Your Task:**
+Generate all of the following details for this new character, strictly adhering to the content restrictions above.
 
-Be creative and ensure all the generated details are consistent with each other, the original prompt, and the content restrictions.
+- **Name:** A unique and fitting name. The name MUST NOT include nicknames in quotes (e.g., do not generate "Aurora 'Rory' Chip").
+- **Relationship:** A plausible relationship to ${userIdentifier} (e.g., best friend, mentor, rival). This field MUST be a maximum of two words.
+- **Age:** The character's age, which MUST be 18 or older.
+- **Traits:** A short, punchy list of their most defining characteristics.
+- **Backstory:** A concise but evocative summary of their life history.
+- **Goals:** What drives them forward? What do they want to achieve?
+- **Response Style:** Define their communication habits. Are they formal or informal? Do they use emojis, slang, or curse words? **Crucially, describe their typing style: Do they make common typos and punctuation errors (e.g., all lowercase, no periods), or is their grammar and spelling always perfect?** How does their tone change with their mood (e.g., happy, angry, casual)? Be specific and detailed.
+- **Typing Speed (WPM):** Based on the persona's generated age, personality, and tech-savviness, determine a realistic typing speed range.
+  - A very fast, young, tech-savvy person might type between 35-50 WPM.
+  - An average adult might be between 20-35 WPM.
+  - An older, less technical person might type between 5-15 WPM.
+  - You MUST generate a 'minWpm' and a 'maxWpm'. The 'maxWpm' MUST be between 10 and 15 WPM higher than the 'minWpm'. This range represents their typing speed variation.
+
+Be creative and ensure all the generated details are consistent with each other, the original prompt, and all content restrictions.
 `;
 
   const requestBody = {
@@ -146,3 +154,5 @@ Be creative and ensure all the generated details are consistent with each other,
   const jsonResponse = JSON.parse(response.candidates[0].content.parts[0].text);
   return GeneratePersonaFromPromptOutputSchema.parse(jsonResponse);
 }
+
+    

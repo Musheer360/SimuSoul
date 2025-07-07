@@ -37,12 +37,14 @@ const SummarizeChatOutputOpenAPISchema = {
 };
 
 export async function summarizeChat(input: SummarizeChatInput): Promise<SummarizeChatOutput> {
-  const prompt = `You are a summarization expert. Analyze the following conversation between a user and an AI assistant. Your task is to create a concise summary that captures the most important information, events, and decisions.
+  const prompt = `You are a summarization expert. Analyze the following conversation between a user and an AI assistant. Your task is to create a concise summary that captures the most important information, events, and decisions. The summary will be used for long-term memory, so focus on key takeaways.
 
-The summary MUST be a maximum of 5 bullet points. Focus on key takeaways that would be useful for long-term memory.
+**CRITICAL RULE:** The summary MUST be a maximum of 5 bullet points.
 
-Conversation History:
+---
+**Conversation History to Summarize:**
 ${input.chatHistory.map(msg => `${msg.role}: ${msg.content}`).join('\n')}
+---
 
 Generate the summary now.
 `;
@@ -67,3 +69,5 @@ Generate the summary now.
   const jsonResponse = JSON.parse(response.candidates[0].content.parts[0].text);
   return SummarizeChatOutputSchema.parse(jsonResponse);
 }
+
+    
