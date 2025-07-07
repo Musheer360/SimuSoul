@@ -213,6 +213,11 @@ ${summary.summary}
   input.userMessages.forEach(msg => {
     prompt += `\n- ${msg}`;
   });
+
+  prompt += `
+
+---
+**Final Instruction:** Now, as ${input.personaName}, generate your response. Your response MUST perfectly match the defined **Response Style Guide** in every way (tone, grammar, typos, punctuation, casing, etc.). This is your most important task.`
   
   return prompt;
 }
@@ -264,7 +269,7 @@ export async function chatWithPersona(
   const requestBody = {
     contents: [{ parts: [{ text: prompt }] }],
     generationConfig: {
-      temperature: 1.1,
+      temperature: 0.9,
       topK: 40,
       topP: 0.9,
       responseMimeType: 'application/json',
