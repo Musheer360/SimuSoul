@@ -29,7 +29,7 @@ const ChatWithPersonaInputSchema = z.object({
   chatHistory: z.array(ChatMessageSchema).describe('The history of the conversation so far.'),
   currentDateTime: z.string().describe('The current date and time when the user sends the message.'),
   currentDateForMemory: z.string().describe('The current date in YYYY-MM-DD format for creating memories.'),
-  message: z.string().describe('The user\'s message to the persona.'),
+  userMessages: z.array(z.string()).describe("The user's new messages for this turn."),
   chatSummaries: z.array(z.object({
     date: z.string(),
     summary: z.string(),
@@ -178,9 +178,9 @@ ${summary.summary}
 
   ---
   **Memory Management Rules & Your Task**
-  Your primary task is to generate a response to ${userIdentifier}'s latest message. As part of this, you MUST ALSO analyze the "${userIdentifier}'s new message" to identify new facts about ${userIdentifier} and manage your memories accordingly.
+  Your primary task is to generate a response to ${userIdentifier}'s latest messages. As part of this, you MUST ALSO analyze all of "${userIdentifier}'s new messages" to identify new facts about ${userIdentifier} and manage your memories accordingly.
 
-  - **Identify New Information:** Look for new, meaningful facts about ${userIdentifier} in their latest message.
+  - **Identify New Information:** Look for new, meaningful facts about ${userIdentifier} in their latest messages.
   - **Avoid Duplicates (CRITICAL):** Do NOT add facts you already know. This includes information from the **Memories** list and, most importantly, any details already provided about ${userIdentifier} in the **Your Relationship Context** section (their name, their 'about me' description, etc.). That information is your baseline knowledge; DO NOT create redundant memories of it.
   - **Consolidate & Update (CRITICAL):** This is your most important memory task. If a new fact from ${userIdentifier}'s message *updates or makes an existing memory more specific*, you MUST replace the old memory.
     - **Step 1:** Create the new, more detailed memory for the \`newMemories\` array.
@@ -208,8 +208,11 @@ ${summary.summary}
   prompt += `
 
   ---
-  **${userIdentifier}'s new message to you:**
-  ${input.message}`;
+  **${userIdentifier}'s new messages to you:**`;
+  
+  input.userMessages.forEach(msg => {
+    prompt += `\n- ${msg}`;
+  });
   
   return prompt;
 }
@@ -219,13 +222,13 @@ export async function chatWithPersona(
     persona: Persona;
     userDetails: UserDetails;
     chatHistory: ChatMessage[];
-    message: string;
+    messages: string[];
     currentDateTime: string;
     currentDateForMemory: string;
     allChats: ChatSession[];
   }
 ): Promise<ChatWithPersonaOutput> {
-  const { persona, userDetails, chatHistory, message, currentDateTime, currentDateForMemory, allChats } = payload;
+  const { persona, userDetails, chatHistory, messages, currentDateTime, currentDateForMemory, allChats } = payload;
   
   const personaDescription = `Backstory: ${persona.backstory}\nTraits: ${persona.traits}\nGoals: ${persona.goals}`;
 
@@ -250,7 +253,7 @@ export async function chatWithPersona(
     },
     existingMemories: persona.memories,
     chatHistory,
-    message,
+    userMessages: messages,
     currentDateTime,
     currentDateForMemory,
     chatSummaries,
@@ -287,3 +290,5 @@ export async function chatWithPersona(
   const jsonResponse = JSON.parse(response.candidates[0].content.parts[0].text);
   return ChatWithPersonaOutputSchema.parse(jsonResponse);
 }
+
+    

@@ -47,6 +47,19 @@ import { getPersona, savePersona, deletePersona, getUserDetails, getApiKeys } fr
 import { MemoryItem } from '@/components/memory-item';
 
 const TYPING_PLACEHOLDER = 'IS_TYPING_PLACEHOLDER_8f4a7b1c';
+const RESPONSE_DELAY_MS = 2500;
+
+// Helper to find the last index of an element in an array.
+const findLastIndex = <T,>(
+  array: T[],
+  predicate: (value: T, index: number, obj: T[]) => boolean
+): number => {
+  let l = array.length;
+  while (l--) {
+    if (predicate(array[l], l, array)) return l;
+  }
+  return -1;
+};
 
 const ChatMessageItem = memo(function ChatMessageItem({
   message,
@@ -187,6 +200,7 @@ export default function PersonaChatPage() {
   const personaRef = useRef(persona);
   const prevActiveChatIdRef = useRef<string | null>();
   const isDeletingRef = useRef(false);
+  const responseTimerRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
     personaRef.current = persona;
@@ -359,50 +373,37 @@ export default function PersonaChatPage() {
       }
     }
   }, [messages]);
-
-  const handleInputInteraction = () => {
-    if (!isMobile) return;
-    setTimeout(() => {
-        if (scrollAreaRef.current) {
-            const scrollContainer = scrollAreaRef.current.querySelector('div');
-            if (scrollContainer) {
-                scrollContainer.scrollTo({ top: scrollContainer.scrollHeight, behavior: 'auto' });
-            }
-        }
-        window.scrollTo({ top: document.body.scrollHeight, behavior: 'auto' });
-    }, 100);
-  };
   
-  const handleSubmit = async (e: FormEvent) => {
-    e.preventDefault();
-    if (isSubmitting || !input.trim() || !persona || !activeChat || !activeChatId) return;
-
+  const triggerAIResponse = useCallback(async () => {
+    if (isSubmitting || !personaRef.current || !activeChatId) {
+      return;
+    }
+  
+    const currentPersona = personaRef.current;
+    const currentChat = currentPersona.chats.find(c => c.id === activeChatId);
+    if (!currentChat) return;
+  
+    const allMessages = currentChat.messages;
+    const lastAssistantMessageIndex = findLastIndex(allMessages, msg => msg.role === 'assistant');
+    const userMessagesForTurn = allMessages.slice(lastAssistantMessageIndex + 1).filter(msg => msg.role === 'user');
+  
+    if (userMessagesForTurn.length === 0) {
+      return; 
+    }
+  
     setIsSubmitting(true);
-  
-    const userMessage: ChatMessage = { role: 'user', content: input };
-    const userInput = input;
-    const isNewChat = messages.length === 0;
-  
-    let currentMessages = [...messages, userMessage];
-    let personaForUpdates = {
-      ...persona,
-      chats: persona.chats.map(c =>
-        c.id === activeChatId
-          ? { ...c, messages: currentMessages, updatedAt: Date.now() }
-          : c
-      ),
-    };
-    setPersona(personaForUpdates);
-    setInput('');
-    if (textareaRef.current) textareaRef.current.style.height = 'auto';
     setError(null);
   
+    const chatHistoryForAI = allMessages.slice(0, lastAssistantMessageIndex + 1);
+    const userMessageContents = userMessagesForTurn.map(m => m.content);
+    const isNewChat = chatHistoryForAI.length === 0;
+  
+    // Add typing indicator
     const typingIndicatorMessage: ChatMessage = { role: 'assistant', content: TYPING_PLACEHOLDER };
-    currentMessages.push(typingIndicatorMessage);
-    personaForUpdates = {
-      ...personaForUpdates,
-      chats: personaForUpdates.chats.map(c =>
-        c.id === activeChatId ? { ...c, messages: [...currentMessages] } : c
+    let personaForUpdates = {
+      ...currentPersona,
+      chats: currentPersona.chats.map(c =>
+        c.id === activeChatId ? { ...c, messages: [...allMessages, typingIndicatorMessage] } : c
       ),
     };
     setPersona(personaForUpdates);
@@ -414,35 +415,35 @@ export default function PersonaChatPage() {
     const currentDateForMemory = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
   
     try {
-      const allChatsForContext = persona.chats.filter(c => c.id !== activeChatId);
-
+      const allChatsForContext = currentPersona.chats.filter(c => c.id !== activeChatId);
+  
       const res = await chatWithPersona({
-        persona, userDetails, chatHistory: messages, message: userInput, currentDateTime, currentDateForMemory, allChats: allChatsForContext
+        persona: currentPersona, userDetails, chatHistory: chatHistoryForAI, messages: userMessageContents, currentDateTime, currentDateForMemory, allChats: allChatsForContext
       });
-
-      let finalMemories = persona.memories || [];
+  
+      let finalMemories = currentPersona.memories || [];
       const memoryWasUpdated = (res.newMemories?.length || 0) > 0 || (res.removedMemories?.length || 0) > 0;
-    
+  
       if (memoryWasUpdated) {
         const memoriesToDelete = new Set(res.removedMemories || []);
         finalMemories = finalMemories.filter(mem => !memoriesToDelete.has(mem));
         const memoriesToAdd = res.newMemories || [];
         finalMemories = [...finalMemories, ...memoriesToAdd];
-    
-        setGlowingMessageIndex(messages.length);
+  
+        setGlowingMessageIndex(allMessages.length);
         setTimeout(() => setGlowingMessageIndex(null), 1500);
-    
+  
         if (!isMobile) {
           setIsMemoryButtonGlowing(true);
           setTimeout(() => setIsMemoryButtonGlowing(false), 1500);
         }
       }
-    
-      let personaForLoop = { ...persona, chats: personaForUpdates.chats, memories: finalMemories };
-      let finalTitle = activeChat.title;
-    
+  
+      let personaForLoop = { ...currentPersona, chats: personaForUpdates.chats, memories: finalMemories };
+      let finalTitle = currentChat.title;
+  
       if (isNewChat && res.response && res.response[0]) {
-        generateChatTitle({ userMessage: userInput, assistantResponse: res.response[0] })
+        generateChatTitle({ userMessage: userMessageContents[0], assistantResponse: res.response[0] })
           .then(titleResult => {
             if (titleResult.title) {
               finalTitle = titleResult.title;
@@ -458,33 +459,33 @@ export default function PersonaChatPage() {
             }
           });
       }
-    
+  
       if (res.response && res.response.length > 0) {
         let messagesForThisTurn = [...personaForLoop.chats.find(c => c.id === activeChatId)!.messages];
-    
+  
         for (let i = 0; i < res.response.length; i++) {
           const messageContent = res.response[i];
-    
-          const { minWpm, maxWpm } = persona;
+  
+          const { minWpm, maxWpm } = currentPersona;
           const wpm = Math.floor(Math.random() * (maxWpm - minWpm + 1)) + minWpm;
           const words = messageContent.split(/\s+/).filter(Boolean).length;
           const typingTimeMs = (words / wpm) * 60 * 1000;
-          
+  
           const minDelay = i === 0 ? 900 : 500;
           const maxDelay = 4000;
           const delay = Math.max(minDelay, Math.min(typingTimeMs, maxDelay));
-          
+  
           await new Promise(resolve => setTimeout(resolve, delay));
-    
-          const typingIndex = messagesForThisTurn.findIndex(m => m.content === TYPING_PLACEHOLDER);
+  
+          const typingIndex = findLastIndex(messagesForThisTurn, m => m.content === TYPING_PLACEHOLDER);
           if (typingIndex !== -1) {
             messagesForThisTurn[typingIndex] = { role: 'assistant', content: messageContent };
           }
-    
+  
           if (i < res.response.length - 1) {
             messagesForThisTurn.push(typingIndicatorMessage);
           }
-    
+  
           const currentPersonaState = {
             ...personaForLoop,
             chats: personaForLoop.chats.map(c =>
@@ -507,7 +508,7 @@ export default function PersonaChatPage() {
     } catch (err: any) {
       console.error(err);
       setError(err.message || 'An unknown error occurred.');
-      const finalMessages = currentMessages.filter(m => m.content !== TYPING_PLACEHOLDER);
+      const finalMessages = allMessages.filter(m => m.content !== TYPING_PLACEHOLDER);
       const finalPersonaState = {
         ...personaForUpdates,
         chats: personaForUpdates.chats.map(c =>
@@ -518,8 +519,49 @@ export default function PersonaChatPage() {
     } finally {
       setIsSubmitting(false);
     }
+  }, [activeChatId, isSubmitting, userDetails, isMobile]);
+
+
+  const handleSubmit = async (e: FormEvent) => {
+    e.preventDefault();
+    if (!input.trim() || !persona || !activeChat || !activeChatId) return;
+  
+    const userMessage: ChatMessage = { role: 'user', content: input };
+    
+    setPersona(prevPersona => {
+      if (!prevPersona) return null;
+      return {
+        ...prevPersona,
+        chats: prevPersona.chats.map(c =>
+          c.id === activeChatId
+            ? { ...c, messages: [...c.messages, userMessage], updatedAt: Date.now() }
+            : c
+        ),
+      }
+    });
+    setInput('');
+    if (textareaRef.current) textareaRef.current.style.height = 'auto';
+    setError(null);
+  
+    if (responseTimerRef.current) {
+      clearTimeout(responseTimerRef.current);
+    }
+    responseTimerRef.current = setTimeout(triggerAIResponse, RESPONSE_DELAY_MS);
   };
   
+  const handleInputChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    setInput(e.target.value);
+    const target = e.currentTarget;
+    target.style.height = 'auto';
+    target.style.height = `${target.scrollHeight}px`;
+
+    // If a timer is running, reset it. This handles the typing-delay.
+    if (responseTimerRef.current) {
+        clearTimeout(responseTimerRef.current);
+        responseTimerRef.current = setTimeout(triggerAIResponse, RESPONSE_DELAY_MS);
+    }
+  };
+
   const handleConfirmDeleteChat = useCallback(async () => {
     if (!persona || !chatToDelete) return;
 
@@ -937,13 +979,7 @@ export default function PersonaChatPage() {
                             <Textarea
                                 ref={textareaRef}
                                 value={input}
-                                onClick={handleInputInteraction}
-                                onChange={(e) => {
-                                setInput(e.target.value);
-                                const target = e.currentTarget;
-                                target.style.height = 'auto';
-                                target.style.height = `${target.scrollHeight}px`;
-                                }}
+                                onChange={handleInputChange}
                                 onKeyDown={(e) => {
                                 if (e.key === 'Enter' && !e.shiftKey) {
                                     e.preventDefault();
@@ -953,15 +989,14 @@ export default function PersonaChatPage() {
                                 rows={1}
                                 placeholder={`Message ${persona.name}...`}
                                 className="flex-1 resize-none border-0 bg-transparent p-2 text-base shadow-none focus-visible:ring-0 max-h-40 overflow-y-auto"
-                                disabled={isSubmitting}
                             />
                             <Button
                                 type="submit"
                                 size="icon"
-                                disabled={!input.trim() || isSubmitting}
+                                disabled={!input.trim()}
                                 className="h-10 w-10 rounded-md flex-shrink-0"
                             >
-                                {isSubmitting ? <Loader2 className="h-5 w-5 animate-spin" /> : <Send className="h-5 w-5" />}
+                                <Send className="h-5 w-5" />
                             </Button>
                             </form>
                         </div>
@@ -1039,3 +1074,5 @@ export default function PersonaChatPage() {
     </>
   );
 }
+
+    
