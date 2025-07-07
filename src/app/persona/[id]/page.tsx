@@ -172,6 +172,7 @@ export default function PersonaChatPage() {
   const [chatToDelete, setChatToDelete] = useState<ChatSession | null>(null);
   const [isEditSheetOpen, setIsEditSheetOpen] = useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const [glowingMessageIndex, setGlowingMessageIndex] = useState<number | null>(null);
   const [isMemoryButtonGlowing, setIsMemoryButtonGlowing] = useState(false);
@@ -551,8 +552,24 @@ export default function PersonaChatPage() {
 
   const handleDeletePersona = async () => {
     if (!id || typeof id !== 'string') return;
-    await deletePersona(id);
-    router.push('/personas');
+
+    setIsDeleting(true);
+    try {
+        await deletePersona(id);
+        toast({
+            title: 'Persona Deleted',
+            description: `${persona?.name} has been successfully removed.`,
+        });
+        router.push('/personas');
+    } catch (error) {
+        console.error('Failed to delete persona:', error);
+        toast({
+            variant: 'destructive',
+            title: 'Deletion Failed',
+            description: 'There was a problem deleting the persona. Please try again.',
+        });
+        setIsDeleting(false);
+    }
   };
 
   const handlePersonaUpdate = useCallback(async (updatedPersonaData: Omit<Persona, 'chats' | 'memories'>) => {
@@ -755,9 +772,20 @@ export default function PersonaChatPage() {
                                  </AlertDialogDescription>
                                </AlertDialogHeader>
                                <AlertDialogFooter>
-                                 <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                 <AlertDialogAction className="bg-destructive text-destructive-foreground hover:bg-destructive/90" onClick={handleDeletePersona}>
-                                   Delete
+                                 <AlertDialogCancel disabled={isDeleting}>Cancel</AlertDialogCancel>
+                                 <AlertDialogAction
+                                    className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                                    onClick={async (e) => {
+                                        e.preventDefault();
+                                        await handleDeletePersona();
+                                    }}
+                                    disabled={isDeleting}
+                                >
+                                    {isDeleting ? (
+                                        <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Deleting...</>
+                                    ) : (
+                                        'Delete'
+                                    )}
                                  </AlertDialogAction>
                                </AlertDialogFooter>
                              </AlertDialogContent>
