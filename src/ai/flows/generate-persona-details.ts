@@ -95,7 +95,7 @@ Generate the following details for this character, strictly adhering to the cont
 - Backstory: A concise but evocative summary of their life history.
 - Goals: What drives them forward? What do they want to achieve?
 - Response Style: Define their communication habits. Are they formal or informal? Do they use emojis, slang, or curse words? **Crucially, describe their typing style: Do they make common typos and punctuation errors (e.g., all lowercase, no periods), or is their grammar and spelling always perfect?** How does their tone change with their mood (e.g., happy, angry, casual)? Be specific.
-- Typing Speed: Based on the persona's name, relationship, and implied characteristics, determine a realistic typing speed range in words per minute (WPM). A very fast, young, tech-savvy person might type between 45-60 WPM. An average adult might be between 30-45 WPM. An older, less technical person might type between 15-25 WPM. You MUST generate a 'minWpm' and a 'maxWpm'. The 'maxWpm' MUST be between 10 and 15 WPM higher than the 'minWpm'. This range represents their typing speed variation.
+- Typing Speed: Based on the persona's name, relationship, and implied characteristics, determine a realistic typing speed range in words per minute (WPM). A very fast, young, tech-savvy person might type between 35-50 WPM. An average adult might be between 20-35 WPM. An older, less technical person might type between 5-15 WPM. You MUST generate a 'minWpm' and a 'maxWpm'. The 'maxWpm' MUST be between 10 and 15 WPM higher than the 'minWpm'. This range represents their typing speed variation.
 
 Make the details creative, consistent, and inspiring, while strictly following all content rules.
 `;
