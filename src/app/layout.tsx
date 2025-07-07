@@ -4,6 +4,7 @@ import { SiteHeader } from '@/components/site-header';
 import { Toaster } from '@/components/ui/toaster';
 import { cn } from '@/lib/utils';
 import { ThemeProvider } from '@/components/theme-provider';
+import { AppViewportManager } from '@/components/app-viewport-manager';
 
 export const metadata: Metadata = {
   title: 'SimuSoul',
@@ -39,10 +40,10 @@ export default function RootLayout({
           defaultTheme="dark"
           disableTransitionOnChange
         >
-            <div className="relative flex h-[100dvh] flex-col overflow-hidden">
+            <AppViewportManager>
               <SiteHeader />
               <main className="flex-1 overflow-y-auto no-scrollbar">{children}</main>
-            </div>
+            </AppViewportManager>
             <Toaster />
         </ThemeProvider>
       </body>
