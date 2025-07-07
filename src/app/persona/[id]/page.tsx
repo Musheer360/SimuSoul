@@ -47,7 +47,6 @@ import { getPersona, savePersona, deletePersona, getUserDetails, getApiKeys } fr
 import { MemoryItem } from '@/components/memory-item';
 
 const TYPING_PLACEHOLDER = 'IS_TYPING_PLACEHOLDER_8f4a7b1c';
-const RESPONSE_DELAY_MS = 2500;
 
 // Helper to find the last index of an element in an array.
 const findLastIndex = <T,>(
@@ -176,7 +175,7 @@ export default function PersonaChatPage() {
   
   const [input, setInput] = useState('');
   const [error, setError] = useState<string | null>(null);
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isAiResponding, setIsAiResponding] = useState(false);
 
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [isManagementDialogOpen, setIsManagementDialogOpen] = useState(false);
@@ -375,13 +374,17 @@ export default function PersonaChatPage() {
   }, [messages]);
   
   const triggerAIResponse = useCallback(async () => {
-    if (isSubmitting || !personaRef.current || !activeChatId) {
+    if (isAiResponding || !personaRef.current || !activeChatId) {
       return;
     }
   
     const currentPersona = personaRef.current;
     const currentChat = currentPersona.chats.find(c => c.id === activeChatId);
     if (!currentChat) return;
+  
+    // Clear the timer ref when we start processing
+    if (responseTimerRef.current) clearTimeout(responseTimerRef.current);
+    responseTimerRef.current = null;
   
     const allMessages = currentChat.messages;
     const lastAssistantMessageIndex = findLastIndex(allMessages, msg => msg.role === 'assistant');
@@ -391,7 +394,7 @@ export default function PersonaChatPage() {
       return; 
     }
   
-    setIsSubmitting(true);
+    setIsAiResponding(true);
     setError(null);
   
     const chatHistoryForAI = allMessages.slice(0, lastAssistantMessageIndex + 1);
@@ -517,9 +520,9 @@ export default function PersonaChatPage() {
       };
       setPersona(finalPersonaState);
     } finally {
-      setIsSubmitting(false);
+      setIsAiResponding(false);
     }
-  }, [activeChatId, isSubmitting, userDetails, isMobile]);
+  }, [activeChatId, isAiResponding, userDetails, isMobile]);
 
 
   const handleSubmit = async (e: FormEvent) => {
@@ -543,10 +546,16 @@ export default function PersonaChatPage() {
     if (textareaRef.current) textareaRef.current.style.height = 'auto';
     setError(null);
   
+    // If the AI is already responding, we just queue the message and don't start a timer.
+    if (isAiResponding) return;
+
+    // Otherwise, (re)start the response timer.
     if (responseTimerRef.current) {
       clearTimeout(responseTimerRef.current);
     }
-    responseTimerRef.current = setTimeout(triggerAIResponse, RESPONSE_DELAY_MS);
+    // Dynamic delay between 2.5 and 5 seconds
+    const delay = Math.random() * (5000 - 2500) + 2500;
+    responseTimerRef.current = setTimeout(triggerAIResponse, delay);
   };
   
   const handleInputChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
@@ -555,10 +564,11 @@ export default function PersonaChatPage() {
     target.style.height = 'auto';
     target.style.height = `${target.scrollHeight}px`;
 
-    // If a timer is running, reset it. This handles the typing-delay.
+    // If a timer is running, reset it because the user is typing.
     if (responseTimerRef.current) {
         clearTimeout(responseTimerRef.current);
-        responseTimerRef.current = setTimeout(triggerAIResponse, RESPONSE_DELAY_MS);
+        const delay = Math.random() * (5000 - 2500) + 2500;
+        responseTimerRef.current = setTimeout(triggerAIResponse, delay);
     }
   };
 
@@ -1074,5 +1084,3 @@ export default function PersonaChatPage() {
     </>
   );
 }
-
-    
