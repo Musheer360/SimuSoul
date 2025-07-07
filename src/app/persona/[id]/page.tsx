@@ -186,6 +186,7 @@ export default function PersonaChatPage() {
   const formRef = useRef<HTMLFormElement>(null);
   const personaRef = useRef(persona);
   const prevActiveChatIdRef = useRef<string | null>();
+  const isDeletingRef = useRef(false);
 
   useEffect(() => {
     personaRef.current = persona;
@@ -243,6 +244,7 @@ export default function PersonaChatPage() {
     prevActiveChatIdRef.current = activeChatId;
 
     return () => {
+      if (isDeletingRef.current) return;
       handleCleanup(prevActiveChatIdRef.current);
       if (prevActiveChatIdRef.current) {
         handleSummarizeChat(prevActiveChatIdRef.current);
@@ -554,6 +556,7 @@ export default function PersonaChatPage() {
     if (!id || typeof id !== 'string') return;
 
     setIsDeleting(true);
+    isDeletingRef.current = true;
     try {
         await deletePersona(id);
         toast({
@@ -569,6 +572,7 @@ export default function PersonaChatPage() {
             description: 'There was a problem deleting the persona. Please try again.',
         });
         setIsDeleting(false);
+        isDeletingRef.current = false;
     }
   };
 
