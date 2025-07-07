@@ -525,7 +525,7 @@ export default function PersonaChatPage() {
   }, [activeChatId, isAiResponding, userDetails, isMobile]);
 
 
-  const handleSubmit = async (e: FormEvent) => {
+  const handleSubmit = (e: FormEvent) => {
     e.preventDefault();
     if (!input.trim() || !persona || !activeChat || !activeChatId) return;
   
@@ -543,7 +543,10 @@ export default function PersonaChatPage() {
       }
     });
     setInput('');
-    if (textareaRef.current) textareaRef.current.style.height = 'auto';
+    if (textareaRef.current) {
+        textareaRef.current.style.height = 'auto';
+        textareaRef.current.focus();
+    }
     setError(null);
   
     // If the AI is already responding, we just queue the message and don't start a timer.
@@ -990,12 +993,6 @@ export default function PersonaChatPage() {
                                 ref={textareaRef}
                                 value={input}
                                 onChange={handleInputChange}
-                                onKeyDown={(e) => {
-                                if (e.key === 'Enter' && !e.shiftKey) {
-                                    e.preventDefault();
-                                    handleSubmit(e as any);
-                                }
-                                }}
                                 rows={1}
                                 placeholder={`Message ${persona.name}...`}
                                 className="flex-1 resize-none border-0 bg-transparent p-2 text-base shadow-none focus-visible:ring-0 max-h-40 overflow-y-auto"
