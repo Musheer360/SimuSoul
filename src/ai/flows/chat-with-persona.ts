@@ -81,7 +81,7 @@ const ChatWithPersonaOutputOpenAPISchema = {
 
 
 function buildChatPrompt(input: ChatWithPersonaInput): string {
-    const userIdentifier = input.userDetails?.name || 'the user';
+    const userIdentifier = input.userDetails?.name?.split(' ')[0] || 'the user';
 
     let prompt = `You are a character actor playing the role of ${input.personaName}. You MUST strictly adhere to the persona's character, knowledge, and communication style.
 

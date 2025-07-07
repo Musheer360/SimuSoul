@@ -77,13 +77,13 @@ const GeneratePersonaFromPromptOutputOpenAPISchema = {
 
 export async function generatePersonaFromPrompt(input: GeneratePersonaFromPromptInput): Promise<GeneratePersonaFromPromptOutput> {
   const { prompt, userName, userAbout } = input;
-  const userIdentifier = userName || 'the user';
+  const userIdentifier = userName?.split(' ')[0] || 'the user';
   
   let userContextPrompt = '';
   if (userName || userAbout) {
     userContextPrompt += `\n**User Context (The person you are creating this for):**\n`;
     if (userName) {
-      userContextPrompt += `This persona will be interacting with ${userName}.`;
+      userContextPrompt += `This persona will be interacting with ${userIdentifier}.`;
       if (userAbout) {
         userContextPrompt += ` Here's a bit about them: "${userAbout}".\n`;
       } else {
