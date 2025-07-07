@@ -524,6 +524,18 @@ export default function PersonaChatPage() {
     }
   }, [activeChatId, isAiResponding, userDetails, isMobile]);
 
+  const handleMobileInputFocus = useCallback(() => {
+    if (isMobile && scrollAreaRef.current) {
+      const scrollContainer = scrollAreaRef.current.querySelector('div');
+      if (scrollContainer) {
+        scrollContainer.scrollTo({
+          top: scrollContainer.scrollHeight,
+          behavior: 'smooth',
+        });
+      }
+    }
+  }, [isMobile]);
+
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (isMobile) {
       return;
@@ -1006,6 +1018,7 @@ export default function PersonaChatPage() {
                                 value={input}
                                 onChange={handleInputChange}
                                 onKeyDown={handleKeyDown}
+                                onClick={handleMobileInputFocus}
                                 rows={1}
                                 placeholder={`Message ${persona.name}...`}
                                 className="flex-1 resize-none border-0 bg-transparent p-2 text-base shadow-none focus-visible:ring-0 max-h-40 overflow-y-auto"
