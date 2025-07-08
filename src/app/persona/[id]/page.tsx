@@ -394,7 +394,7 @@ export default function PersonaChatPage() {
     const userMessagesForTurn = allMessages.slice(lastAssistantMessageIndex + 1).filter(msg => msg.role === 'user');
   
     if (userMessagesForTurn.length === 0) {
-      return; 
+      return;
     }
   
     setIsAiResponding(true);
@@ -405,13 +405,16 @@ export default function PersonaChatPage() {
     const isNewChat = chatHistoryForAI.length === 0;
   
     const typingIndicatorMessage: ChatMessage = { role: 'assistant', content: TYPING_PLACEHOLDER };
-    let personaForUpdates = {
-      ...currentPersona,
-      chats: currentPersona.chats.map(c =>
-        c.id === activeChatId ? { ...c, messages: [...allMessages, typingIndicatorMessage] } : c
-      ),
-    };
-    setPersona(personaForUpdates);
+    
+    setPersona(current => {
+      if (!current) return null;
+      return {
+        ...current,
+        chats: current.chats.map(c =>
+          c.id === activeChatId ? { ...c, messages: [...c.messages, typingIndicatorMessage] } : c
+        ),
+      };
+    });
   
     const now = new Date();
     const currentDateTime = now.toLocaleString('en-US', {
@@ -419,7 +422,6 @@ export default function PersonaChatPage() {
     });
     const currentDateForMemory = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
   
-    let errorOccurred = false;
     try {
       const allChatsForContext = currentPersona.chats.filter(c => c.id !== activeChatId);
   
@@ -444,20 +446,18 @@ export default function PersonaChatPage() {
           setTimeout(() => setIsMemoryButtonGlowing(false), 1500);
         }
       }
-  
-      let personaForLoop = { ...currentPersona, chats: personaForUpdates.chats, memories: finalMemories };
+      
       let finalTitle = currentChat.title;
-  
       if (isNewChat && res.response && res.response[0]) {
         generateChatTitle({ userMessage: userMessageContents[0], assistantResponse: res.response[0] })
           .then(titleResult => {
             if (titleResult.title) {
               finalTitle = titleResult.title;
-              setPersona(currentPersona => {
-                if (!currentPersona) return null;
+              setPersona(current => {
+                if (!current) return null;
                 return {
-                  ...currentPersona,
-                  chats: currentPersona.chats.map(c =>
+                  ...current,
+                  chats: current.chats.map(c =>
                     c.id === activeChatId ? { ...c, title: titleResult.title! } : c
                   ),
                 };
@@ -467,8 +467,6 @@ export default function PersonaChatPage() {
       }
   
       if (res.response && res.response.length > 0) {
-        let messagesForThisTurn = [...personaForLoop.chats.find(c => c.id === activeChatId)!.messages];
-  
         for (let i = 0; i < res.response.length; i++) {
           const messageContent = res.response[i];
   
@@ -482,54 +480,61 @@ export default function PersonaChatPage() {
           const delay = Math.max(minDelay, Math.min(typingTimeMs, maxDelay));
   
           await new Promise(resolve => setTimeout(resolve, delay));
-  
-          const typingIndex = findLastIndex(messagesForThisTurn, m => m.content === TYPING_PLACEHOLDER);
-          if (typingIndex !== -1) {
-            messagesForThisTurn[typingIndex] = { role: 'assistant', content: messageContent };
-          }
-  
-          if (i < res.response.length - 1) {
-            messagesForThisTurn.push(typingIndicatorMessage);
-          }
-  
-          const currentPersonaState = {
-            ...personaForLoop,
-            chats: personaForLoop.chats.map(c =>
-              c.id === activeChatId
-                ? { ...c, messages: [...messagesForThisTurn], updatedAt: Date.now(), title: finalTitle }
-                : c
-            ),
-          };
-          setPersona(currentPersonaState);
-          personaForLoop = currentPersonaState;
-          await savePersona(currentPersonaState);
+          
+          setPersona(current => {
+            if (!current) return null;
+            const chat = current.chats.find(c => c.id === activeChatId);
+            if (!chat) return current;
+
+            let updatedMessages = [...chat.messages];
+            const typingIndex = findLastIndex(updatedMessages, m => m.content === TYPING_PLACEHOLDER);
+            
+            if (typingIndex !== -1) {
+              updatedMessages[typingIndex] = { role: 'assistant', content: messageContent };
+            }
+
+            if (i < res.response.length - 1) {
+              updatedMessages.push(typingIndicatorMessage);
+            }
+
+            return {
+              ...current,
+              memories: finalMemories,
+              chats: current.chats.map(c =>
+                c.id === activeChatId
+                  ? { ...c, messages: updatedMessages, updatedAt: Date.now(), title: finalTitle }
+                  : c
+              ),
+            };
+          });
         }
       } else {
-        let messagesForThisTurn = [...personaForLoop.chats.find(c => c.id === activeChatId)!.messages];
-        const finalMessages = messagesForThisTurn.filter(m => m.content !== TYPING_PLACEHOLDER);
-        const finalPersonaState = { ...personaForLoop, chats: personaForLoop.chats.map(c => c.id === activeChatId ? { ...c, messages: finalMessages } : c) };
-        setPersona(finalPersonaState);
-        await savePersona(finalPersonaState);
+        setPersona(current => {
+          if (!current) return null;
+          return {
+            ...current,
+            chats: current.chats.map(c =>
+              c.id === activeChatId ? { ...c, messages: c.messages.filter(m => m.content !== TYPING_PLACEHOLDER) } : c
+            ),
+          };
+        });
       }
     } catch (err: any) {
-      errorOccurred = true;
       console.error(err);
       setError(err.message || 'An unknown error occurred.');
-      // Use ref to get the latest state for cleanup
-      const currentPersonaState = personaRef.current;
-      if (currentPersonaState && activeChatId) {
-        const finalMessages = currentPersonaState.chats.find(c => c.id === activeChatId)!.messages.filter(m => m.content !== TYPING_PLACEHOLDER);
-        const finalPersonaState = {
-          ...currentPersonaState,
-          chats: currentPersonaState.chats.map(c =>
-            c.id === activeChatId ? { ...c, messages: finalMessages } : c
+      setPersona(current => {
+        if (!current) return null;
+        return {
+          ...current,
+          chats: current.chats.map(c =>
+            c.id === activeChatId ? { ...c, messages: c.messages.filter(m => m.content !== TYPING_PLACEHOLDER) } : c
           ),
         };
-        setPersona(finalPersonaState);
-      }
-      setIsAiResponding(false);
+      });
     } finally {
-      if (errorOccurred) return;
+        if (personaRef.current) {
+            await savePersona(personaRef.current);
+        }
 
       const latestPersonaState = personaRef.current;
       let hasPendingMessages = false;
