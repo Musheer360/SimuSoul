@@ -257,6 +257,10 @@ export default function PersonaChatPage() {
     prevActiveChatIdRef.current = activeChatId;
 
     return () => {
+      if (responseTimerRef.current) {
+        clearTimeout(responseTimerRef.current);
+        responseTimerRef.current = null;
+      }
       if (isDeletingRef.current) return;
       handleCleanup(prevActiveChatIdRef.current);
       if (prevActiveChatIdRef.current) {
@@ -378,13 +382,12 @@ export default function PersonaChatPage() {
       return;
     }
   
+    if (responseTimerRef.current) clearTimeout(responseTimerRef.current);
+    responseTimerRef.current = null;
+  
     const currentPersona = personaRef.current;
     const currentChat = currentPersona.chats.find(c => c.id === activeChatId);
     if (!currentChat) return;
-  
-    // Clear the timer ref when we start processing
-    if (responseTimerRef.current) clearTimeout(responseTimerRef.current);
-    responseTimerRef.current = null;
   
     const allMessages = currentChat.messages;
     const lastAssistantMessageIndex = findLastIndex(allMessages, msg => msg.role === 'assistant');
@@ -401,7 +404,6 @@ export default function PersonaChatPage() {
     const userMessageContents = userMessagesForTurn.map(m => m.content);
     const isNewChat = chatHistoryForAI.length === 0;
   
-    // Add typing indicator
     const typingIndicatorMessage: ChatMessage = { role: 'assistant', content: TYPING_PLACEHOLDER };
     let personaForUpdates = {
       ...currentPersona,
@@ -417,6 +419,7 @@ export default function PersonaChatPage() {
     });
     const currentDateForMemory = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
   
+    let errorOccurred = false;
     try {
       const allChatsForContext = currentPersona.chats.filter(c => c.id !== activeChatId);
   
@@ -509,18 +512,43 @@ export default function PersonaChatPage() {
         await savePersona(finalPersonaState);
       }
     } catch (err: any) {
+      errorOccurred = true;
       console.error(err);
       setError(err.message || 'An unknown error occurred.');
-      const finalMessages = allMessages.filter(m => m.content !== TYPING_PLACEHOLDER);
-      const finalPersonaState = {
-        ...personaForUpdates,
-        chats: personaForUpdates.chats.map(c =>
-          c.id === activeChatId ? { ...c, messages: finalMessages } : c
-        ),
-      };
-      setPersona(finalPersonaState);
-    } finally {
+      // Use ref to get the latest state for cleanup
+      const currentPersonaState = personaRef.current;
+      if (currentPersonaState && activeChatId) {
+        const finalMessages = currentPersonaState.chats.find(c => c.id === activeChatId)!.messages.filter(m => m.content !== TYPING_PLACEHOLDER);
+        const finalPersonaState = {
+          ...currentPersonaState,
+          chats: currentPersonaState.chats.map(c =>
+            c.id === activeChatId ? { ...c, messages: finalMessages } : c
+          ),
+        };
+        setPersona(finalPersonaState);
+      }
       setIsAiResponding(false);
+    } finally {
+      if (errorOccurred) return;
+
+      const latestPersonaState = personaRef.current;
+      let hasPendingMessages = false;
+      if (latestPersonaState && activeChatId) {
+          const latestChat = latestPersonaState.chats.find(c => c.id === activeChatId);
+          if (latestChat) {
+              const latestAssistantIdx = findLastIndex(latestChat.messages, msg => msg.role === 'assistant');
+              if (latestChat.messages.slice(latestAssistantIdx + 1).some(msg => msg.role === 'user')) {
+                  hasPendingMessages = true;
+              }
+          }
+      }
+
+      if (hasPendingMessages) {
+          const delay = Math.random() * (5000 - 2500) + 2500;
+          responseTimerRef.current = setTimeout(triggerAIResponse, delay);
+      } else {
+          setIsAiResponding(false);
+      }
     }
   }, [activeChatId, isAiResponding, userDetails, isMobile]);
 
@@ -573,14 +601,11 @@ export default function PersonaChatPage() {
     }
     setError(null);
   
-    // If the AI is already responding, we just queue the message and don't start a timer.
     if (isAiResponding) return;
 
-    // Otherwise, (re)start the response timer.
     if (responseTimerRef.current) {
       clearTimeout(responseTimerRef.current);
     }
-    // Dynamic delay between 2.5 and 5 seconds
     const delay = Math.random() * (5000 - 2500) + 2500;
     responseTimerRef.current = setTimeout(triggerAIResponse, delay);
   };
@@ -591,7 +616,6 @@ export default function PersonaChatPage() {
     target.style.height = 'auto';
     target.style.height = `${target.scrollHeight}px`;
 
-    // If a timer is running, reset it because the user is typing.
     if (responseTimerRef.current) {
         clearTimeout(responseTimerRef.current);
         const delay = Math.random() * (5000 - 2500) + 2500;
