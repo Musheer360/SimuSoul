@@ -400,11 +400,8 @@ export default function PersonaChatPage() {
         return;
     }
   
-    // The history is all messages *before* the new batch of user messages
-    const lastMessageInHistory = userMessagesForTurn[0];
-    const historyEndIndex = currentChat.messages.findIndex(m => m === lastMessageInHistory);
+    const historyEndIndex = currentChat.messages.length - userMessagesForTurn.length;
     const chatHistoryForAI = currentChat.messages.slice(0, historyEndIndex);
-  
     const userMessageContents = userMessagesForTurn.map(m => m.content);
     const isNewChat = chatHistoryForAI.length === 0;
   
@@ -455,13 +452,13 @@ export default function PersonaChatPage() {
         generateChatTitle({ userMessage: userMessageContents[0], assistantResponse: res.response[0] })
           .then(titleResult => {
             if (titleResult.title) {
-              finalTitle = titleResult.title;
               setPersona(current => {
                 if (!current) return null;
+                const newTitle = titleResult.title;
                 return {
                   ...current,
                   chats: current.chats.map(c =>
-                    c.id === activeChatId ? { ...c, title: titleResult.title! } : c
+                    c.id === activeChatId ? { ...c, title: newTitle } : c
                   ),
                 };
               });
@@ -500,12 +497,14 @@ export default function PersonaChatPage() {
               updatedMessages.push(typingIndicatorMessage);
             }
 
+            const latestTitle = current.chats.find(c => c.id === activeChatId)?.title || finalTitle;
+
             return {
               ...current,
               memories: finalMemories,
               chats: current.chats.map(c =>
                 c.id === activeChatId
-                  ? { ...c, messages: updatedMessages, updatedAt: Date.now(), title: finalTitle }
+                  ? { ...c, messages: updatedMessages, updatedAt: Date.now(), title: latestTitle }
                   : c
               ),
             };
@@ -535,20 +534,23 @@ export default function PersonaChatPage() {
         };
       });
     } finally {
-        setIsAiResponding(false); // This will allow the useEffect hook to check the queue
-        if (personaRef.current) {
+        setIsAiResponding(false);
+        const queuedMessages = await getQueuedMessages(id as string, activeChatId);
+        if (queuedMessages.length > 0) {
+            await clearQueuedMessages(id as string, activeChatId);
+            triggerAIResponse(queuedMessages);
+        } else if (personaRef.current) {
             await savePersona(personaRef.current);
         }
     }
-  }, [userDetails, isMobile]);
+  }, [id, userDetails, isMobile]);
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
-    if (!input.trim() || !persona || !activeChat || !activeChatId) return;
+    if (!input.trim() || !persona || !activeChatId) return;
   
     const userMessage: ChatMessage = { role: 'user', content: input };
   
-    // Always add the message to the UI first
     setPersona(prevPersona => {
       if (!prevPersona) return null;
       return {
@@ -568,14 +570,11 @@ export default function PersonaChatPage() {
     setError(null);
   
     if (isAiResponding) {
-      // If AI is busy, queue the message and return
       await addMessageToQueue(userMessage, persona.id, activeChatId);
       console.log("AI is busy. Message queued.");
-      return;
+    } else {
+      triggerAIResponse([userMessage]);
     }
-  
-    // If AI is not busy, trigger response immediately
-    triggerAIResponse([userMessage]);
   };
   
   const handleMobileInputFocus = useCallback(() => {
