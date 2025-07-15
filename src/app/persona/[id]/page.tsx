@@ -574,7 +574,7 @@ export default function PersonaChatPage() {
       return;
     }
   
-    // If AI is not busy, trigger response
+    // If AI is not busy, trigger response immediately
     triggerAIResponse([userMessage]);
   };
   
