@@ -8,8 +8,9 @@ const USER_DETAILS_STORE = 'userDetails';
 const API_KEYS_STORE = 'apiKeys';
 const MESSAGE_QUEUE_STORE = 'messageQueue'; // New store for queuing
 
-interface QueuedMessage extends ChatMessage {
+interface QueuedMessage {
   id: number;
+  message: ChatMessage;
   personaId: string;
   chatId: string;
 }
@@ -28,7 +29,7 @@ interface SimuSoulDBSchema extends DBSchema {
     value: ApiKeys;
   };
   [MESSAGE_QUEUE_STORE]: {
-    key: 'id';
+    key: number;
     value: QueuedMessage;
     indexes: { 'by-chat': [string, string] };
   };
@@ -37,7 +38,7 @@ interface SimuSoulDBSchema extends DBSchema {
 const dbPromise =
   typeof window !== 'undefined'
     ? openDB<SimuSoulDBSchema>(DB_NAME, DB_VERSION, {
-        upgrade(db, oldVersion) {
+        upgrade(db, oldVersion, newVersion, tx) {
           if (!db.objectStoreNames.contains(PERSONAS_STORE)) {
             db.createObjectStore(PERSONAS_STORE, { keyPath: 'id' });
           }
@@ -123,7 +124,7 @@ export async function addMessageToQueue(
 ): Promise<void> {
   if (!dbPromise) throw new Error("Database not available on server.");
   const db = await dbPromise;
-  await db.add(MESSAGE_QUEUE_STORE, { ...message, personaId, chatId } as any);
+  await db.add(MESSAGE_QUEUE_STORE, { message, personaId, chatId });
 }
 
 export async function getQueuedMessages(
@@ -132,12 +133,12 @@ export async function getQueuedMessages(
 ): Promise<ChatMessage[]> {
   if (!dbPromise) return [];
   const db = await dbPromise;
-  const messages = await db.getAllFromIndex(
+  const queuedItems = await db.getAllFromIndex(
     MESSAGE_QUEUE_STORE,
     'by-chat',
     IDBKeyRange.only([personaId, chatId])
   );
-  return messages.map(({ role, content }) => ({ role, content }));
+  return queuedItems.map(item => item.message);
 }
 
 export async function clearQueuedMessages(
@@ -165,3 +166,5 @@ export async function clearDatabase(): Promise<void> {
     await deleteDB(DB_NAME);
     window.location.href = '/';
 }
+
+    

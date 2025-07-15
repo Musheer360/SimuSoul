@@ -29,7 +29,6 @@ import {
   Dialog,
   DialogContent,
   DialogDescription,
-  DialogFooter,
   DialogHeader,
   DialogTitle,
   DialogTrigger,
@@ -196,13 +195,20 @@ export default function PersonaChatPage() {
   const scrollAreaRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const formRef = useRef<HTMLFormElement>(null);
+
+  // Refs for managing state in async operations to avoid stale state
   const personaRef = useRef(persona);
+  const isAiRespondingRef = useRef(isAiResponding);
   const prevActiveChatIdRef = useRef<string | null>();
   const isDeletingRef = useRef(false);
 
   useEffect(() => {
     personaRef.current = persona;
   }, [persona]);
+
+  useEffect(() => {
+    isAiRespondingRef.current = isAiResponding;
+  }, [isAiResponding]);
   
   const handleSummarizeChat = useCallback(async (chatId: string) => {
     const currentPersona = personaRef.current;
@@ -277,6 +283,7 @@ export default function PersonaChatPage() {
       }
     };
     processQueue();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id, activeChatId, isAiResponding]);
 
   useEffect(() => {
@@ -429,7 +436,7 @@ export default function PersonaChatPage() {
         persona: currentPersona, userDetails, chatHistory: chatHistoryForAI, messages: userMessageContents, currentDateTime, currentDateForMemory, allChats: allChatsForContext
       });
   
-      let finalMemories = currentPersona.memories || [];
+      let finalMemories = personaRef.current.memories || [];
       const memoryWasUpdated = (res.newMemories?.length || 0) > 0 || (res.removedMemories?.length || 0) > 0;
   
       if (memoryWasUpdated) {
@@ -470,7 +477,7 @@ export default function PersonaChatPage() {
         for (let i = 0; i < res.response.length; i++) {
           const messageContent = res.response[i];
   
-          const { minWpm, maxWpm } = currentPersona;
+          const { minWpm, maxWpm } = personaRef.current;
           const wpm = Math.floor(Math.random() * (maxWpm - minWpm + 1)) + minWpm;
           const words = messageContent.split(/\s+/).filter(Boolean).length;
           const typingTimeMs = (words / wpm) * 60 * 1000;
@@ -535,15 +542,9 @@ export default function PersonaChatPage() {
       });
     } finally {
         setIsAiResponding(false);
-        const queuedMessages = await getQueuedMessages(id as string, activeChatId);
-        if (queuedMessages.length > 0) {
-            await clearQueuedMessages(id as string, activeChatId);
-            triggerAIResponse(queuedMessages);
-        } else if (personaRef.current) {
-            await savePersona(personaRef.current);
-        }
+        // This will be triggered by the useEffect that watches isAiResponding
     }
-  }, [id, userDetails, isMobile]);
+  }, [id, userDetails, isMobile, activeChatId]);
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
@@ -565,11 +566,10 @@ export default function PersonaChatPage() {
     setInput('');
     if (textareaRef.current) {
         textareaRef.current.style.height = 'auto';
-        textareaRef.current.focus();
     }
     setError(null);
   
-    if (isAiResponding) {
+    if (isAiRespondingRef.current) {
       await addMessageToQueue(userMessage, persona.id, activeChatId);
       console.log("AI is busy. Message queued.");
     } else {
@@ -579,13 +579,15 @@ export default function PersonaChatPage() {
   
   const handleMobileInputFocus = useCallback(() => {
     if (isMobile && scrollAreaRef.current) {
-      const scrollContainer = scrollAreaRef.current.querySelector('div');
-      if (scrollContainer) {
-        scrollContainer.scrollTo({
-          top: scrollContainer.scrollHeight,
-          behavior: 'smooth',
-        });
-      }
+      setTimeout(() => {
+        const scrollContainer = scrollAreaRef.current?.querySelector('div');
+        if (scrollContainer) {
+          scrollContainer.scrollTo({
+            top: scrollContainer.scrollHeight,
+            behavior: 'smooth',
+          });
+        }
+      }, 300);
     }
   }, [isMobile]);
 
@@ -749,6 +751,46 @@ export default function PersonaChatPage() {
     setTouchStartX(null);
     setTouchMoveX(null);
   }, [touchStartX, touchMoveX]);
+
+  useEffect(() => {
+    let timeoutId: NodeJS.Timeout | null = null;
+    if (isMobile && scrollAreaRef.current) {
+        const scrollContainer = scrollAreaRef.current.querySelector('div');
+        const observer = new MutationObserver(() => {
+            if (timeoutId) clearTimeout(timeoutId);
+            timeoutId = setTimeout(() => {
+                scrollContainer?.scrollTo({ top: scrollContainer.scrollHeight, behavior: 'smooth' });
+            }, 100);
+        });
+
+        if (scrollContainer) {
+            observer.observe(scrollContainer, { childList: true });
+        }
+
+        return () => {
+            observer.disconnect();
+            if (timeoutId) clearTimeout(timeoutId);
+        };
+    }
+  }, [isMobile]);
+
+  useEffect(() => {
+    const handleFocus = () => handleMobileInputFocus();
+    const handleClick = () => handleMobileInputFocus();
+
+    const textarea = textareaRef.current;
+    if (isMobile && textarea) {
+      textarea.addEventListener('focus', handleFocus);
+      textarea.addEventListener('click', handleClick);
+    }
+    
+    return () => {
+      if (isMobile && textarea) {
+        textarea.removeEventListener('focus', handleFocus);
+        textarea.removeEventListener('click', handleClick);
+      }
+    };
+  }, [isMobile, handleMobileInputFocus]);
 
   if (persona === undefined) {
     return <PersonaChatSkeleton />;
@@ -997,7 +1039,7 @@ export default function PersonaChatPage() {
             <div className="flex-1 flex flex-col min-h-0">
                 {activeChatId && activeChat ? (
                 <>
-                    <ScrollArea className="flex-1" ref={scrollAreaRef}>
+                    <ScrollArea className="flex-1 overscroll-y-contain" ref={scrollAreaRef}>
                       <div className="max-w-3xl mx-auto px-4 pb-4">
                         {messages.map((message, index) => {
                            const isFirstInSequence = !messages[index - 1] || messages[index - 1].role !== message.role;
@@ -1034,8 +1076,6 @@ export default function PersonaChatPage() {
                                 value={input}
                                 onChange={handleInputChange}
                                 onKeyDown={handleKeyDown}
-                                onFocus={handleMobileInputFocus}
-                                onClick={handleMobileInputFocus}
                                 rows={1}
                                 placeholder={`Message ${persona.name}...`}
                                 className="flex-1 resize-none border-0 bg-transparent p-2 text-base shadow-none focus-visible:ring-0 max-h-40 overflow-y-auto"
@@ -1124,3 +1164,5 @@ export default function PersonaChatPage() {
     </>
   );
 }
+
+    
