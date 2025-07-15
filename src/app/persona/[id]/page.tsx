@@ -43,7 +43,7 @@ import { FormattedMessage } from '@/components/formatted-message';
 import { useToast } from '@/hooks/use-toast';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { AnimatedChatTitle } from '@/components/animated-chat-title';
-import { getPersona, savePersona, deletePersona, getUserDetails, getApiKeys } from '@/lib/db';
+import { getPersona, savePersona, deletePersona, getUserDetails, addMessageToQueue, getQueuedMessages, clearQueuedMessages } from '@/lib/db';
 import { MemoryItem } from '@/components/memory-item';
 
 const TYPING_PLACEHOLDER = 'IS_TYPING_PLACEHOLDER_8f4a7b1c';
@@ -199,7 +199,6 @@ export default function PersonaChatPage() {
   const personaRef = useRef(persona);
   const prevActiveChatIdRef = useRef<string | null>();
   const isDeletingRef = useRef(false);
-  const responseTimerRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
     personaRef.current = persona;
@@ -211,7 +210,7 @@ export default function PersonaChatPage() {
 
     const chatToSummarize = currentPersona.chats.find(c => c.id === chatId);
 
-    if (chatToSummarize && chatToSummarize.messages.length > 4) {
+    if (chatToSummarize && chatToSummarize.messages.length > 4 && !chatToSummarize.summary) {
         try {
             console.log(`Summarizing chat: ${chatToSummarize.title}`);
             const result = await summarizeChat({ chatHistory: chatToSummarize.messages });
@@ -257,10 +256,6 @@ export default function PersonaChatPage() {
     prevActiveChatIdRef.current = activeChatId;
 
     return () => {
-      if (responseTimerRef.current) {
-        clearTimeout(responseTimerRef.current);
-        responseTimerRef.current = null;
-      }
       if (isDeletingRef.current) return;
       handleCleanup(prevActiveChatIdRef.current);
       if (prevActiveChatIdRef.current) {
@@ -268,6 +263,21 @@ export default function PersonaChatPage() {
       }
     }
   }, [activeChatId, handleSummarizeChat]);
+
+  // This effect checks for queued messages when the component mounts or the chat changes
+  useEffect(() => {
+    const processQueue = async () => {
+      if (id && activeChatId && !isAiResponding) {
+        const queuedMessages = await getQueuedMessages(id, activeChatId);
+        if (queuedMessages.length > 0) {
+          console.log(`Found ${queuedMessages.length} queued messages. Processing now.`);
+          await clearQueuedMessages(id, activeChatId);
+          triggerAIResponse(queuedMessages);
+        }
+      }
+    };
+    processQueue();
+  }, [id, activeChatId, isAiResponding]);
 
   useEffect(() => {
     async function loadPageData() {
@@ -377,43 +387,36 @@ export default function PersonaChatPage() {
     }
   }, [messages]);
   
-  const triggerAIResponse = useCallback(async () => {
-    if (isAiResponding || !personaRef.current || !activeChatId) {
-      return;
-    }
-  
-    if (responseTimerRef.current) clearTimeout(responseTimerRef.current);
-    responseTimerRef.current = null;
-  
-    const currentPersona = personaRef.current;
-    const currentChat = currentPersona.chats.find(c => c.id === activeChatId);
-    if (!currentChat) return;
-  
-    const allMessages = currentChat.messages;
-    const lastAssistantMessageIndex = findLastIndex(allMessages, msg => msg.role === 'assistant');
-    const userMessagesForTurn = allMessages.slice(lastAssistantMessageIndex + 1).filter(msg => msg.role === 'user');
-  
-    if (userMessagesForTurn.length === 0) {
-      return;
-    }
+  const triggerAIResponse = useCallback(async (userMessagesForTurn: ChatMessage[]) => {
+    if (!personaRef.current || !activeChatId) return;
   
     setIsAiResponding(true);
     setError(null);
   
-    const chatHistoryForAI = allMessages.slice(0, lastAssistantMessageIndex + 1);
+    const currentPersona = personaRef.current;
+    const currentChat = currentPersona.chats.find(c => c.id === activeChatId);
+    if (!currentChat || userMessagesForTurn.length === 0) {
+        setIsAiResponding(false);
+        return;
+    }
+  
+    // The history is all messages *before* the new batch of user messages
+    const lastMessageInHistory = userMessagesForTurn[0];
+    const historyEndIndex = currentChat.messages.findIndex(m => m === lastMessageInHistory);
+    const chatHistoryForAI = currentChat.messages.slice(0, historyEndIndex);
+  
     const userMessageContents = userMessagesForTurn.map(m => m.content);
     const isNewChat = chatHistoryForAI.length === 0;
   
     const typingIndicatorMessage: ChatMessage = { role: 'assistant', content: TYPING_PLACEHOLDER };
-    
     setPersona(current => {
-      if (!current) return null;
-      return {
-        ...current,
-        chats: current.chats.map(c =>
-          c.id === activeChatId ? { ...c, messages: [...c.messages, typingIndicatorMessage] } : c
-        ),
-      };
+        if (!current) return null;
+        return {
+            ...current,
+            chats: current.chats.map(c =>
+            c.id === activeChatId ? { ...c, messages: [...c.messages, typingIndicatorMessage] } : c
+            ),
+        };
     });
   
     const now = new Date();
@@ -438,7 +441,7 @@ export default function PersonaChatPage() {
         const memoriesToAdd = res.newMemories || [];
         finalMemories = [...finalMemories, ...memoriesToAdd];
   
-        setGlowingMessageIndex(allMessages.length);
+        setGlowingMessageIndex(currentChat.messages.length);
         setTimeout(() => setGlowingMessageIndex(null), 1500);
   
         if (!isMobile) {
@@ -532,31 +535,49 @@ export default function PersonaChatPage() {
         };
       });
     } finally {
+        setIsAiResponding(false); // This will allow the useEffect hook to check the queue
         if (personaRef.current) {
             await savePersona(personaRef.current);
         }
-
-      const latestPersonaState = personaRef.current;
-      let hasPendingMessages = false;
-      if (latestPersonaState && activeChatId) {
-          const latestChat = latestPersonaState.chats.find(c => c.id === activeChatId);
-          if (latestChat) {
-              const latestAssistantIdx = findLastIndex(latestChat.messages, msg => msg.role === 'assistant');
-              if (latestChat.messages.slice(latestAssistantIdx + 1).some(msg => msg.role === 'user')) {
-                  hasPendingMessages = true;
-              }
-          }
-      }
-
-      if (hasPendingMessages) {
-          const delay = Math.random() * (5000 - 2500) + 2500;
-          responseTimerRef.current = setTimeout(triggerAIResponse, delay);
-      } else {
-          setIsAiResponding(false);
-      }
     }
-  }, [activeChatId, isAiResponding, userDetails, isMobile]);
+  }, [userDetails, isMobile]);
 
+  const handleSubmit = async (e: FormEvent) => {
+    e.preventDefault();
+    if (!input.trim() || !persona || !activeChat || !activeChatId) return;
+  
+    const userMessage: ChatMessage = { role: 'user', content: input };
+  
+    // Always add the message to the UI first
+    setPersona(prevPersona => {
+      if (!prevPersona) return null;
+      return {
+        ...prevPersona,
+        chats: prevPersona.chats.map(c =>
+          c.id === activeChatId
+            ? { ...c, messages: [...c.messages, userMessage], updatedAt: Date.now() }
+            : c
+        ),
+      }
+    });
+    setInput('');
+    if (textareaRef.current) {
+        textareaRef.current.style.height = 'auto';
+        textareaRef.current.focus();
+    }
+    setError(null);
+  
+    if (isAiResponding) {
+      // If AI is busy, queue the message and return
+      await addMessageToQueue(userMessage, persona.id, activeChatId);
+      console.log("AI is busy. Message queued.");
+      return;
+    }
+  
+    // If AI is not busy, trigger response
+    triggerAIResponse([userMessage]);
+  };
+  
   const handleMobileInputFocus = useCallback(() => {
     if (isMobile && scrollAreaRef.current) {
       const scrollContainer = scrollAreaRef.current.querySelector('div');
@@ -581,56 +602,18 @@ export default function PersonaChatPage() {
       }
     }
   };
-
-  const handleSubmit = (e: FormEvent) => {
-    e.preventDefault();
-    if (!input.trim() || !persona || !activeChat || !activeChatId) return;
-  
-    const userMessage: ChatMessage = { role: 'user', content: input };
-    
-    setPersona(prevPersona => {
-      if (!prevPersona) return null;
-      return {
-        ...prevPersona,
-        chats: prevPersona.chats.map(c =>
-          c.id === activeChatId
-            ? { ...c, messages: [...c.messages, userMessage], updatedAt: Date.now() }
-            : c
-        ),
-      }
-    });
-    setInput('');
-    if (textareaRef.current) {
-        textareaRef.current.style.height = 'auto';
-        textareaRef.current.focus();
-    }
-    setError(null);
-  
-    if (isAiResponding) return;
-
-    if (responseTimerRef.current) {
-      clearTimeout(responseTimerRef.current);
-    }
-    const delay = Math.random() * (5000 - 2500) + 2500;
-    responseTimerRef.current = setTimeout(triggerAIResponse, delay);
-  };
   
   const handleInputChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     setInput(e.target.value);
     const target = e.currentTarget;
     target.style.height = 'auto';
     target.style.height = `${target.scrollHeight}px`;
-
-    if (responseTimerRef.current) {
-        clearTimeout(responseTimerRef.current);
-        const delay = Math.random() * (5000 - 2500) + 2500;
-        responseTimerRef.current = setTimeout(triggerAIResponse, delay);
-    }
   };
 
   const handleConfirmDeleteChat = useCallback(async () => {
     if (!persona || !chatToDelete) return;
 
+    await clearQueuedMessages(persona.id, chatToDelete.id); // Clear queue for this chat
     const updatedPersona = {
         ...persona,
         chats: persona.chats.filter(c => c.id !== chatToDelete.id)
@@ -648,6 +631,11 @@ export default function PersonaChatPage() {
 
   const handleClearAllChats = useCallback(async () => {
     if (!persona) return;
+
+    // Clear queues for all chats of this persona
+    for (const chat of persona.chats) {
+        await clearQueuedMessages(persona.id, chat.id);
+    }
 
     const updatedPersona = { ...persona, chats: [] };
     setPersona(updatedPersona);
@@ -1047,6 +1035,7 @@ export default function PersonaChatPage() {
                                 value={input}
                                 onChange={handleInputChange}
                                 onKeyDown={handleKeyDown}
+                                onFocus={handleMobileInputFocus}
                                 onClick={handleMobileInputFocus}
                                 rows={1}
                                 placeholder={`Message ${persona.name}...`}

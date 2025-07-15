@@ -1,11 +1,18 @@
 import { openDB, deleteDB, type DBSchema } from 'idb';
-import type { Persona, UserDetails, ApiKeys } from '@/lib/types';
+import type { Persona, UserDetails, ApiKeys, ChatMessage } from '@/lib/types';
 
 const DB_NAME = 'SimuSoulDB';
-const DB_VERSION = 1;
+const DB_VERSION = 2; // Version incremented for new object store
 const PERSONAS_STORE = 'personas';
 const USER_DETAILS_STORE = 'userDetails';
 const API_KEYS_STORE = 'apiKeys';
+const MESSAGE_QUEUE_STORE = 'messageQueue'; // New store for queuing
+
+interface QueuedMessage extends ChatMessage {
+  id: number;
+  personaId: string;
+  chatId: string;
+}
 
 interface SimuSoulDBSchema extends DBSchema {
   [PERSONAS_STORE]: {
@@ -20,14 +27,17 @@ interface SimuSoulDBSchema extends DBSchema {
     key: string;
     value: ApiKeys;
   };
+  [MESSAGE_QUEUE_STORE]: {
+    key: 'id';
+    value: QueuedMessage;
+    indexes: { 'by-chat': [string, string] };
+  };
 }
 
-// IMPORTANT: Only initialize the database in the browser.
-// On the server, dbPromise will be null.
 const dbPromise =
   typeof window !== 'undefined'
     ? openDB<SimuSoulDBSchema>(DB_NAME, DB_VERSION, {
-        upgrade(db) {
+        upgrade(db, oldVersion) {
           if (!db.objectStoreNames.contains(PERSONAS_STORE)) {
             db.createObjectStore(PERSONAS_STORE, { keyPath: 'id' });
           }
@@ -36,6 +46,15 @@ const dbPromise =
           }
           if (!db.objectStoreNames.contains(API_KEYS_STORE)) {
             db.createObjectStore(API_KEYS_STORE);
+          }
+          // Create the new message queue store if it doesn't exist
+          if (!db.objectStoreNames.contains(MESSAGE_QUEUE_STORE)) {
+            const store = db.createObjectStore(MESSAGE_QUEUE_STORE, {
+              keyPath: 'id',
+              autoIncrement: true,
+            });
+            // Create an index to easily look up messages by chat
+            store.createIndex('by-chat', ['personaId', 'chatId']);
           }
         },
       })
@@ -96,13 +115,53 @@ export async function saveApiKeys(keys: ApiKeys): Promise<void> {
     await db.put(API_KEYS_STORE, keys, API_KEYS_KEY);
 }
 
+// Message Queue operations
+export async function addMessageToQueue(
+  message: ChatMessage,
+  personaId: string,
+  chatId: string
+): Promise<void> {
+  if (!dbPromise) throw new Error("Database not available on server.");
+  const db = await dbPromise;
+  await db.add(MESSAGE_QUEUE_STORE, { ...message, personaId, chatId } as any);
+}
+
+export async function getQueuedMessages(
+  personaId: string,
+  chatId: string
+): Promise<ChatMessage[]> {
+  if (!dbPromise) return [];
+  const db = await dbPromise;
+  const messages = await db.getAllFromIndex(
+    MESSAGE_QUEUE_STORE,
+    'by-chat',
+    IDBKeyRange.only([personaId, chatId])
+  );
+  return messages.map(({ role, content }) => ({ role, content }));
+}
+
+export async function clearQueuedMessages(
+  personaId: string,
+  chatId: string
+): Promise<void> {
+  if (!dbPromise) throw new Error("Database not available on server.");
+  const db = await dbPromise;
+  const tx = db.transaction(MESSAGE_QUEUE_STORE, 'readwrite');
+  const index = tx.store.index('by-chat');
+  let cursor = await index.openCursor(IDBKeyRange.only([personaId, chatId]));
+  while (cursor) {
+    cursor.delete();
+    cursor = await cursor.continue();
+  }
+  await tx.done;
+}
+
+
 // Function to wipe the entire database
 export async function clearDatabase(): Promise<void> {
     if (!dbPromise) throw new Error("Database not available on server.");
-    // Close the connection before deleting
     const db = await dbPromise;
     db.close();
     await deleteDB(DB_NAME);
-    // Reload the application to re-initialize state and re-trigger setup
     window.location.href = '/';
 }
