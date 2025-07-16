@@ -463,7 +463,7 @@ export default function PersonaChatPage() {
   
   const sortedChats = useMemo(() => {
     if (!persona?.chats) return [];
-    return [...persona.chats].sort((a, b) => (b.updatedAt || b.createdAt) - (a.updatedAt || a.createdAt));
+    return [...persona.chats].sort((a, b) => (b.updatedAt || b.createdAt) - (a.updatedAt || b.createdAt));
   }, [persona?.chats]);
 
   const prevActiveChatIdRef = useRef<string | null>();
@@ -546,12 +546,8 @@ export default function PersonaChatPage() {
 
   const messagesToDisplay = useMemo(() => {
       const allMessages = activeChat?.messages || [];
-      if (isAiTyping) {
-          const placeholder: ChatMessage = { role: 'assistant', content: TYPING_PLACEHOLDER };
-          return [...allMessages, placeholder];
-      }
       return allMessages.filter(msg => msg.content !== TYPING_PLACEHOLDER);
-  }, [activeChat, isAiTyping]);
+  }, [activeChat]);
 
   useEffect(() => {
     if (scrollAreaRef.current) {
@@ -559,11 +555,11 @@ export default function PersonaChatPage() {
       if (scrollContainer) {
         scrollContainer.scrollTo({
             top: scrollContainer.scrollHeight,
-            behavior: 'auto',
+            behavior: 'smooth',
         });
       }
     }
-  }, [messagesToDisplay]);
+  }, [messagesToDisplay, isAiTyping]);
   
   const handleMobileInputFocus = useCallback(() => {
     if (isMobile && scrollAreaRef.current) {
@@ -762,22 +758,20 @@ export default function PersonaChatPage() {
   }, [isMobile]);
 
   useEffect(() => {
-    const handleFocus = () => handleMobileInputFocus();
-    const handleClick = () => handleMobileInputFocus();
-
+    const handleFocus = () => {
+      textareaRef.current?.focus();
+    };
     const textarea = textareaRef.current;
     if (isMobile && textarea) {
       textarea.addEventListener('focus', handleFocus);
-      textarea.addEventListener('click', handleClick);
     }
     
     return () => {
       if (isMobile && textarea) {
         textarea.removeEventListener('focus', handleFocus);
-        textarea.removeEventListener('click', handleClick);
       }
     };
-  }, [isMobile, handleMobileInputFocus]);
+  }, [isMobile]);
 
   if (persona === undefined) {
     return <PersonaChatSkeleton />;
@@ -814,27 +808,32 @@ export default function PersonaChatPage() {
     transitionClass = '';
   }
 
-  const TypingIndicator = () => (
-    <div
-      className={cn(
-        "flex animate-fade-in-up",
-        "justify-start",
-        'mt-4'
-      )}
-    >
-      <div className={cn(
-        "flex h-11 items-center rounded-lg bg-secondary px-4",
-        "rounded-tl-none",
-        "rounded-br-lg"
-      )}>
-        <div className="flex items-center justify-center space-x-1.5 h-full">
-          <div className="w-2 h-2 rounded-full bg-muted-foreground animate-typing-dot-1"></div>
-          <div className="w-2 h-2 rounded-full bg-muted-foreground animate-typing-dot-2"></div>
-          <div className="w-2 h-2 rounded-full bg-muted-foreground animate-typing-dot-3"></div>
+  const TypingIndicator = () => {
+    const lastMessage = messagesToDisplay[messagesToDisplay.length - 1];
+    const isFirstBubble = !lastMessage || lastMessage.role !== 'assistant';
+
+    return (
+      <div
+        className={cn(
+          "flex animate-fade-in-up",
+          "justify-start",
+          isFirstBubble ? 'mt-4' : 'mt-1'
+        )}
+      >
+        <div className={cn(
+          "flex h-11 items-center rounded-lg bg-secondary px-4",
+          "rounded-tl-none",
+          "rounded-br-lg"
+        )}>
+          <div className="flex items-center justify-center space-x-1.5 h-full">
+            <div className="w-2 h-2 rounded-full bg-muted-foreground animate-typing-dot-1"></div>
+            <div className="w-2 h-2 rounded-full bg-muted-foreground animate-typing-dot-2"></div>
+            <div className="w-2 h-2 rounded-full bg-muted-foreground animate-typing-dot-3"></div>
+          </div>
         </div>
       </div>
-    </div>
-  );
+    );
+  };
 
   return (
     <>
@@ -1050,9 +1049,9 @@ export default function PersonaChatPage() {
                 <>
                     <ScrollArea className="flex-1 overscroll-y-contain" ref={scrollAreaRef}>
                       <div className="max-w-3xl mx-auto px-4 pb-4">
-                        {activeChat.messages.map((message, index) => {
-                           const isFirstInSequence = !activeChat.messages[index - 1] || activeChat.messages[index - 1].role !== message.role;
-                           const isLastInSequence = !activeChat.messages[index + 1] || activeChat.messages[index + 1].role !== message.role;
+                        {messagesToDisplay.map((message, index) => {
+                           const isFirstInSequence = !messagesToDisplay[index - 1] || messagesToDisplay[index - 1].role !== message.role;
+                           const isLastInSequence = !messagesToDisplay[index + 1] || messagesToDisplay[index + 1].role !== message.role;
                            return (
                              <ChatMessageItem
                                key={index}
@@ -1089,7 +1088,7 @@ export default function PersonaChatPage() {
                                 onKeyDown={handleKeyDown}
                                 rows={1}
                                 placeholder={`Message ${persona.name}...`}
-                                className="flex-1 resize-none border-0 bg-transparent p-2 text-base shadow-none focus-visible:ring-0 max-h-40 overflow-y-auto no-scrollbar"
+                                className="flex-1 resize-none border-0 bg-transparent p-2 text-base shadow-none focus-visible:ring-0 max-h-40 no-scrollbar"
                             />
                             <Button
                                 type="submit"
