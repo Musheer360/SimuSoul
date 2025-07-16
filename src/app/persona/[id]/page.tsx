@@ -46,8 +46,6 @@ import { AnimatedChatTitle } from '@/components/animated-chat-title';
 import { getPersona, savePersona, deletePersona, getUserDetails } from '@/lib/db';
 import { MemoryItem } from '@/components/memory-item';
 
-const TYPING_PLACEHOLDER = 'IS_TYPING_PLACEHOLDER_8f4a7b1c';
-
 // Helper to find the last index of an element in an array.
 const findLastIndex = <T,>(
   array: T[],
@@ -302,28 +300,17 @@ export default function PersonaChatPage() {
       if (res.response && res.response.length > 0) {
         newMessages = res.response.map(content => ({ role: 'assistant', content }));
       }
-  
-      const finalMessages = [...currentChat.messages, ...newMessages];
-      const typingPlaceholderIndex = findLastIndex(
-          finalMessages,
-          msg => msg.content === TYPING_PLACEHOLDER
-      );
 
       setPersona(current => {
         if (!current) return null;
         const chat = current.chats.find(c => c.id === activeChatIdRef.current);
         if (!chat) return current;
-
-        let messagesToUpdate = chat.messages;
-        if (typingPlaceholderIndex !== -1) {
-            messagesToUpdate.splice(typingPlaceholderIndex, 1);
-        }
         
         return {
           ...current,
           chats: current.chats.map(c =>
             c.id === activeChatIdRef.current
-              ? { ...c, messages: messagesToUpdate, updatedAt: Date.now() }
+              ? { ...c, messages: chat.messages, updatedAt: Date.now() }
               : c
           ),
         };
@@ -545,8 +532,7 @@ export default function PersonaChatPage() {
   }, [persona, activeChatId]);
 
   const messagesToDisplay = useMemo(() => {
-      const allMessages = activeChat?.messages || [];
-      return allMessages.filter(msg => msg.content !== TYPING_PLACEHOLDER);
+      return activeChat?.messages || [];
   }, [activeChat]);
 
   useEffect(() => {
@@ -1051,13 +1037,17 @@ export default function PersonaChatPage() {
                       <div className="max-w-3xl mx-auto px-4 pb-4">
                         {messagesToDisplay.map((message, index) => {
                            const isFirstInSequence = !messagesToDisplay[index - 1] || messagesToDisplay[index - 1].role !== message.role;
+                           // A message is the last in a sequence if the next one is from a different role,
+                           // OR if it's the very last message and the AI isn't currently typing a new one.
                            const isLastInSequence = !messagesToDisplay[index + 1] || messagesToDisplay[index + 1].role !== message.role;
+                           const isLastVisibleAssistantMessage = message.role === 'assistant' && index === messagesToDisplay.length - 1;
+
                            return (
                              <ChatMessageItem
                                key={index}
                                message={message}
                                isFirstInSequence={isFirstInSequence}
-                               isLastInSequence={isLastInSequence}
+                               isLastInSequence={isLastVisibleAssistantMessage ? !isAiTyping : isLastInSequence}
                                glowing={glowingMessageIndex === index}
                              />
                            );
@@ -1085,6 +1075,7 @@ export default function PersonaChatPage() {
                                 ref={textareaRef}
                                 value={input}
                                 onChange={handleInputChange}
+                                onFocus={handleMobileInputFocus}
                                 onKeyDown={handleKeyDown}
                                 rows={1}
                                 placeholder={`Message ${persona.name}...`}
