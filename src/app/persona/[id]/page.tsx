@@ -65,19 +65,21 @@ const ChatMessageItem = memo(function ChatMessageItem({
   isFirstInSequence,
   isLastInSequence,
   glowing,
+  isTypingIndicator = false,
 }: {
   message: ChatMessage;
   isFirstInSequence: boolean;
   isLastInSequence: boolean;
   glowing: boolean;
+  isTypingIndicator?: boolean;
 }) {
-  if (message.content === TYPING_PLACEHOLDER) {
+  if (isTypingIndicator) {
     return (
       <div
         className={cn(
           "flex animate-fade-in-up",
           "justify-start",
-          isFirstInSequence ? 'mt-4' : 'mt-1'
+          'mt-4'
         )}
       >
         <div className={cn(
@@ -176,6 +178,7 @@ export default function PersonaChatPage() {
   const [input, setInput] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [isAiResponding, setIsAiResponding] = useState(false);
+  const [isAiTyping, setIsAiTyping] = useState(false);
 
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [isManagementDialogOpen, setIsManagementDialogOpen] = useState(false);
@@ -197,7 +200,6 @@ export default function PersonaChatPage() {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const formRef = useRef<HTMLFormElement>(null);
 
-  // Refs for managing state in async operations to avoid stale state
   const personaRef = useRef(persona);
   const isAiRespondingRef = useRef(isAiResponding);
   const activeChatIdRef = useRef(activeChatId);
@@ -212,6 +214,7 @@ export default function PersonaChatPage() {
 
   useEffect(() => {
     isAiRespondingRef.current = isAiResponding;
+    setIsAiTyping(isAiResponding);
   }, [isAiResponding]);
 
   useEffect(() => {
@@ -268,16 +271,6 @@ export default function PersonaChatPage() {
     const chatHistoryForAI = currentChat.messages.slice(0, historyEndIndex);
     const userMessageContents = messagesForTurn.map(m => m.content);
     const isNewChat = chatHistoryForAI.length === 0;
-  
-    setPersona(current => {
-      if (!current) return null;
-      return {
-        ...current,
-        chats: current.chats.map(c =>
-          c.id === activeChatIdRef.current ? { ...c, messages: [...c.messages, { role: 'assistant', content: TYPING_PLACEHOLDER }] } : c
-        ),
-      };
-    });
   
     const now = new Date();
     const currentDateTime = now.toLocaleString('en-US', {
@@ -345,18 +338,13 @@ export default function PersonaChatPage() {
             if (!current) return null;
             const chat = current.chats.find(c => c.id === activeChatIdRef.current);
             if (!chat) return current;
-            let updatedMessages = [...chat.messages];
-            const typingIndex = findLastIndex(updatedMessages, m => m.content === TYPING_PLACEHOLDER);
-            if (typingIndex !== -1) {
-              updatedMessages[typingIndex] = { role: 'assistant', content: messageContent };
-            }
-            if (i < res.response.length - 1) {
-              updatedMessages.push({ role: 'assistant', content: TYPING_PLACEHOLDER });
-            }
+            const newAssistantMessage: ChatMessage = { role: 'assistant', content: messageContent };
             return {
               ...current,
               chats: current.chats.map(c =>
-                c.id === activeChatIdRef.current ? { ...c, messages: updatedMessages, updatedAt: Date.now() } : c
+                c.id === activeChatIdRef.current
+                  ? { ...c, messages: [...c.messages, newAssistantMessage], updatedAt: Date.now() }
+                  : c
               ),
             };
           });
@@ -366,12 +354,9 @@ export default function PersonaChatPage() {
       console.error(err);
       setError(err.message || 'An unknown error occurred.');
     } finally {
-      // After response is complete, check for queued messages
       if (messagesSinceLastResponseRef.current.length > 0) {
-        // If there are queued messages, trigger the response for them immediately.
         triggerAIResponse();
       } else {
-        // Only set responding to false if the queue is empty.
         setIsAiResponding(false);
       }
     }
@@ -411,10 +396,8 @@ export default function PersonaChatPage() {
     messagesSinceLastResponseRef.current.push(userMessage);
 
     if (isAiRespondingRef.current) {
-      return; // Message is queued, AI will respond later.
+      return;
     }
-
-    // Always reset the timer on new message submission.
     startResponseTimer();
   };
 
@@ -565,7 +548,7 @@ export default function PersonaChatPage() {
         });
       }
     }
-  }, [messages]);
+  }, [messages, isAiTyping]);
   
   const handleMobileInputFocus = useCallback(() => {
     if (isMobile && scrollAreaRef.current) {
@@ -600,8 +583,8 @@ export default function PersonaChatPage() {
     target.style.height = 'auto';
     target.style.height = `${target.scrollHeight}px`;
     
-    // Reset timer on typing if it's already active
     if (responseTimerRef.current) {
+      clearTimeout(responseTimerRef.current);
       startResponseTimer();
     }
   };
@@ -1043,6 +1026,16 @@ export default function PersonaChatPage() {
                              />
                            );
                         })}
+
+                        {isAiTyping && (
+                           <ChatMessageItem
+                            message={{ role: 'assistant', content: '' }}
+                            isFirstInSequence={true}
+                            isLastInSequence={true}
+                            glowing={false}
+                            isTypingIndicator={true}
+                          />
+                        )}
 
                         {error && (
                         <Alert variant="destructive" className="mt-4">
