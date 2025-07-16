@@ -249,7 +249,7 @@ export default function PersonaChatPage() {
 
   const triggerAIResponse = useCallback(async () => {
     const personaNow = personaRef.current;
-    if (!personaNow || !activeChatIdRef.current || isAiRespondingRef.current) return;
+    if (!personaNow || !activeChatIdRef.current) return;
   
     const messagesForTurn = [...messagesSinceLastResponseRef.current];
     if (messagesForTurn.length === 0) return;
@@ -366,13 +366,57 @@ export default function PersonaChatPage() {
       console.error(err);
       setError(err.message || 'An unknown error occurred.');
     } finally {
-      setIsAiResponding(false);
       // After response is complete, check for queued messages
       if (messagesSinceLastResponseRef.current.length > 0) {
+        // If there are queued messages, trigger the response for them immediately.
         triggerAIResponse();
+      } else {
+        // Only set responding to false if the queue is empty.
+        setIsAiResponding(false);
       }
     }
   }, [isMobile]);
+
+  const startResponseTimer = useCallback(() => {
+    if (responseTimerRef.current) clearTimeout(responseTimerRef.current);
+    const delay = Math.random() * (5000 - 2500) + 2500; // Random between 2.5 and 5 seconds
+    responseTimerRef.current = setTimeout(() => {
+      if (!isAiRespondingRef.current) {
+        triggerAIResponse();
+      }
+    }, delay);
+  }, [triggerAIResponse]);
+  
+  const handleSubmit = async (e: FormEvent) => {
+    e.preventDefault();
+    if (!input.trim() || !persona || !activeChatId) return;
+  
+    const userMessage: ChatMessage = { role: 'user', content: input };
+  
+    setPersona(prevPersona => {
+      if (!prevPersona) return null;
+      return {
+        ...prevPersona,
+        chats: prevPersona.chats.map(c =>
+          c.id === activeChatId
+            ? { ...c, messages: [...c.messages, userMessage], updatedAt: Date.now() }
+            : c
+        ),
+      }
+    });
+    setInput('');
+    if (textareaRef.current) textareaRef.current.style.height = 'auto';
+    setError(null);
+  
+    messagesSinceLastResponseRef.current.push(userMessage);
+
+    if (isAiRespondingRef.current) {
+      return; // Message is queued, AI will respond later.
+    }
+
+    // Always reset the timer on new message submission.
+    startResponseTimer();
+  };
 
   useEffect(() => {
     async function loadPageData() {
@@ -523,45 +567,6 @@ export default function PersonaChatPage() {
     }
   }, [messages]);
   
-  const startResponseTimer = useCallback(() => {
-    if (responseTimerRef.current) clearTimeout(responseTimerRef.current);
-    const delay = Math.random() * (5000 - 2500) + 2500; // Random between 2.5 and 5 seconds
-    responseTimerRef.current = setTimeout(() => {
-      triggerAIResponse();
-    }, delay);
-  }, [triggerAIResponse]);
-
-  const handleSubmit = async (e: FormEvent) => {
-    e.preventDefault();
-    if (!input.trim() || !persona || !activeChatId) return;
-  
-    const userMessage: ChatMessage = { role: 'user', content: input };
-  
-    setPersona(prevPersona => {
-      if (!prevPersona) return null;
-      return {
-        ...prevPersona,
-        chats: prevPersona.chats.map(c =>
-          c.id === activeChatId
-            ? { ...c, messages: [...c.messages, userMessage], updatedAt: Date.now() }
-            : c
-        ),
-      }
-    });
-    setInput('');
-    if (textareaRef.current) textareaRef.current.style.height = 'auto';
-    setError(null);
-  
-    messagesSinceLastResponseRef.current.push(userMessage);
-
-    if (isAiRespondingRef.current) {
-      return; // Message is queued, AI will respond later.
-    }
-
-    // Always reset the timer on new message submission.
-    startResponseTimer();
-  };
-  
   const handleMobileInputFocus = useCallback(() => {
     if (isMobile && scrollAreaRef.current) {
       setTimeout(() => {
@@ -596,8 +601,7 @@ export default function PersonaChatPage() {
     target.style.height = `${target.scrollHeight}px`;
     
     // Reset timer on typing if it's already active
-    if (responseTimerRef.current && messagesSinceLastResponseRef.current.length > 0) {
-      clearTimeout(responseTimerRef.current);
+    if (responseTimerRef.current) {
       startResponseTimer();
     }
   };
