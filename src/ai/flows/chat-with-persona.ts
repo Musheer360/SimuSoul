@@ -227,13 +227,13 @@ export async function chatWithPersona(
     persona: Persona;
     userDetails: UserDetails;
     chatHistory: ChatMessage[];
-    messages: string[];
+    userMessages: string[];
     currentDateTime: string;
     currentDateForMemory: string;
     allChats: ChatSession[];
   }
 ): Promise<ChatWithPersonaOutput> {
-  const { persona, userDetails, chatHistory, messages, currentDateTime, currentDateForMemory, allChats } = payload;
+  const { persona, userDetails, chatHistory, userMessages, currentDateTime, currentDateForMemory, allChats } = payload;
   
   const personaDescription = `Backstory: ${persona.backstory}\nTraits: ${persona.traits}\nGoals: ${persona.goals}`;
 
@@ -258,7 +258,7 @@ export async function chatWithPersona(
     },
     existingMemories: persona.memories,
     chatHistory,
-    userMessages: messages,
+    userMessages,
     currentDateTime,
     currentDateForMemory,
     chatSummaries,
