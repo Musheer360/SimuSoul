@@ -134,6 +134,30 @@ function PersonaChatSkeleton() {
   );
 }
 
+const TypingIndicator = memo(function TypingIndicator({ isFirstBubble }: { isFirstBubble: boolean }) {
+  return (
+    <div
+      className={cn(
+        "flex animate-fade-in-up",
+        "justify-start",
+        isFirstBubble ? 'mt-4' : 'mt-1'
+      )}
+    >
+      <div className={cn(
+        "flex h-11 items-center rounded-lg bg-secondary px-4",
+        "rounded-tl-none",
+        "rounded-br-lg"
+      )}>
+        <div className="flex items-center justify-center space-x-1.5 h-full">
+          <div className="w-2 h-2 rounded-full bg-muted-foreground animate-typing-dot-1"></div>
+          <div className="w-2 h-2 rounded-full bg-muted-foreground animate-typing-dot-2"></div>
+          <div className="w-2 h-2 rounded-full bg-muted-foreground animate-typing-dot-3"></div>
+        </div>
+      </div>
+    </div>
+  );
+});
+
 export default function PersonaChatPage() {
   const router = useRouter();
   const params = useParams();
@@ -450,7 +474,7 @@ export default function PersonaChatPage() {
   
   const sortedChats = useMemo(() => {
     if (!persona?.chats) return [];
-    return [...persona.chats].sort((a, b) => (b.updatedAt || b.createdAt) - (a.updatedAt || b.createdAt));
+    return [...persona.chats].sort((a, b) => (b.updatedAt || b.createdAt) - (a.updatedAt || a.createdAt));
   }, [persona?.chats]);
 
   const prevActiveChatIdRef = useRef<string | null>();
@@ -548,18 +572,9 @@ export default function PersonaChatPage() {
   }, [messagesToDisplay, isAiTyping]);
   
   const handleMobileInputFocus = useCallback(() => {
-    if (isMobile && scrollAreaRef.current) {
-      setTimeout(() => {
-        const scrollContainer = scrollAreaRef.current?.querySelector('div');
-        if (scrollContainer) {
-          scrollContainer.scrollTo({
-            top: scrollContainer.scrollHeight,
-            behavior: 'smooth',
-          });
-        }
-      }, 100);
-    }
-  }, [isMobile]);
+    // This function can be used for other focus-related logic if needed in the future.
+    // The main keyboard persistence logic is now handled in handleSubmit.
+  }, []);
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (isMobile) {
@@ -794,32 +809,8 @@ export default function PersonaChatPage() {
     transitionClass = '';
   }
 
-  const TypingIndicator = () => {
-    const lastMessage = messagesToDisplay[messagesToDisplay.length - 1];
-    const isFirstBubble = !lastMessage || lastMessage.role !== 'assistant';
-
-    return (
-      <div
-        className={cn(
-          "flex animate-fade-in-up",
-          "justify-start",
-          isFirstBubble ? 'mt-4' : 'mt-1'
-        )}
-      >
-        <div className={cn(
-          "flex h-11 items-center rounded-lg bg-secondary px-4",
-          "rounded-tl-none",
-          "rounded-br-lg"
-        )}>
-          <div className="flex items-center justify-center space-x-1.5 h-full">
-            <div className="w-2 h-2 rounded-full bg-muted-foreground animate-typing-dot-1"></div>
-            <div className="w-2 h-2 rounded-full bg-muted-foreground animate-typing-dot-2"></div>
-            <div className="w-2 h-2 rounded-full bg-muted-foreground animate-typing-dot-3"></div>
-          </div>
-        </div>
-      </div>
-    );
-  };
+  const lastMessage = messagesToDisplay[messagesToDisplay.length - 1];
+  const isTypingIndicatorFirstBubble = !lastMessage || lastMessage.role !== 'assistant';
 
   return (
     <>
@@ -1053,7 +1044,7 @@ export default function PersonaChatPage() {
                            );
                         })}
 
-                        {isAiTyping && <TypingIndicator />}
+                        {isAiTyping && <TypingIndicator isFirstBubble={isTypingIndicatorFirstBubble} />}
 
                         {error && (
                         <Alert variant="destructive" className="mt-4">
