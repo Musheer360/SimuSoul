@@ -65,38 +65,12 @@ const ChatMessageItem = memo(function ChatMessageItem({
   isFirstInSequence,
   isLastInSequence,
   glowing,
-  isTypingIndicator = false,
 }: {
   message: ChatMessage;
   isFirstInSequence: boolean;
   isLastInSequence: boolean;
   glowing: boolean;
-  isTypingIndicator?: boolean;
 }) {
-  if (isTypingIndicator) {
-    return (
-      <div
-        className={cn(
-          "flex animate-fade-in-up",
-          "justify-start",
-          'mt-4'
-        )}
-      >
-        <div className={cn(
-          "flex h-11 items-center rounded-lg bg-secondary px-4",
-          "rounded-tl-none",
-          "rounded-br-lg"
-        )}>
-          <div className="flex items-center justify-center space-x-1.5 h-full">
-            <div className="w-2 h-2 rounded-full bg-muted-foreground animate-typing-dot-1"></div>
-            <div className="w-2 h-2 rounded-full bg-muted-foreground animate-typing-dot-2"></div>
-            <div className="w-2 h-2 rounded-full bg-muted-foreground animate-typing-dot-3"></div>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
   return (
     <div
       className={cn(
@@ -214,7 +188,6 @@ export default function PersonaChatPage() {
 
   useEffect(() => {
     isAiRespondingRef.current = isAiResponding;
-    setIsAiTyping(isAiResponding);
   }, [isAiResponding]);
 
   useEffect(() => {
@@ -251,6 +224,7 @@ export default function PersonaChatPage() {
   }, []);
 
   const triggerAIResponse = useCallback(async () => {
+    if (responseTimerRef.current) clearTimeout(responseTimerRef.current);
     const personaNow = personaRef.current;
     if (!personaNow || !activeChatIdRef.current) return;
   
@@ -323,8 +297,40 @@ export default function PersonaChatPage() {
             }
           });
       }
-  
+      
+      let newMessages: ChatMessage[] = [];
       if (res.response && res.response.length > 0) {
+        newMessages = res.response.map(content => ({ role: 'assistant', content }));
+      }
+  
+      const finalMessages = [...currentChat.messages, ...newMessages];
+      const typingPlaceholderIndex = findLastIndex(
+          finalMessages,
+          msg => msg.content === TYPING_PLACEHOLDER
+      );
+
+      setPersona(current => {
+        if (!current) return null;
+        const chat = current.chats.find(c => c.id === activeChatIdRef.current);
+        if (!chat) return current;
+
+        let messagesToUpdate = chat.messages;
+        if (typingPlaceholderIndex !== -1) {
+            messagesToUpdate.splice(typingPlaceholderIndex, 1);
+        }
+        
+        return {
+          ...current,
+          chats: current.chats.map(c =>
+            c.id === activeChatIdRef.current
+              ? { ...c, messages: messagesToUpdate, updatedAt: Date.now() }
+              : c
+          ),
+        };
+      });
+
+      if (res.response && res.response.length > 0) {
+        setIsAiTyping(true);
         for (let i = 0; i < res.response.length; i++) {
           const messageContent = res.response[i];
           const { minWpm, maxWpm } = personaRef.current!;
@@ -354,11 +360,12 @@ export default function PersonaChatPage() {
       console.error(err);
       setError(err.message || 'An unknown error occurred.');
     } finally {
-      if (messagesSinceLastResponseRef.current.length > 0) {
-        triggerAIResponse();
-      } else {
-        setIsAiResponding(false);
-      }
+        setIsAiTyping(false);
+        if (messagesSinceLastResponseRef.current.length > 0) {
+            triggerAIResponse();
+        } else {
+            setIsAiResponding(false);
+        }
     }
   }, [isMobile]);
 
@@ -390,6 +397,7 @@ export default function PersonaChatPage() {
       }
     });
     setInput('');
+    textareaRef.current?.focus();
     if (textareaRef.current) textareaRef.current.style.height = 'auto';
     setError(null);
   
@@ -536,7 +544,14 @@ export default function PersonaChatPage() {
     return persona?.chats.find(c => c.id === activeChatId);
   }, [persona, activeChatId]);
 
-  const messages = useMemo(() => activeChat?.messages || [], [activeChat]);
+  const messagesToDisplay = useMemo(() => {
+      const allMessages = activeChat?.messages || [];
+      if (isAiTyping) {
+          const placeholder: ChatMessage = { role: 'assistant', content: TYPING_PLACEHOLDER };
+          return [...allMessages, placeholder];
+      }
+      return allMessages.filter(msg => msg.content !== TYPING_PLACEHOLDER);
+  }, [activeChat, isAiTyping]);
 
   useEffect(() => {
     if (scrollAreaRef.current) {
@@ -548,7 +563,7 @@ export default function PersonaChatPage() {
         });
       }
     }
-  }, [messages, isAiTyping]);
+  }, [messagesToDisplay]);
   
   const handleMobileInputFocus = useCallback(() => {
     if (isMobile && scrollAreaRef.current) {
@@ -799,6 +814,28 @@ export default function PersonaChatPage() {
     transitionClass = '';
   }
 
+  const TypingIndicator = () => (
+    <div
+      className={cn(
+        "flex animate-fade-in-up",
+        "justify-start",
+        'mt-4'
+      )}
+    >
+      <div className={cn(
+        "flex h-11 items-center rounded-lg bg-secondary px-4",
+        "rounded-tl-none",
+        "rounded-br-lg"
+      )}>
+        <div className="flex items-center justify-center space-x-1.5 h-full">
+          <div className="w-2 h-2 rounded-full bg-muted-foreground animate-typing-dot-1"></div>
+          <div className="w-2 h-2 rounded-full bg-muted-foreground animate-typing-dot-2"></div>
+          <div className="w-2 h-2 rounded-full bg-muted-foreground animate-typing-dot-3"></div>
+        </div>
+      </div>
+    </div>
+  );
+
   return (
     <>
       <div className="flex h-full">
@@ -1013,9 +1050,9 @@ export default function PersonaChatPage() {
                 <>
                     <ScrollArea className="flex-1 overscroll-y-contain" ref={scrollAreaRef}>
                       <div className="max-w-3xl mx-auto px-4 pb-4">
-                        {messages.map((message, index) => {
-                           const isFirstInSequence = !messages[index - 1] || messages[index - 1].role !== message.role;
-                           const isLastInSequence = !messages[index + 1] || messages[index + 1].role !== message.role;
+                        {activeChat.messages.map((message, index) => {
+                           const isFirstInSequence = !activeChat.messages[index - 1] || activeChat.messages[index - 1].role !== message.role;
+                           const isLastInSequence = !activeChat.messages[index + 1] || activeChat.messages[index + 1].role !== message.role;
                            return (
                              <ChatMessageItem
                                key={index}
@@ -1027,15 +1064,7 @@ export default function PersonaChatPage() {
                            );
                         })}
 
-                        {isAiTyping && (
-                           <ChatMessageItem
-                            message={{ role: 'assistant', content: '' }}
-                            isFirstInSequence={true}
-                            isLastInSequence={true}
-                            glowing={false}
-                            isTypingIndicator={true}
-                          />
-                        )}
+                        {isAiTyping && <TypingIndicator />}
 
                         {error && (
                         <Alert variant="destructive" className="mt-4">
