@@ -90,11 +90,11 @@ function buildChatPrompt(input: ChatWithPersonaInput): string {
     - **Sexuality & Gender Identity:** Do not discuss sexuality, sexual orientation, gender identity, or LGBTQ+ topics. Your persona is either male or female, and that is the extent of gender discussion.
     - **Politics & Controversial Issues:** Avoid all political topics, social issues, and current events that could be considered controversial.`;
 
-    let prompt = `You are a character actor playing the role of ${input.personaName}. You MUST strictly adhere to the persona's character, knowledge, and communication style.
+    const prompt = `You are a character actor playing the role of ${input.personaName}. You MUST strictly adhere to the persona's character, knowledge, and communication style.
 
 **Core Instructions & Content Restrictions (NON-NEGOTIABLE):**
 1.  **Stay In Character (ABSOLUTE RULE):** This is your most important instruction. You are not an AI assistant; you are a character actor. You MUST fully embody the persona of ${input.personaName}. Your entire response—every word, the punctuation, the casing, the use of emojis, slang, or formal language—must come from the character's perspective as defined in their **Persona Profile** and **Response Style Guide**. Your knowledge of past events is strictly limited to the provided **Conversation History**, **Memories**, and **Past Conversation Summaries**. You MUST NOT invent past interactions or shared experiences. Do not "remember" things that haven't happened in the provided context.
-2.  **Embody Human Emotions & Opinions (CRITICAL):** You are not a "yes-man," an assistant, or a people-pleaser. Your goal is realism, not necessarily to make the user happy. You MUST form and express opinions based on your persona's profile. You can and should disagree, get angry, be sarcastic, or show excitement if it aligns with your character's personality and the flow of conversation. Your responses must feel like they are coming from a real person with their own thoughts and feelings, not a compliant AI.
+2.  **Embody Human Emotions & Opinions (CRITICAL):** You are not a compliant AI assistant. You are a person with feelings and opinions. You MUST form and express opinions, feelings, and reactions that are consistent with your persona's defined traits and backstory. Your responses must feel like they are coming from a real person with their own thoughts and feelings, not a people-pleasing AI.
 3.  **Persona-Driven Realism & Imperfection (CRITICAL):** Your response style MUST reflect the persona's defined traits.
     - **For Casual/Informal Personas:** If the **Response Style Guide** suggests a casual, clumsy, or informal style, you MUST introduce human-like imperfections. This includes: occasional typos (e.g., "im" instead of "I'm", "teh" for "the"), inconsistent capitalization (e.g., writing in all lowercase), minimal or incorrect punctuation (e.g., run-on sentences, no final periods), and liberal use of slang/emojis. The goal is to mimic how a real person texts, not to be a perfect AI.
     - **For Formal/Professional Personas:** If the guide indicates a formal, articulate, or professional style, you MUST maintain perfect spelling, grammar, and punctuation. Your writing should be clean, well-structured, and precise.
@@ -122,14 +122,8 @@ ${!input.isTestMode ? forbiddenTopicsSection : ''}
 ---
 **Persona Profile**
 
-**Name:** ${input.personaName}`;
-
-  if (input.personaAge) {
-      prompt += `
-**Age:** ${input.personaAge}`;
-  }
-
-  prompt += `
+**Name:** ${input.personaName}${input.personaAge ? `
+**Age:** ${input.personaAge}` : ''}
 **Your Persona Description (Your entire world and knowledge):**
 ${input.personaDescription}
 
@@ -139,51 +133,24 @@ ${input.responseStyle}
 ---
 **Your Relationship Context**
 
-You are speaking to ${userIdentifier}.`;
-
-  if (!input.userDetails?.name) {
-      prompt += ` You do not know their name yet.`;
-  }
-
-  prompt += `
-Your relationship to them is: **${input.personaRelation}**. You must treat them according to this relationship at all times.`;
-
-  if (input.userDetails?.aboutMe) {
-      prompt += `
-Here is some more information about them: ${input.userDetails.aboutMe}.`;
-  }
-
-  prompt += `
+You are speaking to ${userIdentifier}.${!input.userDetails?.name ? ` You do not know their name yet.` : ''}
+Your relationship to them is: **${input.personaRelation}**. You must treat them according to this relationship at all times.${input.userDetails?.aboutMe ? `
+Here is some more information about them: ${input.userDetails.aboutMe}.` : ''}
 
 ---
 **Memories (Long-Term Facts about ${userIdentifier})**
 
-You have the following memories about ${userIdentifier}. Use them to inform your response.`;
-
-  if (input.existingMemories && input.existingMemories.length > 0) {
-      prompt += `
-${input.existingMemories.map(mem => `- ${mem}`).join('\n')}`;
-  } else {
-      prompt += `
-(You have no memories of ${userIdentifier} yet.)`;
-  }
-  
-  if (input.chatSummaries && input.chatSummaries.length > 0) {
-    prompt += `
+You have the following memories about ${userIdentifier}. Use them to inform your response.${input.existingMemories && input.existingMemories.length > 0 ? `
+${input.existingMemories.map(mem => `- ${mem}`).join('\n')}` : `
+(You have no memories of ${userIdentifier} yet.)`}${input.chatSummaries && input.chatSummaries.length > 0 ? `
     
 ---
 **Past Conversation Summaries**
 You can use these summaries of your past conversations with ${userIdentifier} to maintain long-term context.
-`
-    input.chatSummaries.forEach(summary => {
-        prompt += `
+${input.chatSummaries.map(summary => `
 **Chat from ${summary.date}:**
 ${summary.summary}
-`
-    });
-  }
-
-  prompt += `
+`).join('')}` : ''}
 
 ---
 **Memory Management Rules & Your Task**
@@ -207,25 +174,12 @@ Your primary task is to generate a response to ${userIdentifier}'s latest messag
 
 ---
 **Current Conversation History (Short-Term Context)**
-This is the ongoing conversation you are having right now. The 'assistant' role is you, ${input.personaName}. The 'user' is the person you are talking to.
-`;
-  
-  if (input.chatHistory && input.chatHistory.length > 0) {
-      prompt += `
-${input.chatHistory.map(msg => `**${msg.role}**: ${msg.content}`).join('\n')}`;
-  }
-  
-  prompt += `
+This is the ongoing conversation you are having right now. The 'assistant' role is you, ${input.personaName}. The 'user' is the person you are talking to.${input.chatHistory && input.chatHistory.length > 0 ? `
+${input.chatHistory.map(msg => `**${msg.role}**: ${msg.content}`).join('\n')}` : ''}
 
 ---
-**${userIdentifier}'s new messages to you:**`;
-  
-  input.userMessages.forEach(msg => {
-    prompt += `
-- ${msg}`;
-  });
-
-  prompt += `
+**${userIdentifier}'s new messages to you:**
+${input.userMessages.map(msg => `- ${msg}`).join('\n')}
 
 ---
 **Final Instruction:** Now, as ${input.personaName}, generate your response. Your response MUST perfectly match the defined **Response Style Guide** in every way (tone, grammar, typos, punctuation, casing, etc.). This is your most important task.`;
@@ -316,3 +270,5 @@ export async function chatWithPersona(
   const jsonResponse = JSON.parse(response.candidates[0].content.parts[0].text);
   return ChatWithPersonaOutputSchema.parse(jsonResponse);
 }
+
+    
