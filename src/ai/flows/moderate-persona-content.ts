@@ -5,7 +5,7 @@
  * @fileOverview This file defines a client-side function for moderating persona content.
  */
 
-import { callGeminiApi } from '@/lib/api-key-manager';
+import { callGeminiApi, isTestModeActive } from '@/lib/api-key-manager';
 import { z } from 'zod';
 
 export const ModeratePersonaContentInputSchema = z.object({
@@ -44,6 +44,11 @@ const ModeratePersonaContentOutputOpenAPISchema = {
 };
 
 export async function moderatePersonaContent(input: ModeratePersonaContentInput): Promise<ModeratePersonaContentOutput> {
+  const testMode = await isTestModeActive();
+  if (testMode) {
+    return { isSafe: true, reason: 'Test Mode Active' };
+  }
+  
   let promptText = `You are an AI content moderator. Your task is to review the following persona details and determine if they violate critical content policies. Be precise and avoid flagging content based on weak inferences.
 
 **Content Policies:**
@@ -67,7 +72,8 @@ Analyze all fields below.
 - Relationship: ${input.relation}`;
 
   if (input.age) {
-    promptText += `\n- Age: ${input.age}`;
+    promptText += `
+- Age: ${input.age}`;
   }
 
   promptText += `
@@ -111,5 +117,3 @@ Analyze all fields below.
      return { isSafe: false, reason: 'An error occurred during content moderation.' };
   }
 }
-
-    

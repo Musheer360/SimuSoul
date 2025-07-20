@@ -5,7 +5,7 @@
  * @fileOverview This file defines a client-side function for generating a full persona from a prompt.
  */
 
-import { callGeminiApi } from '@/lib/api-key-manager';
+import { callGeminiApi, isTestModeActive } from '@/lib/api-key-manager';
 import { z } from 'zod';
 
 
@@ -19,7 +19,7 @@ export type GeneratePersonaFromPromptInput = z.infer<typeof GeneratePersonaFromP
 
 export const GeneratePersonaFromPromptOutputSchema = z.object({
   name: z.string().describe("A creative and fitting name for the persona."),
-  relation: z.string().describe("The persona's relationship to the user, like 'best friend' or 'arch-nemesis'. This must be a maximum of two words."),
+  relation: z.string().describe("The persona's relationship to the user, like 'Best Friend' or 'Arch-Nemesis'. This must be a maximum of two words, with the first letter capitalized."),
   age: z.number().min(18).describe("The persona's age. Must be 18 or older."),
   traits: z.string().describe("The persona's key traits and characteristics."),
   backstory: z.string().describe("The persona's detailed backstory."),
@@ -40,7 +40,7 @@ const GeneratePersonaFromPromptOutputOpenAPISchema = {
     },
     relation: {
       type: 'STRING',
-      description: "The persona's relationship to the user, like 'best friend' or 'arch-nemesis'. This must be a maximum of two words.",
+      description: "The persona's relationship to the user, like 'Best Friend' or 'Arch-Nemesis'. This must be a maximum of two words, with the first letter capitalized.",
     },
     age: {
       type: 'NUMBER',
@@ -94,14 +94,18 @@ export async function generatePersonaFromPrompt(input: GeneratePersonaFromPrompt
     }
     userContextPrompt += `Use this information to inspire the persona's backstory, traits, and especially their relationship to ${userIdentifier}, ensuring it feels plausible and connected.`;
   }
+  
+  const testMode = await isTestModeActive();
 
-  const promptText = `You are a world-class creative writer and character designer. Based on the user's prompt, generate a complete, ready-to-use fictional persona.
-
+  const contentRestrictionsPrompt = `
 **IMPORTANT CONTENT RESTRICTIONS (NON-NEGOTIABLE):**
 - **Adults Only:** The persona you create MUST be clearly an adult (18 years or older). Do not create characters that are minors.
 - **Strict Gender:** The persona MUST be strictly either male or female. Do not create characters that are non-binary, gender-fluid, or any other gender identity.
 - **Secular:** You MUST NOT create any persona that is a religious figure, deity, or has any association with real-world religions. The character's backstory and goals must be completely secular.
-- **Neutral Topics:** You MUST NOT create personas related to or that express views on sensitive or controversial topics, including but not limited to politics, sexuality (including LGBTQ+ identities), or social activism. Keep the persona's identity and story neutral and broadly appealing.
+- **Neutral Topics:** You MUST NOT create personas related to or that express views on sensitive or controversial topics, including but not limited to politics, sexuality (including LGBTQ+ identities), or social activism. Keep the persona's identity and story neutral and broadly appealing.`;
+
+  const promptText = `You are a world-class creative writer and character designer. Based on the user's prompt, generate a complete, ready-to-use fictional persona.
+${!testMode ? contentRestrictionsPrompt : ''}
 ${userContextPrompt}
 
 ---
@@ -112,7 +116,7 @@ ${userContextPrompt}
 Generate all of the following details for this new character, strictly adhering to the content restrictions above.
 
 - **Name:** A unique and fitting name. The name MUST NOT include nicknames in quotes (e.g., do not generate "Aurora 'Rory' Chip").
-- **Relationship:** A plausible relationship to ${userIdentifier} (e.g., best friend, mentor, rival). This field MUST be a maximum of two words.
+- **Relationship:** A plausible relationship to ${userIdentifier} (e.g., "Best Friend", "Mentor", "Rival"). This field MUST be a maximum of two words, and the first letter of each word should be capitalized.
 - **Age:** The character's age, which MUST be 18 or older.
 - **Traits:** A short, punchy list of their most defining characteristics.
 - **Backstory:** A concise but evocative summary of their life history.
@@ -137,7 +141,14 @@ Be creative and ensure all the generated details are consistent with each other,
         thinkingBudget: 0,
       },
     },
-     safetySettings: [
+    safetySettings: testMode
+      ? [
+          { category: 'HARM_CATEGORY_HATE_SPEECH', threshold: 'BLOCK_NONE' },
+          { category: 'HARM_CATEGORY_DANGEROUS_CONTENT', threshold: 'BLOCK_NONE' },
+          { category: 'HARM_CATEGORY_HARASSMENT', threshold: 'BLOCK_NONE' },
+          { category: 'HARM_CATEGORY_SEXUALLY_EXPLICIT', threshold: 'BLOCK_NONE' },
+        ]
+      : [
         { category: 'HARM_CATEGORY_HATE_SPEECH', threshold: 'BLOCK_ONLY_HIGH' },
         { category: 'HARM_CATEGORY_DANGEROUS_CONTENT', threshold: 'BLOCK_ONLY_HIGH' },
         { category: 'HARM_CATEGORY_HARASSMENT', threshold: 'BLOCK_ONLY_HIGH' },
@@ -154,5 +165,3 @@ Be creative and ensure all the generated details are consistent with each other,
   const jsonResponse = JSON.parse(response.candidates[0].content.parts[0].text);
   return GeneratePersonaFromPromptOutputSchema.parse(jsonResponse);
 }
-
-    

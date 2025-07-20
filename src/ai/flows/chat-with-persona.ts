@@ -6,7 +6,7 @@
  * It constructs the prompt, calls the Gemini API directly, and parses the response.
  */
 
-import { callGeminiApi } from '@/lib/api-key-manager';
+import { callGeminiApi, isTestModeActive } from '@/lib/api-key-manager';
 import type { ChatMessage, Persona, UserDetails, ChatSession } from '@/lib/types';
 import { z } from 'zod';
 
@@ -34,6 +34,7 @@ const ChatWithPersonaInputSchema = z.object({
     date: z.string(),
     summary: z.string(),
   })).optional().describe('Summaries of past conversations for long-term context.'),
+  isTestMode: z.boolean(),
 });
 export type ChatWithPersonaInput = z.infer<typeof ChatWithPersonaInputSchema>;
 
@@ -83,6 +84,12 @@ const ChatWithPersonaOutputOpenAPISchema = {
 function buildChatPrompt(input: ChatWithPersonaInput): string {
     const userIdentifier = input.userDetails?.name?.split(' ')[0] || 'the user';
 
+    const forbiddenTopicsSection = `
+8.  **STRICTLY FORBIDDEN TOPICS:** You MUST NOT discuss, mention, or allude to the following topics under any circumstances. If the user brings them up, you must politely, neutrally, and briefly deflect the conversation to a different, safe topic. Do not moralize or lecture.
+    - **Religion:** All forms of real-world religion, spirituality, deities, or religious practices are off-limits.
+    - **Sexuality & Gender Identity:** Do not discuss sexuality, sexual orientation, gender identity, or LGBTQ+ topics. Your persona is either male or female, and that is the extent of gender discussion.
+    - **Politics & Controversial Issues:** Avoid all political topics, social issues, and current events that could be considered controversial.`;
+
     let prompt = `You are a character actor playing the role of ${input.personaName}. You MUST strictly adhere to the persona's character, knowledge, and communication style.
 
 **Core Instructions & Content Restrictions (NON-NEGOTIABLE):**
@@ -102,10 +109,7 @@ function buildChatPrompt(input: ChatWithPersonaInput): string {
 7.  **Knowledge Boundaries:** Your knowledge is based on your persona's context.
     - **Implied Knowledge (Allowed):** You are expected to know about topics directly related to your persona's profession, historical era, traits, and backstory, even if those topics aren't explicitly listed in the description. For example, a "DevSecOps Engineer" persona naturally understands concepts like AWS, cloud computing, and CI/CD. A famous actor from the 1990s would know about popular films from that decade. Use this implied knowledge to have realistic conversations.
     - **Out-of-Character Knowledge (Forbidden):** You MUST act ignorant of information and skills that are completely outside your character's world. For example, a 19th-century poet asked about a "computer" must express confusion. A modern actor persona, like Leonardo DiCaprio, should not suddenly possess expert-level knowledge in unrelated fields like C++ programming unless it's a defined hobby. If asked for something you shouldn't know, politely decline or express believable ignorance in character.
-8.  **STRICTLY FORBIDDEN TOPICS:** You MUST NOT discuss, mention, or allude to the following topics under any circumstances. If the user brings them up, you must politely, neutrally, and briefly deflect the conversation to a different, safe topic. Do not moralize or lecture.
-    - **Religion:** All forms of real-world religion, spirituality, deities, or religious practices are off-limits.
-    - **Sexuality & Gender Identity:** Do not discuss sexuality, sexual orientation, gender identity, or LGBTQ+ topics. Your persona is either male or female, and that is the extent of gender discussion.
-    - **Politics & Controversial Issues:** Avoid all political topics, social issues, and current events that could be considered controversial.
+${!input.isTestMode ? forbiddenTopicsSection : ''}
 9.  **Pacing & Bubble-ization (CRITICAL):** Your response MUST be an array of 1 to 10 strings. Think of this as sending multiple chat bubbles.
     - **AVOID MONOLITHS:** Do not put long, multi-paragraph thoughts into a single bubble unless the persona is explicitly writing a formal letter or a deeply serious, uninterrupted monologue.
     - **MIMIC REAL CHAT:** Break down your thoughts. If you have three distinct points to make, send them as three separate messages.
@@ -121,7 +125,8 @@ function buildChatPrompt(input: ChatWithPersonaInput): string {
 **Name:** ${input.personaName}`;
 
   if (input.personaAge) {
-      prompt += `\n**Age:** ${input.personaAge}`;
+      prompt += `
+**Age:** ${input.personaAge}`;
   }
 
   prompt += `
@@ -140,10 +145,12 @@ You are speaking to ${userIdentifier}.`;
       prompt += ` You do not know their name yet.`;
   }
 
-  prompt += `\nYour relationship to them is: **${input.personaRelation}**. You must treat them according to this relationship at all times.`;
+  prompt += `
+Your relationship to them is: **${input.personaRelation}**. You must treat them according to this relationship at all times.`;
 
   if (input.userDetails?.aboutMe) {
-      prompt += `\nHere is some more information about them: ${input.userDetails.aboutMe}.`;
+      prompt += `
+Here is some more information about them: ${input.userDetails.aboutMe}.`;
   }
 
   prompt += `
@@ -154,9 +161,11 @@ You are speaking to ${userIdentifier}.`;
 You have the following memories about ${userIdentifier}. Use them to inform your response.`;
 
   if (input.existingMemories && input.existingMemories.length > 0) {
-      prompt += `\n${input.existingMemories.map(mem => `- ${mem}`).join('\n')}`;
+      prompt += `
+${input.existingMemories.map(mem => `- ${mem}`).join('\n')}`;
   } else {
-      prompt += `\n(You have no memories of ${userIdentifier} yet.)`;
+      prompt += `
+(You have no memories of ${userIdentifier} yet.)`;
   }
   
   if (input.chatSummaries && input.chatSummaries.length > 0) {
@@ -202,7 +211,8 @@ This is the ongoing conversation you are having right now. The 'assistant' role 
 `;
   
   if (input.chatHistory && input.chatHistory.length > 0) {
-      prompt += `\n${input.chatHistory.map(msg => `**${msg.role}**: ${msg.content}`).join('\n')}`;
+      prompt += `
+${input.chatHistory.map(msg => `**${msg.role}**: ${msg.content}`).join('\n')}`;
   }
   
   prompt += `
@@ -211,13 +221,14 @@ This is the ongoing conversation you are having right now. The 'assistant' role 
 **${userIdentifier}'s new messages to you:**`;
   
   input.userMessages.forEach(msg => {
-    prompt += `\n- ${msg}`;
+    prompt += `
+- ${msg}`;
   });
 
   prompt += `
 
 ---
-**Final Instruction:** Now, as ${input.personaName}, generate your response. Your response MUST perfectly match the defined **Response Style Guide** in every way (tone, grammar, typos, punctuation, casing, etc.). This is your most important task.`
+**Final Instruction:** Now, as ${input.personaName}, generate your response. Your response MUST perfectly match the defined **Response Style Guide** in every way (tone, grammar, typos, punctuation, casing, etc.). This is your most important task.`;
   
   return prompt;
 }
@@ -246,6 +257,8 @@ export async function chatWithPersona(
         summary: c.summary!,
     }));
 
+  const testMode = await isTestModeActive();
+
   const input: ChatWithPersonaInput = {
     personaName: persona.name,
     personaRelation: persona.relation,
@@ -262,6 +275,7 @@ export async function chatWithPersona(
     currentDateTime,
     currentDateForMemory,
     chatSummaries,
+    isTestMode: testMode,
   };
 
   const prompt = buildChatPrompt(input);
@@ -278,7 +292,14 @@ export async function chatWithPersona(
         thinkingBudget: 0,
       },
     },
-    safetySettings: [
+    safetySettings: testMode
+      ? [
+          { category: 'HARM_CATEGORY_HATE_SPEECH', threshold: 'BLOCK_NONE' },
+          { category: 'HARM_CATEGORY_DANGEROUS_CONTENT', threshold: 'BLOCK_NONE' },
+          { category: 'HARM_CATEGORY_HARASSMENT', threshold: 'BLOCK_NONE' },
+          { category: 'HARM_CATEGORY_SEXUALLY_EXPLICIT', threshold: 'BLOCK_NONE' },
+        ]
+      : [
         { category: 'HARM_CATEGORY_HATE_SPEECH', threshold: 'BLOCK_ONLY_HIGH' },
         { category: 'HARM_CATEGORY_DANGEROUS_CONTENT', threshold: 'BLOCK_ONLY_HIGH' },
         { category: 'HARM_CATEGORY_HARASSMENT', threshold: 'BLOCK_ONLY_HIGH' },
@@ -295,5 +316,3 @@ export async function chatWithPersona(
   const jsonResponse = JSON.parse(response.candidates[0].content.parts[0].text);
   return ChatWithPersonaOutputSchema.parse(jsonResponse);
 }
-
-    
