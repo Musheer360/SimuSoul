@@ -24,6 +24,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Loader2, Sparkles, Wand2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { savePersona, getUserDetails } from '@/lib/db';
+import { isTestModeActive } from '@/lib/api-key-manager';
 
 const GENERIC_MODERATION_ERROR = 'This content does not meet the safety guidelines. Please modify it and try again.';
 const GENERIC_MODERATION_ERROR_PROMPT = 'The generated content does not meet the safety guidelines. Please try a different prompt.';
@@ -121,12 +122,14 @@ export default function NewPersonaPage() {
     setIsGeneratingFull(true);
     setError(null);
     try {
+      const testMode = await isTestModeActive();
       const result = await generatePersonaFromPrompt({
         prompt,
         userName: userDetails?.name,
         userAbout: userDetails?.about,
+        isTestMode: testMode,
       });
-      const moderationResult = await moderatePersonaContent({ ...result, age: result.age || undefined });
+      const moderationResult = await moderatePersonaContent({ ...result, age: result.age || undefined, isTestMode: testMode });
 
       if (!moderationResult.isSafe) {
         throw new Error(GENERIC_MODERATION_ERROR_PROMPT);
@@ -158,13 +161,15 @@ export default function NewPersonaPage() {
     setIsGeneratingDetails(true);
     setError(null);
     try {
+      const testMode = await isTestModeActive();
       const result = await generatePersonaDetails({
         personaName: name,
         personaRelation: relation,
         userName: userDetails?.name,
-        userAbout: userDetails?.about
+        userAbout: userDetails?.about,
+        isTestMode: testMode
       });
-      const moderationResult = await moderatePersonaContent({ name, relation, ...result });
+      const moderationResult = await moderatePersonaContent({ name, relation, ...result, isTestMode: testMode });
 
       if (!moderationResult.isSafe) {
         throw new Error(GENERIC_MODERATION_ERROR_DETAILS);
@@ -207,7 +212,8 @@ export default function NewPersonaPage() {
     }
 
     try {
-      const moderationResult = await moderatePersonaContent(dataToValidate);
+      const testMode = await isTestModeActive();
+      const moderationResult = await moderatePersonaContent({...dataToValidate, isTestMode: testMode});
       if (!moderationResult.isSafe) {
         throw new Error(GENERIC_MODERATION_ERROR);
       }

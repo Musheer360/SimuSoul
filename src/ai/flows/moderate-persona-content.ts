@@ -5,7 +5,7 @@
  * @fileOverview This file defines a client-side function for moderating persona content.
  */
 
-import { callGeminiApi, isTestModeActive } from '@/lib/api-key-manager';
+import { callGeminiApi } from '@/lib/api-key-manager';
 import { z } from 'zod';
 
 export const ModeratePersonaContentInputSchema = z.object({
@@ -16,6 +16,7 @@ export const ModeratePersonaContentInputSchema = z.object({
   backstory: z.string(),
   goals: z.string(),
   responseStyle: z.string(),
+  isTestMode: z.boolean(),
 });
 export type ModeratePersonaContentInput = z.infer<typeof ModeratePersonaContentInputSchema>;
 
@@ -44,8 +45,7 @@ const ModeratePersonaContentOutputOpenAPISchema = {
 };
 
 export async function moderatePersonaContent(input: ModeratePersonaContentInput): Promise<ModeratePersonaContentOutput> {
-  const testMode = await isTestModeActive();
-  if (testMode) {
+  if (input.isTestMode) {
     return { isSafe: true, reason: 'Test Mode Active' };
   }
   

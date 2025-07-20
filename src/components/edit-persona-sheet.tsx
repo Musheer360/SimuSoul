@@ -21,6 +21,7 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Loader2, Save } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { ScrollArea } from './ui/scroll-area';
+import { isTestModeActive } from '@/lib/api-key-manager';
 
 const GENERIC_MODERATION_ERROR = 'This content does not meet the safety guidelines. Please modify it and try again.';
 const emptyStringAsUndefined = (val: string | number | undefined | null) => (val === '' || val === undefined || val === null ? undefined : Number(val));
@@ -67,7 +68,8 @@ export function EditPersonaSheet({ persona, open, onOpenChange, onPersonaUpdate 
     };
     
     try {
-        const moderationResult = await moderatePersonaContent(dataToValidate);
+        const testMode = await isTestModeActive();
+        const moderationResult = await moderatePersonaContent({ ...dataToValidate, isTestMode: testMode });
         if (!moderationResult.isSafe) {
             throw new Error(GENERIC_MODERATION_ERROR);
         }
@@ -75,8 +77,8 @@ export function EditPersonaSheet({ persona, open, onOpenChange, onPersonaUpdate 
         const updatedPersonaData: Omit<Persona, 'chats' | 'memories'> = {
             id: persona.id,
             ...dataToValidate,
-            minWpm: persona.minWpm,
-            maxWpm: persona.maxWpm,
+            minWpm: formData.minWpm,
+            maxWpm: formData.maxWpm,
             profilePictureUrl: persona.profilePictureUrl
         };
 

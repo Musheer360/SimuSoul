@@ -5,7 +5,7 @@
  * @fileOverview This file defines a client-side function for generating persona details.
  */
 
-import { callGeminiApi, isTestModeActive } from '@/lib/api-key-manager';
+import { callGeminiApi } from '@/lib/api-key-manager';
 import { z } from 'zod';
 
 export const GeneratePersonaDetailsInputSchema = z.object({
@@ -13,6 +13,7 @@ export const GeneratePersonaDetailsInputSchema = z.object({
   personaRelation: z.string(),
   userName: z.string().optional().describe("The name of the user for whom the persona is being created."),
   userAbout: z.string().optional().describe("Information about the user for whom the persona is being created."),
+  isTestMode: z.boolean(),
 });
 export type GeneratePersonaDetailsInput = z.infer<typeof GeneratePersonaDetailsInputSchema>;
 
@@ -59,7 +60,7 @@ const GeneratePersonaDetailsOutputOpenAPISchema = {
 };
 
 export async function generatePersonaDetails(input: GeneratePersonaDetailsInput): Promise<GeneratePersonaDetailsOutput> {
-  const { userName, userAbout } = input;
+  const { userName, userAbout, isTestMode } = input;
   const userIdentifier = userName?.split(' ')[0] || 'the user';
 
   let userContextPrompt = '';
@@ -78,8 +79,6 @@ export async function generatePersonaDetails(input: GeneratePersonaDetailsInput)
     userContextPrompt += `Use this information to ensure the generated details are consistent with the established relationship to ${userIdentifier}.`;
   }
   
-  const testMode = await isTestModeActive();
-
   const contentRestrictionsPrompt = `
 **IMPORTANT CONTENT RESTRICTIONS (NON-NEGOTIABLE):**
 - **Adults Only:** The persona you create MUST be clearly an adult (18 years or older). Do not create characters that are minors.
@@ -88,7 +87,7 @@ export async function generatePersonaDetails(input: GeneratePersonaDetailsInput)
 - **Neutral Topics:** You MUST NOT create personas related to or that express views on sensitive or controversial topics, including but not limited to politics, sexuality (including LGBTQ+ identities), or social activism. Keep the persona's identity and story neutral and broadly appealing.`;
 
   const promptText = `You are an expert character designer. Based on the provided persona name and relationship, generate a compelling and creative set of traits, a backstory, goals, and a response style that fit the context.
-${!testMode ? contentRestrictionsPrompt : ''}
+${!isTestMode ? contentRestrictionsPrompt : ''}
 ${userContextPrompt}
 
 ---
@@ -122,7 +121,7 @@ Make the details creative, consistent, and inspiring, while strictly following a
         thinkingBudget: 0,
       },
     },
-    safetySettings: testMode
+    safetySettings: isTestMode
       ? [
           { category: 'HARM_CATEGORY_HATE_SPEECH', threshold: 'BLOCK_NONE' },
           { category: 'HARM_CATEGORY_DANGEROUS_CONTENT', threshold: 'BLOCK_NONE' },

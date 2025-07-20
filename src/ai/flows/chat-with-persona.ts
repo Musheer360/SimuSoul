@@ -2,11 +2,10 @@
 'use server';
 
 /**
- * @fileOverview This file defines a client-side function for chatting with a persona.
- * It constructs the prompt, calls the Gemini API directly, and parses the response.
+ * @fileOverview This file defines a server-side function for chatting with a persona.
  */
 
-import { callGeminiApi, isTestModeActive } from '@/lib/api-key-manager';
+import { callGeminiApi } from '@/lib/api-key-manager';
 import type { ChatMessage, Persona, UserDetails, ChatSession } from '@/lib/types';
 import { z } from 'zod';
 
@@ -225,9 +224,10 @@ export async function chatWithPersona(
     currentDateForMemory: string;
     allChats: ChatSession[];
     activeChatId: string;
+    isTestMode: boolean;
   }
 ): Promise<ChatWithPersonaOutput> {
-  const { persona, userDetails, chatHistory, userMessages, currentDateTime, currentDateForMemory, allChats, activeChatId } = payload;
+  const { persona, userDetails, chatHistory, userMessages, currentDateTime, currentDateForMemory, allChats, activeChatId, isTestMode } = payload;
   
   const personaDescription = `Backstory: ${persona.backstory}\nTraits: ${persona.traits}\nGoals: ${persona.goals}`;
 
@@ -239,8 +239,6 @@ export async function chatWithPersona(
         date: new Date(c.updatedAt || c.createdAt).toLocaleDateString(),
         summary: c.summary!,
     }));
-
-  const testMode = await isTestModeActive();
 
   const isCurrentlyIgnoredInAnotherChat = persona.ignoredState?.isIgnored && persona.ignoredState.chatId !== activeChatId;
 
@@ -271,7 +269,7 @@ export async function chatWithPersona(
     currentDateForMemory,
     chatSummaries,
     ignoredState: persona.ignoredState || { isIgnored: false },
-    isTestMode: testMode,
+    isTestMode: isTestMode,
   };
 
   const prompt = buildChatPrompt(input);
@@ -288,7 +286,7 @@ export async function chatWithPersona(
         thinkingBudget: 0,
       },
     },
-    safetySettings: testMode
+    safetySettings: isTestMode
       ? [
           { category: 'HARM_CATEGORY_HATE_SPEECH', threshold: 'BLOCK_NONE' },
           { category: 'HARM_CATEGORY_DANGEROUS_CONTENT', threshold: 'BLOCK_NONE' },

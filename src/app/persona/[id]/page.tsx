@@ -45,6 +45,7 @@ import { useToast } from '@/hooks/use-toast';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { AnimatedChatTitle } from '@/components/animated-chat-title';
 import { getPersona, savePersona, deletePersona, getUserDetails } from '@/lib/db';
+import { isTestModeActive } from '@/lib/api-key-manager';
 import { MemoryItem } from '@/components/memory-item';
 
 // Helper to find the last index of an element in an array.
@@ -283,9 +284,10 @@ export default function PersonaChatPage() {
   
     try {
       const allChatsForContext = personaNow.chats.filter(c => c.id !== chatIdNow);
+      const testMode = await isTestModeActive();
   
       const res = await chatWithPersona({
-        persona: personaNow, userDetails: userDetailsRef.current, chatHistory: chatHistoryForAI, userMessages: userMessageContents, currentDateTime, currentDateForMemory, allChats: allChatsForContext, activeChatId: chatIdNow
+        persona: personaNow, userDetails: userDetailsRef.current, chatHistory: chatHistoryForAI, userMessages: userMessageContents, currentDateTime, currentDateForMemory, allChats: allChatsForContext, activeChatId: chatIdNow, isTestMode: testMode,
       });
       
       // Mark the user messages as read immediately after API response
@@ -491,9 +493,9 @@ export default function PersonaChatPage() {
       setIsSidebarOpen(false);
     }
 
-    const existingNewChat = persona.chats.find(c => c.title === 'New Chat');
+    const existingNewChat = persona.chats.find(c => c.title === 'New Chat' && c.messages.length === 0);
     if (existingNewChat) {
-      router.push(`/persona/${persona.id}?chat=${existingNewChat.id}`);
+      router.push(`/persona/${persona.id}?chat=${existingNewChat.id}`, { scroll: false });
       return;
     }
 
@@ -511,7 +513,7 @@ export default function PersonaChatPage() {
     };
     setPersona(updatedPersona);
     await savePersona(updatedPersona);
-    router.push(`/persona/${persona.id}?chat=${newChat.id}`);
+    router.push(`/persona/${persona.id}?chat=${newChat.id}`, { scroll: false });
   }, [persona, router, isMobile]);
   
   const sortedChats = useMemo(() => {
@@ -541,20 +543,24 @@ export default function PersonaChatPage() {
     };
     
     // When activeChatId changes, handle summarization and cleanup for the previous chat
-    if (prevActiveChatIdRef.current && prevActiveChatIdRef.current !== activeChatId) {
-        handleSummarizeChat(prevActiveChatIdRef.current);
+    const previousChatId = prevActiveChatIdRef.current;
+    if (previousChatId && previousChatId !== activeChatId) {
+        handleSummarizeChat(previousChatId);
         messagesSinceLastResponseRef.current = [];
         if (responseTimerRef.current) clearTimeout(responseTimerRef.current);
+        handleCleanup(previousChatId);
     }
     
-    handleCleanup(prevActiveChatIdRef.current);
     prevActiveChatIdRef.current = activeChatId;
 
     return () => {
+      // This cleanup runs when the component unmounts
       if (isDeletingRef.current) return;
-      handleCleanup(prevActiveChatIdRef.current);
-      if (prevActiveChatIdRef.current) {
-        handleSummarizeChat(prevActiveChatIdRef.current);
+      
+      const lastActiveChat = prevActiveChatIdRef.current;
+      if (lastActiveChat) {
+          handleCleanup(lastActiveChat);
+          handleSummarizeChat(lastActiveChat);
       }
       if (responseTimerRef.current) clearTimeout(responseTimerRef.current);
     }
@@ -564,15 +570,23 @@ export default function PersonaChatPage() {
     if (!persona) return;
     
     const chatIdFromQuery = searchParams.get('chat');
-    const chatExists = persona.chats.some(c => c.id === chatIdFromQuery);
+    
+    // Check if the chat from the URL exists in our persona's chats
+    const chatExists = chatIdFromQuery ? persona.chats.some(c => c.id === chatIdFromQuery) : false;
     
     if (chatIdFromQuery && chatExists) {
-        setActiveChatId(chatIdFromQuery);
+        if (activeChatId !== chatIdFromQuery) {
+            setActiveChatId(chatIdFromQuery);
+        }
     } else if (sortedChats.length > 0) {
+        // If no valid chat in URL, redirect to the most recent one
         const mostRecentChat = sortedChats[0];
-        setActiveChatId(mostRecentChat.id);
-        router.replace(`/persona/${persona.id}?chat=${mostRecentChat.id}`, { scroll: false });
+        if (activeChatId !== mostRecentChat.id) {
+            setActiveChatId(mostRecentChat.id);
+            router.replace(`/persona/${persona.id}?chat=${mostRecentChat.id}`, { scroll: false });
+        }
     } else {
+        // No chats exist at all, create a new one
         const now = Date.now();
         const newChatSession: ChatSession = {
             id: crypto.randomUUID(),
@@ -591,7 +605,7 @@ export default function PersonaChatPage() {
             router.replace(`/persona/${persona.id}?chat=${newChatSession.id}`, { scroll: false });
         });
     }
-}, [persona, searchParams, router, sortedChats]);
+}, [persona, searchParams, router, sortedChats, activeChatId]);
 
   const activeChat = useMemo(() => {
     return persona?.chats.find(c => c.id === activeChatId);

@@ -1,11 +1,11 @@
 
-'use client';
+'use server';
 
 /**
  * @fileOverview This file defines a client-side function for generating a full persona from a prompt.
  */
 
-import { callGeminiApi, isTestModeActive } from '@/lib/api-key-manager';
+import { callGeminiApi } from '@/lib/api-key-manager';
 import { z } from 'zod';
 
 
@@ -13,6 +13,7 @@ export const GeneratePersonaFromPromptInputSchema = z.object({
   prompt: z.string(),
   userName: z.string().optional().describe("The name of the user for whom the persona is being created."),
   userAbout: z.string().optional().describe("Information about the user for whom the persona is being created."),
+  isTestMode: z.boolean(),
 });
 export type GeneratePersonaFromPromptInput = z.infer<typeof GeneratePersonaFromPromptInputSchema>;
 
@@ -76,7 +77,7 @@ const GeneratePersonaFromPromptOutputOpenAPISchema = {
 
 
 export async function generatePersonaFromPrompt(input: GeneratePersonaFromPromptInput): Promise<GeneratePersonaFromPromptOutput> {
-  const { prompt, userName, userAbout } = input;
+  const { prompt, userName, userAbout, isTestMode } = input;
   const userIdentifier = userName?.split(' ')[0] || 'the user';
   
   let userContextPrompt = '';
@@ -95,8 +96,6 @@ export async function generatePersonaFromPrompt(input: GeneratePersonaFromPrompt
     userContextPrompt += `Use this information to inspire the persona's backstory, traits, and especially their relationship to ${userIdentifier}, ensuring it feels plausible and connected.`;
   }
   
-  const testMode = await isTestModeActive();
-
   const contentRestrictionsPrompt = `
 **IMPORTANT CONTENT RESTRICTIONS (NON-NEGOTIABLE):**
 - **Adults Only:** The persona you create MUST be clearly an adult (18 years or older). Do not create characters that are minors.
@@ -105,7 +104,7 @@ export async function generatePersonaFromPrompt(input: GeneratePersonaFromPrompt
 - **Neutral Topics:** You MUST NOT create personas related to or that express views on sensitive or controversial topics, including but not limited to politics, sexuality (including LGBTQ+ identities), or social activism. Keep the persona's identity and story neutral and broadly appealing.`;
 
   const promptText = `You are a world-class creative writer and character designer. Based on the user's prompt, generate a complete, ready-to-use fictional persona.
-${!testMode ? contentRestrictionsPrompt : ''}
+${!isTestMode ? contentRestrictionsPrompt : ''}
 ${userContextPrompt}
 
 ---
@@ -141,7 +140,7 @@ Be creative and ensure all the generated details are consistent with each other,
         thinkingBudget: 0,
       },
     },
-    safetySettings: testMode
+    safetySettings: isTestMode
       ? [
           { category: 'HARM_CATEGORY_HATE_SPEECH', threshold: 'BLOCK_NONE' },
           { category: 'HARM_CATEGORY_DANGEROUS_CONTENT', threshold: 'BLOCK_NONE' },
