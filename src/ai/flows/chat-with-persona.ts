@@ -1,5 +1,5 @@
 
-'use server';
+'use client';
 
 /**
  * @fileOverview This file defines a server-side function for chatting with a persona.

@@ -1,5 +1,5 @@
 
-'use server';
+'use client';
 
 /**
  * @fileOverview This file defines a client-side function for generating a full persona from a prompt.
