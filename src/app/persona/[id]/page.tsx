@@ -13,7 +13,7 @@ import type { Persona, UserDetails, ChatMessage, ChatSession } from '@/lib/types
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
-import { Send, Loader2, Bot, User, AlertCircle, Trash2, MessageSquarePlus, ArrowLeft, PanelLeft, Pencil, Brain } from 'lucide-react';
+import { Send, Loader2, Bot, User, Trash2, MessageSquarePlus, ArrowLeft, PanelLeft, Pencil, Brain } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import {
   AlertDialog,
@@ -1104,7 +1104,6 @@ export default function PersonaChatPage() {
 
                         {error && (
                         <Alert variant="destructive" className="mt-4">
-                            <AlertCircle className="h-4 w-4" />
                             <AlertTitle>Error</AlertTitle>
                             <AlertDescription>{error}</AlertDescription>
                         </Alert>
