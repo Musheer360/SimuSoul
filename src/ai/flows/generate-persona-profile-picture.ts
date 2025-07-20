@@ -73,5 +73,3 @@ ${input.personaBackstory}`;
   console.error("Image generation failed. Full API response:", response);
   throw new Error(reason);
 }
-
-    

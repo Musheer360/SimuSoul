@@ -45,6 +45,7 @@ Now, generate the title.`;
   const requestBody = {
     contents: [{ parts: [{ text: prompt }] }],
     generationConfig: {
+      temperature: 0.7,
       responseMimeType: 'application/json',
       responseSchema: GenerateChatTitleOutputOpenAPISchema,
       thinkingConfig: {
@@ -62,5 +63,3 @@ Now, generate the title.`;
   const jsonResponse = JSON.parse(response.candidates[0].content.parts[0].text);
   return GenerateChatTitleOutputSchema.parse(jsonResponse);
 }
-
-    

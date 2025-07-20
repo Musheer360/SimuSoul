@@ -237,9 +237,9 @@ export async function chatWithPersona(
   const requestBody = {
     contents: [{ parts: [{ text: prompt }] }],
     generationConfig: {
-      temperature: 0.9,
+      temperature: 1.0,
       topK: 40,
-      topP: 0.9,
+      topP: 0.95,
       responseMimeType: 'application/json',
       responseSchema: ChatWithPersonaOutputOpenAPISchema,
       thinkingConfig: {
@@ -270,5 +270,3 @@ export async function chatWithPersona(
   const jsonResponse = JSON.parse(response.candidates[0].content.parts[0].text);
   return ChatWithPersonaOutputSchema.parse(jsonResponse);
 }
-
-    

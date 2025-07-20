@@ -52,6 +52,7 @@ Generate the summary now.
   const requestBody = {
     contents: [{ parts: [{ text: prompt }] }],
     generationConfig: {
+      temperature: 0.5,
       responseMimeType: 'application/json',
       responseSchema: SummarizeChatOutputOpenAPISchema,
       thinkingConfig: {
@@ -69,5 +70,3 @@ Generate the summary now.
   const jsonResponse = JSON.parse(response.candidates[0].content.parts[0].text);
   return SummarizeChatOutputSchema.parse(jsonResponse);
 }
-
-    

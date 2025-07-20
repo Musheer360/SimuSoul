@@ -86,6 +86,7 @@ Analyze all fields below.
   const requestBody = {
     contents: [{ parts: [{ text: promptText }] }],
     generationConfig: {
+      temperature: 0.0,
       responseMimeType: 'application/json',
       responseSchema: ModeratePersonaContentOutputOpenAPISchema,
       thinkingConfig: {

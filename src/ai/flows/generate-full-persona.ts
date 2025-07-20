@@ -19,7 +19,7 @@ export type GeneratePersonaFromPromptInput = z.infer<typeof GeneratePersonaFromP
 
 export const GeneratePersonaFromPromptOutputSchema = z.object({
   name: z.string().describe("A creative and fitting name for the persona."),
-  relation: z.string().describe("The persona's relationship to the user, like 'Best Friend' or 'Arch-Nemesis'. This must be a maximum of two words, with the first letter capitalized."),
+  relation: z.string().describe("The persona's relationship to the user, like 'Best Friend' or 'Arch-Nemesis'. This must be a maximum of two words, with the first letter of each word capitalized."),
   age: z.number().min(18).describe("The persona's age. Must be 18 or older."),
   traits: z.string().describe("The persona's key traits and characteristics."),
   backstory: z.string().describe("The persona's detailed backstory."),
@@ -40,7 +40,7 @@ const GeneratePersonaFromPromptOutputOpenAPISchema = {
     },
     relation: {
       type: 'STRING',
-      description: "The persona's relationship to the user, like 'Best Friend' or 'Arch-Nemesis'. This must be a maximum of two words, with the first letter capitalized.",
+      description: "The persona's relationship to the user, like 'Best Friend' or 'Arch-Nemesis'. This must be a maximum of two words, with the first letter of each word capitalized.",
     },
     age: {
       type: 'NUMBER',
