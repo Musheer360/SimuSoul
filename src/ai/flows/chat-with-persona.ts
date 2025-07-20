@@ -58,7 +58,7 @@ const ChatWithPersonaOutputSchema = z.object({
     .describe(
       'A list of old memories to remove, typically because they have been updated by a new memory.'
     ),
-  shouldIgnore: z.boolean().optional().describe('Whether the persona has decided to start or continue ignoring the user. If you respond, this must be false.'),
+  shouldIgnore: z.boolean().optional().describe('Whether the persona has decided to start or continue ignoring the user. This should ONLY be true as a last resort after giving warnings. If you respond, this must be false.'),
   ignoreReason: z.string().optional().describe('If you decide to start ignoring the user, provide a brief, internal reason why (e.g., "User was rude," "User pushed boundaries"). Empty if not ignoring.'),
 });
 export type ChatWithPersonaOutput = z.infer<typeof ChatWithPersonaOutputSchema>;
@@ -84,7 +84,7 @@ const ChatWithPersonaOutputOpenAPISchema = {
     },
     shouldIgnore: {
         type: 'BOOLEAN',
-        description: 'Whether the persona has decided to start or continue ignoring the user. If you respond, this must be false.'
+        description: 'Whether the persona has decided to start or continue ignoring the user. This should ONLY be true as a last resort after giving warnings. If you respond, this must be false.'
     },
     ignoreReason: {
         type: 'STRING',
