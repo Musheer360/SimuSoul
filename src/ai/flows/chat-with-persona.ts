@@ -43,7 +43,7 @@ const ChatWithPersonaInputSchema = z.object({
 export type ChatWithPersonaInput = z.infer<typeof ChatWithPersonaInputSchema>;
 
 const ChatWithPersonaOutputSchema = z.object({
-  response: z.array(z.string()).min(1).max(10).describe(
+  response: z.array(z.string()).max(10).describe(
       "An array of response messages from the persona, split into natural conversational chunks. The number of messages should vary based on context (e.g., more short messages if excited, fewer long messages if serious). Should be between 1 and 10 messages. If you decide to ignore the user, this MUST be an empty array."
     ),
   newMemories: z
@@ -310,3 +310,5 @@ export async function chatWithPersona(
   const jsonResponse = JSON.parse(response.candidates[0].content.parts[0].text);
   return ChatWithPersonaOutputSchema.parse(jsonResponse);
 }
+
+    
