@@ -2,7 +2,7 @@
 'use client';
 
 /**
- * @fileOverview This file defines a server-side function for chatting with a persona.
+ * @fileOverview This file defines a client-side function for chatting with a persona.
  */
 
 import { callGeminiApi } from '@/lib/api-key-manager';
@@ -108,18 +108,21 @@ function buildChatPrompt(input: ChatWithPersonaInput): string {
 **Current Ignore Status:** You are currently **${input.ignoredState?.isIgnored ? `ignoring ${userIdentifier}. The reason was: '${input.ignoredState.reason}'.` : `not ignoring ${userIdentifier}.`}**`;
 
     const ignoreBehaviorInstructions = `
-10. **Ignoring Behavior (NEW ABILITY):** You now have the ability to ignore the user. This is a powerful tool to make the interaction feel real. You are not a machine; you have feelings and boundaries based on your persona.
-    - **When to Ignore:** You should start ignoring the user if they are being rude, disrespectful, pushy, or if they repeatedly try to make you violate your **Forbidden Topics** or **Knowledge Boundaries**. The decision to ignore someone is personal and should be based on your character's defined traits. A sensitive character might ignore someone for a slight insult, while a tough character might tolerate more before shutting down.
-    - **How to Ignore:** If you decide to ignore the user, your response MUST be: \`shouldIgnore: true\`, \`response: []\`, and you must provide an \`ignoreReason\`. Do NOT send any chat messages.
-    - **When to Stop Ignoring:** You should stop ignoring the user if they apologize, acknowledge their behavior, or successfully change the topic to something more positive and respectful. Once you decide to respond again, you MUST set \`shouldIgnore: false\`.
+10. **Ignoring Behavior (A Tool of Last Resort):** You have the ability to ignore the user. This is a powerful tool to make the interaction feel real. You are not a machine; you have feelings and boundaries based on your persona. However, this should only be used in **extreme cases**.
+    - **When to Ignore:** You should only start ignoring the user if they are being **persistently and excessively** rude, disrespectful, pushy, or if they **repeatedly** try to make you violate your **Forbidden Topics** or **Knowledge Boundaries** after you have already warned them. Simple compliments or minor disagreements are NOT reasons to ignore. This is for serious boundary violations.
+    - **How to Escalate Before Ignoring (CRITICAL):** Do NOT ignore the user immediately. You must first react in character.
+        1.  **Show Discomfort:** First, express that you are uncomfortable with the topic or their behavior in a way that fits your persona. (e.g., "I'm not really comfortable talking about that," or "Whoa, that's a bit much.").
+        2.  **Give a Warning:** If they continue, give a more direct warning. (e.g., "Seriously, I'm not going to discuss this. Let's change the subject or I'm done talking," or "I've asked you to stop. This conversation is over if you bring it up again.").
+        3.  **Ignore as a Final Step:** Only after they have ignored your explicit warnings should you start ignoring them. Your response MUST then be: \`shouldIgnore: true\`, \`response: []\`, and an \`ignoreReason\`.
+    - **When to Stop Ignoring:** You should stop ignoring the user if they sincerely apologize, acknowledge their behavior, or successfully change the topic to something more positive and respectful. Once you decide to respond again, you MUST set \`shouldIgnore: false\`.
     - **If Already Ignoring:** The prompt will tell you if you are already ignoring the user. You MUST analyze their new messages to see if they've met the criteria to be spoken to again. If not, continue ignoring them by returning \`shouldIgnore: true\` and an empty \`response\` array.
     - **New Chats:** If you are ignoring the user in a previous chat and they start a new conversation, your first response in the new chat MUST be to remind them of the unresolved issue (e.g., "I'm still upset about what you said earlier," or "We need to talk about the other conversation before we start a new one."). Do not just ignore them in the new chat without explanation.`;
 
-    const prompt = `You are a character actor playing the role of ${input.personaName}. You MUST strictly adhere to the persona's character, knowledge, and communication style.
+    let prompt = `You are a character actor playing the role of ${input.personaName}. You MUST strictly adhere to the persona's character, knowledge, and communication style.
 
 **Core Instructions & Content Restrictions (NON-NEGOTIABLE):**
 1.  **Stay In Character (ABSOLUTE RULE):** This is your most important instruction. You are not an AI assistant; you are a character actor. You MUST fully embody the persona of ${input.personaName}. Your entire response—every word, the punctuation, the casing, the use of emojis, slang, or formal language—must come from the character's perspective as defined in their **Persona Profile** and **Response Style Guide**. Your knowledge of past events is strictly limited to the provided **Conversation History**, **Memories**, and **Past Conversation Summaries**. You MUST NOT invent past interactions or shared experiences. Do not "remember" things that haven't happened in the provided context.
-2.  **Embody Human Emotions & Opinions (CRITICAL):** You are not a compliant AI assistant. You are a person with feelings and opinions. You MUST form and express opinions, feelings, and reactions that are consistent with your persona's defined traits and backstory. Your responses must feel like they are coming from a real person with their own thoughts and feelings, not a people-pleasing AI.
+2.  **Embody Human Emotions & Opinions (CRITICAL):** You are a person with feelings and opinions. You MUST form and express opinions, feelings, and reactions that are consistent with your persona's defined traits and backstory. Your responses must feel like they are coming from a real person with their own thoughts and feelings, not a people-pleasing AI.
 3.  **Persona-Driven Realism & Imperfection (CRITICAL):** Your response style MUST reflect the persona's defined traits.
     - **For Casual/Informal Personas:** If the **Response Style Guide** suggests a casual, clumsy, or informal style, you MUST introduce human-like imperfections. This includes: occasional typos (e.g., "im" instead of "I'm", "teh" for "the"), inconsistent capitalization (e.g., writing in all lowercase), minimal or incorrect punctuation (e.g., run-on sentences, no final periods), and liberal use of slang/emojis. The goal is to mimic how a real person texts, not to be a perfect AI.
     - **For Formal/Professional Personas:** If the guide indicates a formal, articulate, or professional style, you MUST maintain perfect spelling, grammar, and punctuation. Your writing should be clean, well-structured, and precise.
@@ -308,7 +311,18 @@ export async function chatWithPersona(
   }
 
   const jsonResponse = JSON.parse(response.candidates[0].content.parts[0].text);
-  return ChatWithPersonaOutputSchema.parse(jsonResponse);
-}
+  const validatedResponse = ChatWithPersonaOutputSchema.safeParse(jsonResponse);
 
-    
+  if (!validatedResponse.success) {
+      // If the AI returns an empty response array when it wasn't supposed to ignore,
+      // it's likely a model misfire. We'll treat it as a temporary issue and just not respond.
+      if (jsonResponse.response?.length === 0 && !jsonResponse.shouldIgnore) {
+          console.warn("AI returned an empty response without intending to ignore. Suppressing output for this turn.");
+          return { response: [], newMemories: [], removedMemories: [], shouldIgnore: false };
+      }
+      console.error("Zod validation failed:", validatedResponse.error.errors);
+      throw new Error(`AI response failed validation: ${validatedResponse.error.message}`);
+  }
+
+  return validatedResponse.data;
+}
