@@ -13,7 +13,7 @@ import type { Persona, UserDetails, ChatMessage, ChatSession } from '@/lib/types
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
-import { Send, Loader2, Bot, User, AlertCircle, Trash2, MessageSquarePlus, ArrowLeft, PanelLeft, Pencil, Brain } from 'lucide-react';
+import { Send, Loader2, Bot, User, AlertCircle, Trash2, MessageSquarePlus, ArrowLeft, PanelLeft, Pencil, Brain, Eye } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import {
   AlertDialog,
@@ -73,8 +73,8 @@ const ChatMessageItem = memo(function ChatMessageItem({
   return (
     <div
       className={cn(
-        "flex animate-fade-in-up",
-        message.role === 'user' ? 'justify-end' : 'justify-start',
+        "flex flex-col animate-fade-in-up",
+        message.role === 'user' ? 'items-end' : 'items-start',
         isFirstInSequence ? 'mt-4' : 'mt-1'
       )}
     >
@@ -99,6 +99,11 @@ const ChatMessageItem = memo(function ChatMessageItem({
       )}>
         <FormattedMessage content={message.content} />
       </div>
+       {message.role === 'user' && message.isRead && (
+          <div className="px-2 pt-1 text-xs text-muted-foreground flex items-center gap-1">
+             Read
+          </div>
+        )}
     </div>
   );
 });
@@ -249,7 +254,8 @@ export default function PersonaChatPage() {
   const triggerAIResponse = useCallback(async () => {
     if (responseTimerRef.current) clearTimeout(responseTimerRef.current);
     const personaNow = personaRef.current;
-    if (!personaNow || !activeChatIdRef.current) return;
+    const chatIdNow = activeChatIdRef.current;
+    if (!personaNow || !chatIdNow) return;
   
     const messagesForTurn = [...messagesSinceLastResponseRef.current];
     if (messagesForTurn.length === 0) return;
@@ -258,7 +264,7 @@ export default function PersonaChatPage() {
     setError(null);
     messagesSinceLastResponseRef.current = [];
   
-    const currentChat = personaNow.chats.find(c => c.id === activeChatIdRef.current);
+    const currentChat = personaNow.chats.find(c => c.id === chatIdNow);
     if (!currentChat) {
       setIsAiResponding(false);
       return;
@@ -276,11 +282,46 @@ export default function PersonaChatPage() {
     const currentDateForMemory = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
   
     try {
-      const allChatsForContext = personaNow.chats.filter(c => c.id !== activeChatIdRef.current);
+      const allChatsForContext = personaNow.chats.filter(c => c.id !== chatIdNow);
   
       const res = await chatWithPersona({
-        persona: personaNow, userDetails: userDetailsRef.current, chatHistory: chatHistoryForAI, userMessages: userMessageContents, currentDateTime, currentDateForMemory, allChats: allChatsForContext
+        persona: personaNow, userDetails: userDetailsRef.current, chatHistory: chatHistoryForAI, userMessages: userMessageContents, currentDateTime, currentDateForMemory, allChats: allChatsForContext, activeChatId: chatIdNow
       });
+      
+      // Mark the user messages as read immediately after API response
+      setPersona(current => {
+        if (!current) return null;
+        const lastUserMessageIndex = findLastIndex(current.chats.find(c => c.id === chatIdNow)?.messages || [], msg => msg.role === 'user');
+        return {
+          ...current,
+          chats: current.chats.map(c =>
+            c.id === chatIdNow ? { ...c, messages: c.messages.map((m, idx) => idx === lastUserMessageIndex ? { ...m, isRead: true } : m) } : c
+          ),
+        };
+      });
+
+      // Handle ignore logic
+      if (res.shouldIgnore) {
+        setPersona(current => {
+            if (!current) return null;
+            return {
+                ...current,
+                ignoredState: {
+                    isIgnored: true,
+                    reason: res.ignoreReason || 'User was being disruptive.',
+                    chatId: chatIdNow,
+                }
+            };
+        });
+        setIsAiResponding(false);
+        return; // Stop further processing
+      } else {
+        // If not ignoring, ensure the state is cleared
+        setPersona(current => {
+            if (!current || !current.ignoredState?.isIgnored) return current;
+            return { ...current, ignoredState: null };
+        });
+      }
   
       setPersona(current => {
         if (!current) return null;
@@ -293,7 +334,7 @@ export default function PersonaChatPage() {
           const memoriesToAdd = res.newMemories || [];
           finalMemories = [...finalMemories, ...memoriesToAdd];
   
-          setGlowingMessageIndex(current.chats.find(c => c.id === activeChatIdRef.current)!.messages.length - 1);
+          setGlowingMessageIndex(current.chats.find(c => c.id === chatIdNow)!.messages.length - 1);
           setTimeout(() => setGlowingMessageIndex(null), 1500);
   
           if (!isMobile) {
@@ -313,7 +354,7 @@ export default function PersonaChatPage() {
                 return {
                   ...current,
                   chats: current.chats.map(c =>
-                    c.id === activeChatIdRef.current ? { ...c, title: titleResult.title } : c
+                    c.id === chatIdNow ? { ...c, title: titleResult.title } : c
                   ),
                 };
               });
@@ -328,13 +369,13 @@ export default function PersonaChatPage() {
 
       setPersona(current => {
         if (!current) return null;
-        const chat = current.chats.find(c => c.id === activeChatIdRef.current);
+        const chat = current.chats.find(c => c.id === chatIdNow);
         if (!chat) return current;
         
         return {
           ...current,
           chats: current.chats.map(c =>
-            c.id === activeChatIdRef.current
+            c.id === chatIdNow
               ? { ...c, messages: chat.messages, updatedAt: Date.now() }
               : c
           ),
@@ -354,13 +395,13 @@ export default function PersonaChatPage() {
           
           setPersona(current => {
             if (!current) return null;
-            const chat = current.chats.find(c => c.id === activeChatIdRef.current);
+            const chat = current.chats.find(c => c.id === chatIdNow);
             if (!chat) return current;
             const newAssistantMessage: ChatMessage = { role: 'assistant', content: messageContent };
             return {
               ...current,
               chats: current.chats.map(c =>
-                c.id === activeChatIdRef.current
+                c.id === chatIdNow
                   ? { ...c, messages: [...c.messages, newAssistantMessage], updatedAt: Date.now() }
                   : c
               ),
@@ -395,7 +436,7 @@ export default function PersonaChatPage() {
     e.preventDefault();
     if (!input.trim() || !persona || !activeChatId) return;
   
-    const userMessage: ChatMessage = { role: 'user', content: input };
+    const userMessage: ChatMessage = { role: 'user', content: input, isRead: false };
   
     setPersona(prevPersona => {
       if (!prevPersona) return null;
@@ -1047,6 +1088,16 @@ export default function PersonaChatPage() {
 
                         {isAiTyping && <TypingIndicator isFirstBubble={isTypingIndicatorFirstBubble} />}
 
+                        {persona.ignoredState?.isIgnored && persona.ignoredState.chatId === activeChatId && (
+                           <Alert className="mt-4 border-yellow-500/50 text-yellow-600 [&>svg]:text-yellow-600">
+                                <Eye className="h-4 w-4" />
+                                <AlertTitle className="font-semibold">You are being ignored</AlertTitle>
+                                <AlertDescription>
+                                    {persona.name} is currently ignoring you in this chat.
+                                    Try changing the subject or apologizing to get them to respond.
+                                </AlertDescription>
+                            </Alert>
+                        )}
                         {error && (
                         <Alert variant="destructive" className="mt-4">
                             <AlertCircle className="h-4 w-4" />

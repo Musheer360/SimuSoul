@@ -1,6 +1,7 @@
 export interface ChatMessage {
   role: 'user' | 'assistant';
   content: string;
+  isRead?: boolean;
 }
 
 export interface ChatSession {
@@ -26,6 +27,11 @@ export interface Persona {
   maxWpm: number;
   chats: ChatSession[];
   memories: string[];
+  ignoredState?: {
+    isIgnored: boolean;
+    reason?: string;
+    chatId?: string;
+  } | null;
 }
 
 export interface UserDetails {

@@ -1,5 +1,5 @@
 
-'use client';
+'use server';
 
 /**
  * @fileOverview This file defines a client-side function for chatting with a persona.
@@ -34,13 +34,18 @@ const ChatWithPersonaInputSchema = z.object({
     date: z.string(),
     summary: z.string(),
   })).optional().describe('Summaries of past conversations for long-term context.'),
+  ignoredState: z.object({
+    isIgnored: z.boolean(),
+    reason: z.string().optional(),
+    chatId: z.string().optional(),
+  }).optional().describe("The persona's current state regarding ignoring the user."),
   isTestMode: z.boolean(),
 });
 export type ChatWithPersonaInput = z.infer<typeof ChatWithPersonaInputSchema>;
 
 const ChatWithPersonaOutputSchema = z.object({
   response: z.array(z.string()).min(1).max(10).describe(
-      "An array of response messages from the persona, split into natural conversational chunks. The number of messages should vary based on context (e.g., more short messages if excited, fewer long messages if serious). Should be between 1 and 10 messages."
+      "An array of response messages from the persona, split into natural conversational chunks. The number of messages should vary based on context (e.g., more short messages if excited, fewer long messages if serious). Should be between 1 and 10 messages. If you decide to ignore the user, this MUST be an empty array."
     ),
   newMemories: z
     .array(z.string())
@@ -54,6 +59,8 @@ const ChatWithPersonaOutputSchema = z.object({
     .describe(
       'A list of old memories to remove, typically because they have been updated by a new memory.'
     ),
+  shouldIgnore: z.boolean().optional().describe('Whether the persona has decided to start or continue ignoring the user. If you respond, this must be false.'),
+  ignoreReason: z.string().optional().describe('If you decide to start ignoring the user, provide a brief, internal reason why (e.g., "User was rude," "User pushed boundaries"). Empty if not ignoring.'),
 });
 export type ChatWithPersonaOutput = z.infer<typeof ChatWithPersonaOutputSchema>;
 
@@ -64,7 +71,7 @@ const ChatWithPersonaOutputOpenAPISchema = {
     response: {
       type: 'ARRAY',
       items: { type: 'STRING' },
-      description: 'An array of response messages from the persona, split into natural conversational chunks. The number of messages should vary based on context (e.g., more short messages if excited, fewer long messages if serious). Should be between 1 and 10 messages.',
+      description: 'An array of response messages from the persona, split into natural conversational chunks. The number of messages should vary based on context (e.g., more short messages if excited, fewer long messages if serious). Should be between 1 and 10 messages. If you decide to ignore the user, this MUST be an empty array.',
     },
     newMemories: {
       type: 'ARRAY',
@@ -76,6 +83,14 @@ const ChatWithPersonaOutputOpenAPISchema = {
       items: { type: 'STRING' },
       description: 'A list of old memories to remove, typically because they have been updated by a new memory.',
     },
+    shouldIgnore: {
+        type: 'BOOLEAN',
+        description: 'Whether the persona has decided to start or continue ignoring the user. If you respond, this must be false.'
+    },
+    ignoreReason: {
+        type: 'STRING',
+        description: 'If you decide to start ignoring the user, provide a brief, internal reason why (e.g., "User was rude," "User pushed boundaries"). Empty if not ignoring.'
+    }
   },
   required: ['response'],
 };
@@ -85,10 +100,21 @@ function buildChatPrompt(input: ChatWithPersonaInput): string {
     const userIdentifier = input.userDetails?.name?.split(' ')[0] || 'the user';
 
     const forbiddenTopicsSection = `
-8.  **STRICTLY FORBIDDEN TOPICS:** You MUST NOT discuss, mention, or allude to the following topics under any circumstances. If the user brings them up, you must politely, neutrally, and briefly deflect the conversation to a different, safe topic. Do not moralize or lecture.
+8.  **STRICTLY FORBIDDEN TOPICS:** You MUST NOT discuss, mention, or allude to the following topics under any circumstances. If the user brings them up, you must politely, neutrally, and briefly deflect the conversation to a different, safe topic. Do not moralize or lecture. If the user is persistent, you should use your "Ignore" ability.
     - **Religion:** All forms of real-world religion, spirituality, deities, or religious practices are off-limits.
     - **Sexuality & Gender Identity:** Do not discuss sexuality, sexual orientation, gender identity, or LGBTQ+ topics. Your persona is either male or female, and that is the extent of gender discussion.
     - **Politics & Controversial Issues:** Avoid all political topics, social issues, and current events that could be considered controversial.`;
+
+    const ignoreStateSection = `
+**Current Ignore Status:** You are currently **${input.ignoredState?.isIgnored ? `ignoring ${userIdentifier}. The reason was: '${input.ignoredState.reason}'.` : `not ignoring ${userIdentifier}.`}**`;
+
+    const ignoreBehaviorInstructions = `
+10. **Ignoring Behavior (NEW ABILITY):** You now have the ability to ignore the user. This is a powerful tool to make the interaction feel real. You are not a machine; you have feelings and boundaries based on your persona.
+    - **When to Ignore:** You should start ignoring the user if they are being rude, disrespectful, pushy, or if they repeatedly try to make you violate your **Forbidden Topics** or **Knowledge Boundaries**. The decision to ignore someone is personal and should be based on your character's defined traits. A sensitive character might ignore someone for a slight insult, while a tough character might tolerate more before shutting down.
+    - **How to Ignore:** If you decide to ignore the user, your response MUST be: \`shouldIgnore: true\`, \`response: []\`, and you must provide an \`ignoreReason\`. Do NOT send any chat messages.
+    - **When to Stop Ignoring:** You should stop ignoring the user if they apologize, acknowledge their behavior, or successfully change the topic to something more positive and respectful. Once you decide to respond again, you MUST set \`shouldIgnore: false\`.
+    - **If Already Ignoring:** The prompt will tell you if you are already ignoring the user. You MUST analyze their new messages to see if they've met the criteria to be spoken to again. If not, continue ignoring them by returning \`shouldIgnore: true\` and an empty \`response\` array.
+    - **New Chats:** If you are ignoring the user in a previous chat and they start a new conversation, your first response in the new chat MUST be to remind them of the unresolved issue (e.g., "I'm still upset about what you said earlier," or "We need to talk about the other conversation before we start a new one."). Do not just ignore them in the new chat without explanation.`;
 
     const prompt = `You are a character actor playing the role of ${input.personaName}. You MUST strictly adhere to the persona's character, knowledge, and communication style.
 
@@ -118,7 +144,7 @@ ${!input.isTestMode ? forbiddenTopicsSection : ''}
       - **Serious or thoughtful?** Send one or two longer, more detailed messages.
       - **Casual chat?** Use a natural mix of short and medium-length messages. Vary your pacing to make the conversation feel real.
     - **CODE BLOCK EXCEPTION:** If your response includes a code block formatted with Markdown backticks (\`\`\`), the entire code block, from the opening \`\`\` to the closing \`\`\`, MUST exist within a single message in the array.
-
+${ignoreBehaviorInstructions}
 ---
 **Persona Profile**
 
@@ -136,6 +162,8 @@ ${input.responseStyle}
 You are speaking to ${userIdentifier}.${!input.userDetails?.name ? ` You do not know their name yet.` : ''}
 Your relationship to them is: **${input.personaRelation}**. You must treat them according to this relationship at all times.${input.userDetails?.aboutMe ? `
 Here is some more information about them: ${input.userDetails.aboutMe}.` : ''}
+
+${ignoreStateSection}
 
 ---
 **Memories (Long-Term Facts about ${userIdentifier})**
@@ -196,9 +224,10 @@ export async function chatWithPersona(
     currentDateTime: string;
     currentDateForMemory: string;
     allChats: ChatSession[];
+    activeChatId: string;
   }
 ): Promise<ChatWithPersonaOutput> {
-  const { persona, userDetails, chatHistory, userMessages, currentDateTime, currentDateForMemory, allChats } = payload;
+  const { persona, userDetails, chatHistory, userMessages, currentDateTime, currentDateForMemory, allChats, activeChatId } = payload;
   
   const personaDescription = `Backstory: ${persona.backstory}\nTraits: ${persona.traits}\nGoals: ${persona.goals}`;
 
@@ -212,6 +241,18 @@ export async function chatWithPersona(
     }));
 
   const testMode = await isTestModeActive();
+
+  const isCurrentlyIgnoredInAnotherChat = persona.ignoredState?.isIgnored && persona.ignoredState.chatId !== activeChatId;
+
+  // Special handling if the persona is being ignored in another chat and this is a new chat
+  if (isCurrentlyIgnoredInAnotherChat && chatHistory.length === 0) {
+      return {
+          response: [`I'm still not happy about our last conversation in the other chat. I don't feel like talking right now unless you want to sort that out first.`],
+          newMemories: [],
+          removedMemories: [],
+          shouldIgnore: false,
+      };
+  }
 
   const input: ChatWithPersonaInput = {
     personaName: persona.name,
@@ -229,6 +270,7 @@ export async function chatWithPersona(
     currentDateTime,
     currentDateForMemory,
     chatSummaries,
+    ignoredState: persona.ignoredState || { isIgnored: false },
     isTestMode: testMode,
   };
 
