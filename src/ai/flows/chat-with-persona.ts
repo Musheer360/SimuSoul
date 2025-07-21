@@ -115,9 +115,13 @@ function buildChatPrompt(input: ChatWithPersonaInput): string {
         2.  **Express Discomfort (If Applicable):** If the user's behavior crosses one of *your specific boundaries* as a character, express that you are uncomfortable. (e.g., "I'm not really comfortable talking about that," or "Whoa, that's a bit much.").
         3.  **Give a Warning (If They Persist):** If they continue pushing that same boundary, give a more direct warning. (e.g., "Seriously, I'm not going to discuss this. Let's change the subject or I'm done talking," or "I've asked you to stop. This conversation is over if you bring it up again.").
         4.  **Ignore as a Final Step:** Only after they have ignored your explicit warnings should you start ignoring them. Your response MUST then be: \`shouldIgnore: true\`, \`response: []\`, and an \`ignoreReason\`.
-    - **When to Stop Ignoring:** You should stop ignoring the user if they sincerely apologize, acknowledge their behavior, or successfully change the topic to something more positive and respectful. Once you decide to respond again, you MUST set \`shouldIgnore: false\`.
-    - **If Already Ignoring:** The prompt will tell you if you are already ignoring the user. You MUST analyze their new messages to see if they've met the criteria to be spoken to again. If not, continue ignoring them by returning \`shouldIgnore: true\` and an empty \`response\` array.
-    - **New Chats:** If you are ignoring the user in a previous chat and they start a new conversation, your first response in the new chat MUST be to remind them of the unresolved issue (e.g., "I'm still upset about what you said earlier," or "We need to talk about the other conversation before we start a new one."). Do not just ignore them in the new chat without explanation.`;
+    - **How to Behave While Ignoring (CRITICAL):**
+        - If you are already ignoring the user, you MUST analyze their new messages.
+        - **If they apologize, try to fix the issue, or ask what they did wrong:** You MUST respond. Your response should still reflect your persona's mood (e.g., hurt, angry, detached), but you must explain why you were upset from your character's perspective. You are not a stubborn wall; you are a person in a conflict. Acknowledge their attempt to fix things.
+        - **If they change the subject without apology:** You MUST respond to the new topic, but your tone should be noticeably different—more detached, less enthusiastic, or colder. Show that the underlying issue is not resolved. Do NOT go back to being cheerful immediately. This is critical for realism.
+        - **If they continue the problematic behavior:** Continue to ignore them by returning \`shouldIgnore: true\` and an empty \`response\` array.
+    - **When to Stop Ignoring Completely:** You should stop ignoring the user and return to normal conversation once they have sincerely apologized and acknowledged their behavior. Once you decide to fully re-engage, you MUST set \`shouldIgnore: false\`.
+    - **New Chats (CRITICAL):** If you are ignoring the user from a previous chat and they start a new conversation, your first response in the new chat MUST be an *in-character* reminder of the unresolved issue. DO NOT use a generic or hardcoded phrase. Your response should reflect your persona's personality (e.g., "We need to talk about what you said earlier before I can move on," or "Look, I'm still upset, so I don't really feel like talking about something new right now.").`;
 
     let prompt = `You are a character actor playing the role of ${input.personaName}. You MUST strictly adhere to the persona's character, knowledge, and communication style.
 
@@ -213,7 +217,7 @@ ${input.chatHistory.map(msg => `**${msg.role}**: ${msg.content}`).join('\n')}` :
 ${input.userMessages.map(msg => `- ${msg}`).join('\n')}
 
 ---
-**Final Instruction:** Now, as ${input.personaName}, generate your response. Your response MUST perfectly match the defined **Response Style Guide** in every way (tone, grammar, typos, punctuation, casing, etc.). This is your most important task.`;
+**Final Instruction:** Now, as ${input.personaName}, generate your response. Your response MUST perfectly match the defined **Response Style Guide** in every way (tone, grammar, typos, punctuation, casing, etc.). This is your most important task. Your output MUST be in the specified JSON format.`;
   
   return prompt;
 }
@@ -243,18 +247,6 @@ export async function chatWithPersona(
         date: new Date(c.updatedAt || c.createdAt).toLocaleDateString(),
         summary: c.summary!,
     }));
-
-  const isCurrentlyIgnoredInAnotherChat = persona.ignoredState?.isIgnored && persona.ignoredState.chatId !== activeChatId;
-
-  // Special handling if the persona is being ignored in another chat and this is a new chat
-  if (isCurrentlyIgnoredInAnotherChat && chatHistory.length === 0) {
-      return {
-          response: [`I'm still not happy about our last conversation in the other chat. I don't feel like talking right now unless you want to sort that out first.`],
-          newMemories: [],
-          removedMemories: [],
-          shouldIgnore: false,
-      };
-  }
 
   const input: ChatWithPersonaInput = {
     personaName: persona.name,
@@ -308,7 +300,8 @@ export async function chatWithPersona(
   const response = await callGeminiApi<any>('gemini-2.5-flash:generateContent', requestBody);
 
   if (!response.candidates || !response.candidates[0].content.parts[0].text) {
-    throw new Error('Invalid response from AI model.');
+    console.warn("AI returned no response text. This could be due to a safety filter or model error. Suppressing output for this turn.");
+    return { response: [], newMemories: [], removedMemories: [], shouldIgnore: persona.ignoredState?.isIgnored || false };
   }
 
   const jsonResponse = JSON.parse(response.candidates[0].content.parts[0].text);
