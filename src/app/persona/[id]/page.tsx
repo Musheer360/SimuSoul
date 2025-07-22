@@ -108,13 +108,29 @@ const ChatMessageItem = memo(function ChatMessageItem({
             !isFirstInSequence && isLastInSequence && "rounded-tr-none rounded-br-lg",
           ),
         )}
-        onClick={() => {
+        onClick={(e) => {
           if (message.role === 'user' && !isLatestUserMessage) {
+            e.stopPropagation();
             onMessageClick(messageIndex);
           }
         }}
+        style={{
+          // Ensure all child elements are clickable for user messages that aren't latest
+          ...(message.role === 'user' && !isLatestUserMessage && {
+            pointerEvents: 'auto'
+          })
+        }}
       >
-        <FormattedMessage content={message.content} />
+        <div 
+          style={{
+            // Make the content area clickable but prevent text selection interference
+            ...(message.role === 'user' && !isLatestUserMessage && {
+              pointerEvents: 'none'
+            })
+          }}
+        >
+          <FormattedMessage content={message.content} />
+        </div>
       </div>
        {message.role === 'user' && message.isRead && showReadReceipt && (
           <div className="px-2 pt-1 text-xs text-muted-foreground flex items-center gap-1">
@@ -403,6 +419,8 @@ export default function PersonaChatPage() {
 
       if (res.response && res.response.length > 0) {
         setIsAiTyping(true);
+        // Hide read receipts for previous messages when AI starts typing
+        setClickedMessageIndex(null);
         for (let i = 0; i < res.response.length; i++) {
           const messageContent = res.response[i];
           const { minWpm, maxWpm } = personaRef.current!;
