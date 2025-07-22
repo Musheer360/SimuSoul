@@ -498,8 +498,22 @@ export default function PersonaChatPage() {
     await savePersona(updatedPersona);
     
     setInput('');
-    textareaRef.current?.focus();
-    if (textareaRef.current) textareaRef.current.style.height = 'auto';
+    
+    // Handle focus differently for mobile to prevent keyboard flickering
+    if (isMobile) {
+      // On mobile, use requestAnimationFrame to maintain focus without flickering
+      requestAnimationFrame(() => {
+        if (textareaRef.current) {
+          textareaRef.current.focus();
+          textareaRef.current.style.height = 'auto';
+        }
+      });
+    } else {
+      // On desktop, normal focus behavior
+      textareaRef.current?.focus();
+      if (textareaRef.current) textareaRef.current.style.height = 'auto';
+    }
+    
     setError(null);
   
     messagesSinceLastResponseRef.current.push(userMessage);
