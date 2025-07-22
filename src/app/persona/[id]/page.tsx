@@ -561,13 +561,15 @@ export default function PersonaChatPage() {
 
   useEffect(() => {
     // Function to clean up empty "New Chat" sessions when navigating away
-    const handleCleanup = (chatIdToClean: string | null | undefined) => {
+    const handleCleanup = (chatIdToClean: string | null | undefined, isComponentUnmounting: boolean = false) => {
         if (!chatIdToClean) return;
 
         const personaNow = personaRef.current;
         if (personaNow?.chats) {
             const chat = personaNow.chats.find(c => c.id === chatIdToClean);
-            if (chat && chat.title === 'New Chat' && chat.messages.length === 0) {
+            // Only clean up empty "New Chat" sessions when actually switching chats,
+            // not when the component is unmounting (page reload)
+            if (chat && chat.title === 'New Chat' && chat.messages.length === 0 && !isComponentUnmounting) {
                 const updatedPersona = {
                     ...personaNow,
                     chats: personaNow.chats.filter(c => c.id !== chatIdToClean),
@@ -584,7 +586,7 @@ export default function PersonaChatPage() {
         handleSummarizeChat(previousChatId);
         messagesSinceLastResponseRef.current = [];
         if (responseTimerRef.current) clearTimeout(responseTimerRef.current);
-        handleCleanup(previousChatId);
+        handleCleanup(previousChatId, false); // Not unmounting, safe to cleanup
         // Reset clicked message state when switching chats
         setClickedMessageIndex(null);
     }
@@ -592,12 +594,12 @@ export default function PersonaChatPage() {
     prevActiveChatIdRef.current = activeChatId;
 
     return () => {
-      // This cleanup runs when the component unmounts
+      // This cleanup runs when the component unmounts (page reload/navigation)
       if (isDeletingRef.current) return;
       
       const lastActiveChat = prevActiveChatIdRef.current;
       if (lastActiveChat) {
-          handleCleanup(lastActiveChat);
+          // Don't cleanup on unmount to preserve chats on page reload
           handleSummarizeChat(lastActiveChat);
       }
       if (responseTimerRef.current) clearTimeout(responseTimerRef.current);
@@ -613,18 +615,19 @@ export default function PersonaChatPage() {
     const chatExists = chatIdFromQuery ? persona.chats.some(c => c.id === chatIdFromQuery) : false;
     
     if (chatIdFromQuery && chatExists) {
+        // Valid chat ID in URL, use it
         if (activeChatId !== chatIdFromQuery) {
             setActiveChatId(chatIdFromQuery);
         }
     } else if (sortedChats.length > 0) {
-        // If no valid chat in URL, redirect to the most recent one
+        // No valid chat in URL but chats exist, redirect to the most recent one
         const mostRecentChat = sortedChats[0];
         if (activeChatId !== mostRecentChat.id) {
             setActiveChatId(mostRecentChat.id);
             router.replace(`/persona/${persona.id}?chat=${mostRecentChat.id}`, { scroll: false });
         }
     } else {
-        // No chats exist at all, create a new one
+        // No chats exist at all, create a new one only in this case
         const now = Date.now();
         const newChatSession: ChatSession = {
             id: crypto.randomUUID(),
