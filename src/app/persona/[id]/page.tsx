@@ -296,8 +296,6 @@ export default function PersonaChatPage() {
   
     setIsAiResponding(true);
     setError(null);
-    // Hide read receipts for previous messages when AI starts responding
-    setClickedMessageIndex(null);
     messagesSinceLastResponseRef.current = [];
   
     const currentChat = personaNow.chats.find(c => c.id === chatIdNow);
@@ -336,6 +334,9 @@ export default function PersonaChatPage() {
           ),
         };
       });
+
+      // Hide read receipts for previous messages after marking current message as read
+      setClickedMessageIndex(null);
 
       // Handle ignore logic
       if (res.shouldIgnore) {
