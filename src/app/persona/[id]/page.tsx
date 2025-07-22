@@ -65,11 +65,19 @@ const ChatMessageItem = memo(function ChatMessageItem({
   isFirstInSequence,
   isLastInSequence,
   glowing,
+  isLatestUserMessage,
+  messageIndex,
+  onMessageClick,
+  showReadReceipt,
 }: {
   message: ChatMessage;
   isFirstInSequence: boolean;
   isLastInSequence: boolean;
   glowing: boolean;
+  isLatestUserMessage: boolean;
+  messageIndex: number;
+  onMessageClick: (index: number) => void;
+  showReadReceipt: boolean;
 }) {
   return (
     <div
@@ -79,28 +87,36 @@ const ChatMessageItem = memo(function ChatMessageItem({
         isFirstInSequence ? 'mt-4' : 'mt-1'
       )}
     >
-      <div className={cn(
-        "max-w-[85%] rounded-lg px-4 py-2.5 min-w-0",
-        message.role === 'user'
-          ? 'bg-primary text-primary-foreground'
-          : 'bg-secondary',
-        glowing && 'animate-shine-once',
-        message.role === 'assistant' && cn(
-          isFirstInSequence && !isLastInSequence && "rounded-tl-none rounded-bl-none",
-          isFirstInSequence && isLastInSequence && "rounded-tl-none",
-          !isFirstInSequence && !isLastInSequence && "rounded-tl-none rounded-bl-none",
-          !isFirstInSequence && isLastInSequence && "rounded-tl-none rounded-bl-lg",
-        ),
-        message.role === 'user' && cn(
-          isFirstInSequence && !isLastInSequence && "rounded-tr-none rounded-br-none",
-          isFirstInSequence && isLastInSequence && "rounded-tr-none",
-          !isFirstInSequence && !isLastInSequence && "rounded-tr-none rounded-br-none",
-          !isFirstInSequence && isLastInSequence && "rounded-tr-none rounded-br-lg",
-        ),
-      )}>
+      <div 
+        className={cn(
+          "max-w-[85%] rounded-lg px-4 py-2.5 min-w-0",
+          message.role === 'user'
+            ? 'bg-primary text-primary-foreground'
+            : 'bg-secondary',
+          glowing && 'animate-shine-once',
+          message.role === 'user' && !isLatestUserMessage && 'cursor-pointer',
+          message.role === 'assistant' && cn(
+            isFirstInSequence && !isLastInSequence && "rounded-tl-none rounded-bl-none",
+            isFirstInSequence && isLastInSequence && "rounded-tl-none",
+            !isFirstInSequence && !isLastInSequence && "rounded-tl-none rounded-bl-none",
+            !isFirstInSequence && isLastInSequence && "rounded-tl-none rounded-bl-lg",
+          ),
+          message.role === 'user' && cn(
+            isFirstInSequence && !isLastInSequence && "rounded-tr-none rounded-br-none",
+            isFirstInSequence && isLastInSequence && "rounded-tr-none",
+            !isFirstInSequence && !isLastInSequence && "rounded-tr-none rounded-br-none",
+            !isFirstInSequence && isLastInSequence && "rounded-tr-none rounded-br-lg",
+          ),
+        )}
+        onClick={() => {
+          if (message.role === 'user' && !isLatestUserMessage) {
+            onMessageClick(messageIndex);
+          }
+        }}
+      >
         <FormattedMessage content={message.content} />
       </div>
-       {message.role === 'user' && message.isRead && (
+       {message.role === 'user' && message.isRead && showReadReceipt && (
           <div className="px-2 pt-1 text-xs text-muted-foreground flex items-center gap-1">
              Read
           </div>
@@ -194,6 +210,7 @@ export default function PersonaChatPage() {
 
   const [glowingMessageIndex, setGlowingMessageIndex] = useState<number | null>(null);
   const [isMemoryButtonGlowing, setIsMemoryButtonGlowing] = useState(false);
+  const [clickedMessageIndex, setClickedMessageIndex] = useState<number | null>(null);
 
   const [touchStartX, setTouchStartX] = useState<number | null>(null);
   const [touchMoveX, setTouchMoveX] = useState<number | null>(null);
@@ -549,6 +566,8 @@ export default function PersonaChatPage() {
         messagesSinceLastResponseRef.current = [];
         if (responseTimerRef.current) clearTimeout(responseTimerRef.current);
         handleCleanup(previousChatId);
+        // Reset clicked message state when switching chats
+        setClickedMessageIndex(null);
     }
     
     prevActiveChatIdRef.current = activeChatId;
@@ -614,6 +633,11 @@ export default function PersonaChatPage() {
   const messagesToDisplay = useMemo(() => {
       return activeChat?.messages || [];
   }, [activeChat]);
+
+  // Reset clicked message state when messages change
+  useEffect(() => {
+    setClickedMessageIndex(null);
+  }, [messagesToDisplay.length]);
 
   useEffect(() => {
     if (scrollAreaRef.current) {
@@ -753,6 +777,19 @@ export default function PersonaChatPage() {
       setIsMemoryDialogOpen(open);
   }, []);
 
+  const handleMessageClick = useCallback((messageIndex: number) => {
+    setClickedMessageIndex(prev => prev === messageIndex ? null : messageIndex);
+  }, []);
+
+  const handleOutsideClick = useCallback((e: MouseEvent) => {
+    // Check if the click is outside of message bubbles
+    const target = e.target as Element;
+    const isMessageBubble = target.closest('[data-message-bubble]');
+    if (!isMessageBubble) {
+      setClickedMessageIndex(null);
+    }
+  }, []);
+
   const handleTouchStart = useCallback((e: React.TouchEvent<HTMLDivElement>) => {
     if (!isMobile || !isSidebarOpen) return;
     setTouchMoveX(null);
@@ -829,6 +866,13 @@ export default function PersonaChatPage() {
       }
     };
   }, [isMobile]);
+
+  useEffect(() => {
+    document.addEventListener('click', handleOutsideClick);
+    return () => {
+      document.removeEventListener('click', handleOutsideClick);
+    };
+  }, [handleOutsideClick]);
 
   if (persona === undefined) {
     return <PersonaChatSkeleton />;
@@ -1089,14 +1133,35 @@ export default function PersonaChatPage() {
                            const isLastInSequence = !messagesToDisplay[index + 1] || messagesToDisplay[index + 1].role !== message.role;
                            const isLastVisibleAssistantMessage = message.role === 'assistant' && index === messagesToDisplay.length - 1;
 
+                           // Find the latest user message index
+                           const latestUserMessageIndex = findLastIndex(messagesToDisplay, msg => msg.role === 'user');
+                           const isLatestUserMessage = message.role === 'user' && index === latestUserMessageIndex;
+                           
+                           // Determine if read receipt should be shown
+                           let showReadReceipt = false;
+                           if (message.role === 'user' && message.isRead) {
+                             if (isLatestUserMessage) {
+                               // Always show for latest user message
+                               showReadReceipt = true;
+                             } else {
+                               // Show for previous messages only when clicked
+                               showReadReceipt = clickedMessageIndex === index;
+                             }
+                           }
+
                            return (
-                             <ChatMessageItem
-                               key={index}
-                               message={message}
-                               isFirstInSequence={isFirstInSequence}
-                               isLastInSequence={isLastVisibleAssistantMessage ? !isAiTyping : isLastInSequence}
-                               glowing={glowingMessageIndex === index}
-                             />
+                             <div key={index} data-message-bubble>
+                               <ChatMessageItem
+                                 message={message}
+                                 isFirstInSequence={isFirstInSequence}
+                                 isLastInSequence={isLastVisibleAssistantMessage ? !isAiTyping : isLastInSequence}
+                                 glowing={glowingMessageIndex === index}
+                                 isLatestUserMessage={isLatestUserMessage}
+                                 messageIndex={index}
+                                 onMessageClick={handleMessageClick}
+                                 showReadReceipt={showReadReceipt}
+                               />
+                             </div>
                            );
                         })}
 
