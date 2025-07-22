@@ -431,12 +431,13 @@ export default function PersonaChatPage() {
           const delay = Math.max(900, Math.min(typingTimeMs, 4000));
           await new Promise(resolve => setTimeout(resolve, delay));
           
+          let updatedPersona: Persona | null = null;
           setPersona(current => {
             if (!current) return null;
             const chat = current.chats.find(c => c.id === chatIdNow);
             if (!chat) return current;
             const newAssistantMessage: ChatMessage = { role: 'assistant', content: messageContent };
-            return {
+            updatedPersona = {
               ...current,
               chats: current.chats.map(c =>
                 c.id === chatIdNow
@@ -444,7 +445,13 @@ export default function PersonaChatPage() {
                   : c
               ),
             };
+            return updatedPersona;
           });
+          
+          // Save to database immediately after each AI message
+          if (updatedPersona) {
+            await savePersona(updatedPersona);
+          }
         }
       }
     } catch (err: any) {
@@ -476,17 +483,19 @@ export default function PersonaChatPage() {
   
     const userMessage: ChatMessage = { role: 'user', content: input, isRead: false };
   
-    setPersona(prevPersona => {
-      if (!prevPersona) return null;
-      return {
-        ...prevPersona,
-        chats: prevPersona.chats.map(c =>
-          c.id === activeChatId
-            ? { ...c, messages: [...c.messages, userMessage], updatedAt: Date.now() }
-            : c
-        ),
-      }
-    });
+    const updatedPersona = {
+      ...persona,
+      chats: persona.chats.map(c =>
+        c.id === activeChatId
+          ? { ...c, messages: [...c.messages, userMessage], updatedAt: Date.now() }
+          : c
+      ),
+    };
+    
+    setPersona(updatedPersona);
+    // Save to database immediately to persist the message
+    await savePersona(updatedPersona);
+    
     setInput('');
     textareaRef.current?.focus();
     if (textareaRef.current) textareaRef.current.style.height = 'auto';
