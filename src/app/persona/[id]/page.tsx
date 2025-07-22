@@ -653,6 +653,11 @@ export default function PersonaChatPage() {
       return activeChat?.messages || [];
   }, [activeChat]);
 
+  // Performance optimization: Memoize latest user message index calculation
+  const latestUserMessageIndex = useMemo(() => {
+    return findLastIndex(messagesToDisplay, msg => msg.role === 'user');
+  }, [messagesToDisplay]);
+
   // Reset clicked message state when messages change
   useEffect(() => {
     setClickedMessageIndex(null);
@@ -1147,24 +1152,26 @@ export default function PersonaChatPage() {
                       <div className="max-w-3xl mx-auto px-4 pb-4">
                         {messagesToDisplay.map((message, index) => {
                            const isFirstInSequence = !messagesToDisplay[index - 1] || messagesToDisplay[index - 1].role !== message.role;
-                           // A message is the last in a sequence if the next one is from a different role,
-                           // OR if it's the very last message and the AI isn't currently typing a new one.
                            const isLastInSequence = !messagesToDisplay[index + 1] || messagesToDisplay[index + 1].role !== message.role;
                            const isLastVisibleAssistantMessage = message.role === 'assistant' && index === messagesToDisplay.length - 1;
 
-                           // Find the latest user message index
-                           const latestUserMessageIndex = findLastIndex(messagesToDisplay, msg => msg.role === 'user');
-                           const isLatestUserMessage = message.role === 'user' && index === latestUserMessageIndex;
-                           
-                           // Determine if read receipt should be shown
+                           // Performance optimization: Only calculate for user messages
+                           let isLatestUserMessage = false;
                            let showReadReceipt = false;
-                           if (message.role === 'user' && message.isRead) {
-                             if (isLatestUserMessage) {
-                               // Always show for latest user message
-                               showReadReceipt = true;
-                             } else {
-                               // Show for previous messages only when clicked
-                               showReadReceipt = clickedMessageIndex === index;
+                           
+                           if (message.role === 'user') {
+                             // Use memoized latest user message index
+                             isLatestUserMessage = index === latestUserMessageIndex;
+                             
+                             // Determine if read receipt should be shown
+                             if (message.isRead) {
+                               if (isLatestUserMessage) {
+                                 // Always show for latest user message
+                                 showReadReceipt = true;
+                               } else {
+                                 // Show for previous messages only when clicked
+                                 showReadReceipt = clickedMessageIndex === index;
+                               }
                              }
                            }
 
