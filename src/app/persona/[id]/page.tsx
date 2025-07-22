@@ -620,59 +620,96 @@ export default function PersonaChatPage() {
     }
   }, [activeChatId, handleSummarizeChat]);
   
+  // Separate effect for handling URL-based chat selection
   useEffect(() => {
     if (!persona) return;
     
     const chatIdFromQuery = searchParams.get('chat');
     
-    // Check if the chat from the URL exists in our persona's chats
-    const chatExists = chatIdFromQuery ? persona.chats.some(c => c.id === chatIdFromQuery) : false;
+    if (chatIdFromQuery) {
+        // Check if the chat from the URL exists in our persona's chats
+        const chatExists = persona.chats.some(c => c.id === chatIdFromQuery);
+        
+        if (chatExists) {
+            // Valid chat ID in URL, use it
+            if (activeChatId !== chatIdFromQuery) {
+                setActiveChatId(chatIdFromQuery);
+            }
+        } else {
+            // Invalid chat ID in URL, redirect to create new chat
+            router.replace(`/persona/${persona.id}`, { scroll: false });
+        }
+    }
+  }, [persona, searchParams, router, activeChatId]);
+
+  // Separate effect for handling new chat creation when no chat ID in URL
+  useEffect(() => {
+    if (!persona) return;
     
-    if (chatIdFromQuery && chatExists) {
-        // User is navigating to an existing chat - clean up any empty "New Chat" sessions
+    const chatIdFromQuery = searchParams.get('chat');
+    
+    // Only run this logic when there's no chat ID in URL
+    if (!chatIdFromQuery) {
+        // Check if we already have an empty "New Chat"
+        const existingEmptyNewChat = persona.chats.find(c => 
+            c.title === 'New Chat' && c.messages.length === 0
+        );
+        
+        if (existingEmptyNewChat) {
+            // Use existing empty new chat
+            if (activeChatId !== existingEmptyNewChat.id) {
+                setActiveChatId(existingEmptyNewChat.id);
+                router.replace(`/persona/${persona.id}?chat=${existingEmptyNewChat.id}`, { scroll: false });
+            }
+        } else {
+            // Create a new chat
+            const now = Date.now();
+            const newChatSession: ChatSession = {
+                id: crypto.randomUUID(),
+                title: 'New Chat',
+                messages: [],
+                createdAt: now,
+                updatedAt: now,
+            };
+            const updatedPersona = {
+                ...persona,
+                chats: [newChatSession, ...(persona.chats || [])],
+            };
+            setPersona(updatedPersona);
+            savePersona(updatedPersona).then(() => {
+                setActiveChatId(newChatSession.id);
+                router.replace(`/persona/${persona.id}?chat=${newChatSession.id}`, { scroll: false });
+            });
+        }
+    }
+  }, [persona?.id, searchParams, router]); // Only depend on persona.id, not the full persona object
+
+  // Separate effect for cleaning up empty chats when navigating to existing ones
+  useEffect(() => {
+    if (!persona || !activeChatId) return;
+    
+    const chatIdFromQuery = searchParams.get('chat');
+    
+    // Only cleanup when we have a valid chat ID in URL and it matches activeChatId
+    if (chatIdFromQuery && chatIdFromQuery === activeChatId) {
         const emptyNewChats = persona.chats.filter(c => 
             c.title === 'New Chat' && 
             c.messages.length === 0 && 
-            c.id !== chatIdFromQuery
+            c.id !== activeChatId
         );
         
         if (emptyNewChats.length > 0) {
             const updatedPersona = {
                 ...persona,
                 chats: persona.chats.filter(c => 
-                    !(c.title === 'New Chat' && c.messages.length === 0 && c.id !== chatIdFromQuery)
+                    !(c.title === 'New Chat' && c.messages.length === 0 && c.id !== activeChatId)
                 ),
             };
             setPersona(updatedPersona);
             savePersona(updatedPersona);
         }
-        
-        // Set the active chat to the one from URL
-        if (activeChatId !== chatIdFromQuery) {
-            setActiveChatId(chatIdFromQuery);
-        }
-    } else {
-        // No valid chat in URL - this means user is opening the app fresh
-        // Always create a new chat in this case
-        const now = Date.now();
-        const newChatSession: ChatSession = {
-            id: crypto.randomUUID(),
-            title: 'New Chat',
-            messages: [],
-            createdAt: now,
-            updatedAt: now,
-        };
-        const updatedPersona = {
-            ...persona,
-            chats: [newChatSession, ...(persona.chats || [])],
-        };
-        setPersona(updatedPersona);
-        savePersona(updatedPersona).then(() => {
-            setActiveChatId(newChatSession.id);
-            router.replace(`/persona/${persona.id}?chat=${newChatSession.id}`, { scroll: false });
-        });
     }
-}, [persona, searchParams, router, activeChatId]);
+  }, [activeChatId]); // Only run when activeChatId changes
 
   const activeChat = useMemo(() => {
     return persona?.chats.find(c => c.id === activeChatId);
