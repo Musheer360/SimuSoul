@@ -578,7 +578,12 @@ export default function PersonaChatPage() {
             const chat = personaNow.chats.find(c => c.id === chatIdToClean);
             // Only clean up empty "New Chat" sessions when actually switching chats,
             // not when the component is unmounting (page reload)
-            if (chat && chat.title === 'New Chat' && chat.messages.length === 0 && !isComponentUnmounting) {
+            // Also, be more conservative - only cleanup if there are other chats available
+            if (chat && 
+                chat.title === 'New Chat' && 
+                chat.messages.length === 0 && 
+                !isComponentUnmounting &&
+                personaNow.chats.length > 1) {
                 const updatedPersona = {
                     ...personaNow,
                     chats: personaNow.chats.filter(c => c.id !== chatIdToClean),
@@ -624,19 +629,31 @@ export default function PersonaChatPage() {
     const chatExists = chatIdFromQuery ? persona.chats.some(c => c.id === chatIdFromQuery) : false;
     
     if (chatIdFromQuery && chatExists) {
-        // Valid chat ID in URL, use it
+        // User is navigating to an existing chat - clean up any empty "New Chat" sessions
+        const emptyNewChats = persona.chats.filter(c => 
+            c.title === 'New Chat' && 
+            c.messages.length === 0 && 
+            c.id !== chatIdFromQuery
+        );
+        
+        if (emptyNewChats.length > 0) {
+            const updatedPersona = {
+                ...persona,
+                chats: persona.chats.filter(c => 
+                    !(c.title === 'New Chat' && c.messages.length === 0 && c.id !== chatIdFromQuery)
+                ),
+            };
+            setPersona(updatedPersona);
+            savePersona(updatedPersona);
+        }
+        
+        // Set the active chat to the one from URL
         if (activeChatId !== chatIdFromQuery) {
             setActiveChatId(chatIdFromQuery);
         }
-    } else if (sortedChats.length > 0) {
-        // No valid chat in URL but chats exist, redirect to the most recent one
-        const mostRecentChat = sortedChats[0];
-        if (activeChatId !== mostRecentChat.id) {
-            setActiveChatId(mostRecentChat.id);
-            router.replace(`/persona/${persona.id}?chat=${mostRecentChat.id}`, { scroll: false });
-        }
     } else {
-        // No chats exist at all, create a new one only in this case
+        // No valid chat in URL - this means user is opening the app fresh
+        // Always create a new chat in this case
         const now = Date.now();
         const newChatSession: ChatSession = {
             id: crypto.randomUUID(),
@@ -647,7 +664,7 @@ export default function PersonaChatPage() {
         };
         const updatedPersona = {
             ...persona,
-            chats: [newChatSession],
+            chats: [newChatSession, ...(persona.chats || [])],
         };
         setPersona(updatedPersona);
         savePersona(updatedPersona).then(() => {
@@ -655,7 +672,7 @@ export default function PersonaChatPage() {
             router.replace(`/persona/${persona.id}?chat=${newChatSession.id}`, { scroll: false });
         });
     }
-}, [persona, searchParams, router, sortedChats, activeChatId]);
+}, [persona, searchParams, router, activeChatId]);
 
   const activeChat = useMemo(() => {
     return persona?.chats.find(c => c.id === activeChatId);
