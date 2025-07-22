@@ -13,7 +13,7 @@ import type { Persona, UserDetails, ChatMessage, ChatSession } from '@/lib/types
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
-import { Send, Loader2, Bot, User, Trash2, MessageSquarePlus, ArrowLeft, PanelLeft, Pencil, Brain } from 'lucide-react';
+import { Send, Loader2, Bot, Trash2, MessageSquarePlus, ArrowLeft, PanelLeft, Pencil, Brain } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import {
   AlertDialog,
@@ -323,27 +323,16 @@ export default function PersonaChatPage() {
         persona: personaNow, userDetails: userDetailsRef.current, chatHistory: chatHistoryForAI, userMessages: userMessageContents, currentDateTime, currentDateForMemory, allChats: allChatsForContext, activeChatId: chatIdNow, isTestMode: testMode,
       });
       
-      // Mark the user messages as read immediately after API response
-      setPersona(current => {
-        if (!current) return null;
-        const lastUserMessageIndex = findLastIndex(current.chats.find(c => c.id === chatIdNow)?.messages || [], msg => msg.role === 'user');
-        return {
-          ...current,
-          chats: current.chats.map(c =>
-            c.id === chatIdNow ? { ...c, messages: c.messages.map((m, idx) => idx === lastUserMessageIndex ? { ...m, isRead: true } : m) } : c
-          ),
-        };
-      });
-
-      // Hide read receipts for previous messages after marking current message as read
-      setClickedMessageIndex(null);
-
-      // Handle ignore logic
+      // Handle ignore logic first
       if (res.shouldIgnore) {
         setPersona(current => {
             if (!current) return null;
+            const lastUserMessageIndex = findLastIndex(current.chats.find(c => c.id === chatIdNow)?.messages || [], msg => msg.role === 'user');
             return {
                 ...current,
+                chats: current.chats.map(c =>
+                  c.id === chatIdNow ? { ...c, messages: c.messages.map((m, idx) => idx === lastUserMessageIndex ? { ...m, isRead: true } : m) } : c
+                ),
                 ignoredState: {
                     isIgnored: true,
                     reason: res.ignoreReason || 'User was being disruptive.',
@@ -351,18 +340,16 @@ export default function PersonaChatPage() {
                 }
             };
         });
+        setClickedMessageIndex(null);
         setIsAiResponding(false);
         return; // Stop further processing
-      } else {
-        // If not ignoring, ensure the state is cleared
-        setPersona(current => {
-            if (!current || !current.ignoredState?.isIgnored) return current;
-            return { ...current, ignoredState: null };
-        });
       }
-  
+
+      // Consolidate all persona updates into a single state update
       setPersona(current => {
         if (!current) return null;
+        
+        const lastUserMessageIndex = findLastIndex(current.chats.find(c => c.id === chatIdNow)?.messages || [], msg => msg.role === 'user');
         let finalMemories = current.memories || [];
         const memoryWasUpdated = (res.newMemories?.length || 0) > 0 || (res.removedMemories?.length || 0) > 0;
   
@@ -380,8 +367,22 @@ export default function PersonaChatPage() {
             setTimeout(() => setIsMemoryButtonGlowing(false), 1500);
           }
         }
-        return { ...current, memories: finalMemories };
+
+        return {
+          ...current,
+          // Mark user messages as read
+          chats: current.chats.map(c =>
+            c.id === chatIdNow ? { ...c, messages: c.messages.map((m, idx) => idx === lastUserMessageIndex ? { ...m, isRead: true } : m) } : c
+          ),
+          // Update memories
+          memories: finalMemories,
+          // Clear ignore state if it was previously set
+          ignoredState: current.ignoredState?.isIgnored ? null : current.ignoredState
+        };
       });
+
+      // Hide read receipts for previous messages after marking current message as read
+      setClickedMessageIndex(null);
   
       if (isNewChat && res.response && res.response[0]) {
         generateChatTitle({ userMessage: userMessageContents[0], assistantResponse: res.response[0] })

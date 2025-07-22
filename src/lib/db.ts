@@ -1,19 +1,11 @@
 import { openDB, deleteDB, type DBSchema } from 'idb';
-import type { Persona, UserDetails, ApiKeys, ChatMessage } from '@/lib/types';
+import type { Persona, UserDetails, ApiKeys } from '@/lib/types';
 
 const DB_NAME = 'SimuSoulDB';
-const DB_VERSION = 2; // Version incremented for new object store
+const DB_VERSION = 2;
 const PERSONAS_STORE = 'personas';
 const USER_DETAILS_STORE = 'userDetails';
 const API_KEYS_STORE = 'apiKeys';
-const MESSAGE_QUEUE_STORE = 'messageQueue'; // New store for queuing
-
-interface QueuedMessage {
-  id: number;
-  message: ChatMessage;
-  personaId: string;
-  chatId: string;
-}
 
 interface SimuSoulDBSchema extends DBSchema {
   [PERSONAS_STORE]: {
@@ -27,11 +19,6 @@ interface SimuSoulDBSchema extends DBSchema {
   [API_KEYS_STORE]: {
     key: string;
     value: ApiKeys;
-  };
-  [MESSAGE_QUEUE_STORE]: {
-    key: number;
-    value: QueuedMessage;
-    indexes: { 'by-chat': [string, string] };
   };
 }
 
@@ -47,15 +34,6 @@ const dbPromise =
           }
           if (!db.objectStoreNames.contains(API_KEYS_STORE)) {
             db.createObjectStore(API_KEYS_STORE);
-          }
-          // Create the new message queue store if it doesn't exist
-          if (!db.objectStoreNames.contains(MESSAGE_QUEUE_STORE)) {
-            const store = db.createObjectStore(MESSAGE_QUEUE_STORE, {
-              keyPath: 'id',
-              autoIncrement: true,
-            });
-            // Create an index to easily look up messages by chat
-            store.createIndex('by-chat', ['personaId', 'chatId']);
           }
         },
       })
@@ -89,6 +67,7 @@ const defaultUserDetails: UserDetails = {
     about: '',
     hasAcceptedTerms: false,
 };
+
 export async function getUserDetails(): Promise<UserDetails> {
     if (!dbPromise) return defaultUserDetails;
     const db = await dbPromise;
@@ -104,6 +83,7 @@ export async function saveUserDetails(details: UserDetails): Promise<void> {
 
 // ApiKeys operations
 const API_KEYS_KEY = 'userApiKeys';
+
 export async function getApiKeys(): Promise<ApiKeys> {
     if (!dbPromise) return { gemini: [] };
     const db = await dbPromise;
@@ -116,48 +96,6 @@ export async function saveApiKeys(keys: ApiKeys): Promise<void> {
     await db.put(API_KEYS_STORE, keys, API_KEYS_KEY);
 }
 
-// Message Queue operations
-export async function addMessageToQueue(
-  message: ChatMessage,
-  personaId: string,
-  chatId: string
-): Promise<void> {
-  if (!dbPromise) throw new Error("Database not available on server.");
-  const db = await dbPromise;
-  await db.add(MESSAGE_QUEUE_STORE, { message, personaId, chatId });
-}
-
-export async function getQueuedMessages(
-  personaId: string,
-  chatId: string
-): Promise<ChatMessage[]> {
-  if (!dbPromise) return [];
-  const db = await dbPromise;
-  const queuedItems = await db.getAllFromIndex(
-    MESSAGE_QUEUE_STORE,
-    'by-chat',
-    IDBKeyRange.only([personaId, chatId])
-  );
-  return queuedItems.map(item => item.message);
-}
-
-export async function clearQueuedMessages(
-  personaId: string,
-  chatId: string
-): Promise<void> {
-  if (!dbPromise) throw new Error("Database not available on server.");
-  const db = await dbPromise;
-  const tx = db.transaction(MESSAGE_QUEUE_STORE, 'readwrite');
-  const index = tx.store.index('by-chat');
-  let cursor = await index.openCursor(IDBKeyRange.only([personaId, chatId]));
-  while (cursor) {
-    cursor.delete();
-    cursor = await cursor.continue();
-  }
-  await tx.done;
-}
-
-
 // Function to wipe the entire database
 export async function clearDatabase(): Promise<void> {
     if (!dbPromise) throw new Error("Database not available on server.");
@@ -166,5 +104,3 @@ export async function clearDatabase(): Promise<void> {
     await deleteDB(DB_NAME);
     window.location.href = '/';
 }
-
-    
