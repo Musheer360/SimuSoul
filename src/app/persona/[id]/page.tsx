@@ -960,6 +960,40 @@ export default function PersonaChatPage() {
     setTouchMoveX(null);
   }, [touchStartX, touchMoveX]);
 
+  // Simple auto-scroll to bottom when mobile keyboard opens
+  useEffect(() => {
+    if (!isMobile || typeof window.visualViewport === 'undefined') return;
+
+    const visualViewport = window.visualViewport;
+    let previousHeight = visualViewport.height;
+    
+    const handleViewportChange = () => {
+      const currentHeight = visualViewport.height;
+      const heightDifference = previousHeight - currentHeight;
+      
+      // If keyboard opened (height decreased significantly)
+      if (heightDifference > 150) {
+        // Simple scroll to bottom after a brief delay
+        setTimeout(() => {
+          if (scrollAreaRef.current) {
+            const scrollContainer = scrollAreaRef.current.querySelector('[data-radix-scroll-area-viewport]');
+            if (scrollContainer) {
+              scrollContainer.scrollTop = scrollContainer.scrollHeight;
+            }
+          }
+        }, 100);
+      }
+      
+      previousHeight = currentHeight;
+    };
+
+    visualViewport.addEventListener('resize', handleViewportChange);
+
+    return () => {
+      visualViewport.removeEventListener('resize', handleViewportChange);
+    };
+  }, [isMobile]);
+
   // Mobile keyboard scroll prevention and scroll chaining prevention
   useEffect(() => {
     if (!isMobile) return;
