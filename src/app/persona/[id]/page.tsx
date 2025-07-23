@@ -973,16 +973,13 @@ export default function PersonaChatPage() {
       
       // If keyboard opened (height decreased significantly)
       if (heightDifference > 150) {
-        // Immediately scroll to bottom to prevent bubbles from jumping up
         if (scrollAreaRef.current) {
           const scrollContainer = scrollAreaRef.current.querySelector('[data-radix-scroll-area-viewport]');
           if (scrollContainer) {
-            // Scroll immediately, no delay to prevent the jump
-            scrollContainer.scrollTop = scrollContainer.scrollHeight;
-            
-            // Also ensure we stay at bottom after any layout adjustments
-            requestAnimationFrame(() => {
-              scrollContainer.scrollTop = scrollContainer.scrollHeight;
+            // Use smooth scrolling animation
+            scrollContainer.scrollTo({
+              top: scrollContainer.scrollHeight,
+              behavior: 'smooth'
             });
           }
         }
