@@ -1,7 +1,7 @@
 export interface ChatMessage {
   role: 'user' | 'assistant';
   content: string;
-  isRead?: boolean;
+  isIgnored?: boolean;
 }
 
 export interface ChatSession {

@@ -68,7 +68,7 @@ const ChatMessageItem = memo(function ChatMessageItem({
   isLatestUserMessage,
   messageIndex,
   onMessageClick,
-  showReadReceipt,
+  showIgnoredStatus,
 }: {
   message: ChatMessage;
   isFirstInSequence: boolean;
@@ -77,7 +77,7 @@ const ChatMessageItem = memo(function ChatMessageItem({
   isLatestUserMessage: boolean;
   messageIndex: number;
   onMessageClick: (index: number) => void;
-  showReadReceipt: boolean;
+  showIgnoredStatus: boolean;
 }) {
   return (
     <div
@@ -132,9 +132,9 @@ const ChatMessageItem = memo(function ChatMessageItem({
           <FormattedMessage content={message.content} />
         </div>
       </div>
-       {message.role === 'user' && message.isRead && showReadReceipt && (
-          <div className="px-2 pt-1 text-xs text-muted-foreground flex items-center gap-1">
-             Read
+       {message.role === 'user' && message.isIgnored && showIgnoredStatus && (
+          <div className="px-2 pt-1 text-xs text-red-500 dark:text-red-400 flex items-center gap-1">
+             Ignored
           </div>
         )}
     </div>
@@ -333,7 +333,7 @@ export default function PersonaChatPage() {
             return {
                 ...current,
                 chats: current.chats.map(c =>
-                  c.id === chatIdNow ? { ...c, messages: c.messages.map((m, idx) => idx === lastUserMessageIndex ? { ...m, isRead: true } : m) } : c
+                  c.id === chatIdNow ? { ...c, messages: c.messages.map((m, idx) => idx === lastUserMessageIndex ? { ...m, isIgnored: true } : m) } : c
                 ),
                 ignoredState: {
                     isIgnored: true,
@@ -372,10 +372,6 @@ export default function PersonaChatPage() {
 
         return {
           ...current,
-          // Mark user messages as read
-          chats: current.chats.map(c =>
-            c.id === chatIdNow ? { ...c, messages: c.messages.map((m, idx) => idx === lastUserMessageIndex ? { ...m, isRead: true } : m) } : c
-          ),
           // Update memories
           memories: finalMemories,
           // Clear ignore state if it was previously set
@@ -383,7 +379,7 @@ export default function PersonaChatPage() {
         };
       });
 
-      // Hide read receipts for previous messages after marking current message as read
+      // Hide ignored status for previous messages after marking current message as ignored
       setClickedMessageIndex(null);
   
       if (isNewChat && res.response && res.response[0]) {
@@ -486,7 +482,7 @@ export default function PersonaChatPage() {
     
     if (!input.trim() || !persona || !activeChatId) return;
   
-    const userMessage: ChatMessage = { role: 'user', content: input, isRead: false };
+    const userMessage: ChatMessage = { role: 'user', content: input, isIgnored: false };
   
     const updatedPersona = {
       ...persona,
@@ -1411,20 +1407,20 @@ export default function PersonaChatPage() {
 
                            // Performance optimization: Only calculate for user messages
                            let isLatestUserMessage = false;
-                           let showReadReceipt = false;
+                           let showIgnoredStatus = false;
                            
                            if (message.role === 'user') {
                              // Use memoized latest user message index
                              isLatestUserMessage = index === latestUserMessageIndex;
                              
-                             // Determine if read receipt should be shown
-                             if (message.isRead) {
+                             // Determine if ignored status should be shown
+                             if (message.isIgnored) {
                                if (isLatestUserMessage) {
                                  // Always show for latest user message
-                                 showReadReceipt = true;
+                                 showIgnoredStatus = true;
                                } else {
                                  // Show for previous messages only when clicked
-                                 showReadReceipt = clickedMessageIndex === index;
+                                 showIgnoredStatus = clickedMessageIndex === index;
                                }
                              }
                            }
@@ -1439,7 +1435,7 @@ export default function PersonaChatPage() {
                                  isLatestUserMessage={isLatestUserMessage}
                                  messageIndex={index}
                                  onMessageClick={handleMessageClick}
-                                 showReadReceipt={showReadReceipt}
+                                 showIgnoredStatus={showIgnoredStatus}
                                />
                              </div>
                            );
