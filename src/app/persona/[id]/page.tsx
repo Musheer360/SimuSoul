@@ -1216,7 +1216,7 @@ export default function PersonaChatPage() {
                         <MessageSquarePlus className="mr-2 h-4 w-4" /> New Chat
                     </Button>
                 </div>
-                <ScrollArea className="flex-1 -mx-4">
+                <ScrollArea className="flex-1 -mx-4 scroll-contain">
                   <div className="px-4">
                     {sortedChats.length > 0 ? (
                       <div className="space-y-1">
@@ -1292,7 +1292,7 @@ export default function PersonaChatPage() {
                 <>
                     <ScrollArea 
                       className={cn(
-                        "flex-1",
+                        "flex-1 scroll-contain",
                         isMobile ? "overscroll-none touch-pan-y" : "overscroll-y-contain"
                       )} 
                       ref={scrollAreaRef}
@@ -1410,7 +1410,7 @@ export default function PersonaChatPage() {
                     </DialogDescription>
                 </DialogHeader>
                 <div className="flex-1 space-y-4 py-4 min-h-0">
-                    <ScrollArea className="h-full rounded-md border">
+                    <ScrollArea className="h-full rounded-md border scroll-contain">
                         <div className="space-y-2 p-4">
                             {(persona.memories || []).length > 0 ? (
                                 [...persona.memories].sort().map((memory) => (

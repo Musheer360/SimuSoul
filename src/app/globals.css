@@ -93,6 +93,14 @@
     scrollbar-width: none;  /* Firefox */
   }
 
+  .scroll-contain {
+    overscroll-behavior: contain;
+  }
+  
+  .scroll-none {
+    overscroll-behavior: none;
+  }
+
   .animate-shine-once {
     position: relative;
     overflow: hidden;
