@@ -958,6 +958,43 @@ export default function PersonaChatPage() {
     setTouchMoveX(null);
   }, [touchStartX, touchMoveX]);
 
+  // Mobile keyboard scroll prevention
+  useEffect(() => {
+    if (!isMobile) return;
+
+    const handleTouchMove = (e: TouchEvent) => {
+      // If keyboard is likely open (viewport height is significantly smaller)
+      const keyboardHeight = window.innerHeight - (window.visualViewport?.height || window.innerHeight);
+      
+      if (keyboardHeight > 150) { // Keyboard is probably open
+        const target = e.target as Element;
+        const scrollArea = scrollAreaRef.current?.querySelector('[data-radix-scroll-area-viewport]');
+        
+        // Only allow scrolling within the chat scroll area
+        if (scrollArea && !scrollArea.contains(target)) {
+          e.preventDefault();
+        }
+      }
+    };
+
+    const handleScroll = (e: Event) => {
+      // Prevent document scrolling when keyboard is open
+      const keyboardHeight = window.innerHeight - (window.visualViewport?.height || window.innerHeight);
+      
+      if (keyboardHeight > 150 && e.target === document) {
+        e.preventDefault();
+      }
+    };
+
+    document.addEventListener('touchmove', handleTouchMove, { passive: false });
+    document.addEventListener('scroll', handleScroll, { passive: false });
+
+    return () => {
+      document.removeEventListener('touchmove', handleTouchMove);
+      document.removeEventListener('scroll', handleScroll);
+    };
+  }, [isMobile]);
+
   useEffect(() => {
     let timeoutId: NodeJS.Timeout | null = null;
     if (isMobile && scrollAreaRef.current) {
@@ -1253,7 +1290,13 @@ export default function PersonaChatPage() {
             <div className="flex-1 flex flex-col min-h-0">
                 {activeChatId && activeChat ? (
                 <>
-                    <ScrollArea className="flex-1 overscroll-y-contain" ref={scrollAreaRef}>
+                    <ScrollArea 
+                      className={cn(
+                        "flex-1",
+                        isMobile ? "overscroll-none touch-pan-y" : "overscroll-y-contain"
+                      )} 
+                      ref={scrollAreaRef}
+                    >
                       <div className="max-w-3xl mx-auto px-4 pb-4">
                         {messagesToDisplay.map((message, index) => {
                            const isFirstInSequence = !messagesToDisplay[index - 1] || messagesToDisplay[index - 1].role !== message.role;

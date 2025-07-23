@@ -14,12 +14,45 @@ export function AppViewportManager({ children }: { children: React.ReactNode }) 
     }
 
     const visualViewport = window.visualViewport;
+    const documentElement = document.documentElement;
 
     const handleResize = () => {
         // We set the height of our container to the visual viewport height.
         // This ensures that when the keyboard appears, the container resizes
         // to fit the remaining visible space.
         layoutElement.style.height = `${visualViewport.height}px`;
+        
+        // Prevent scrolling issues when keyboard is open
+        const keyboardHeight = window.innerHeight - visualViewport.height;
+        
+        if (keyboardHeight > 0) {
+          // Keyboard is open - prevent body scrolling and fix viewport
+          documentElement.style.overflow = 'hidden';
+          documentElement.style.position = 'fixed';
+          documentElement.style.width = '100%';
+          documentElement.style.height = `${visualViewport.height}px`;
+          
+          // Ensure the layout doesn't scroll beyond the visible area
+          layoutElement.style.position = 'fixed';
+          layoutElement.style.top = '0';
+          layoutElement.style.left = '0';
+          layoutElement.style.right = '0';
+          layoutElement.style.bottom = '0';
+          layoutElement.style.overflow = 'hidden';
+        } else {
+          // Keyboard is closed - restore normal scrolling
+          documentElement.style.overflow = '';
+          documentElement.style.position = '';
+          documentElement.style.width = '';
+          documentElement.style.height = '';
+          
+          layoutElement.style.position = '';
+          layoutElement.style.top = '';
+          layoutElement.style.left = '';
+          layoutElement.style.right = '';
+          layoutElement.style.bottom = '';
+          layoutElement.style.overflow = '';
+        }
     };
 
     // Set the initial height
@@ -31,6 +64,12 @@ export function AppViewportManager({ children }: { children: React.ReactNode }) 
     // Cleanup function to remove the event listener
     return () => {
       visualViewport.removeEventListener('resize', handleResize);
+      
+      // Clean up any styles we might have applied
+      documentElement.style.overflow = '';
+      documentElement.style.position = '';
+      documentElement.style.width = '';
+      documentElement.style.height = '';
     };
   }, []);
 
