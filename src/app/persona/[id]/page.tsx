@@ -230,6 +230,8 @@ export default function PersonaChatPage() {
 
   const [touchStartX, setTouchStartX] = useState<number | null>(null);
   const [touchMoveX, setTouchMoveX] = useState<number | null>(null);
+  const [touchStartY, setTouchStartY] = useState<number | null>(null);
+  const [lastTouchY, setLastTouchY] = useState<number | null>(null);
   const sidebarRef = useRef<HTMLDivElement>(null);
 
   const scrollAreaRef = useRef<HTMLDivElement>(null);
@@ -958,42 +960,111 @@ export default function PersonaChatPage() {
     setTouchMoveX(null);
   }, [touchStartX, touchMoveX]);
 
-  // Mobile keyboard scroll prevention
+  // Mobile keyboard scroll prevention and scroll chaining prevention
   useEffect(() => {
     if (!isMobile) return;
 
+    const handleTouchStart = (e: TouchEvent) => {
+      const touch = e.touches[0];
+      setTouchStartY(touch.clientY);
+      setLastTouchY(touch.clientY);
+    };
+
     const handleTouchMove = (e: TouchEvent) => {
-      // If keyboard is likely open (viewport height is significantly smaller)
       const keyboardHeight = window.innerHeight - (window.visualViewport?.height || window.innerHeight);
       
-      if (keyboardHeight > 150) { // Keyboard is probably open
+      if (keyboardHeight > 150) { // Keyboard is open
         const target = e.target as Element;
         const scrollArea = scrollAreaRef.current?.querySelector('[data-radix-scroll-area-viewport]');
         
         // Only allow scrolling within the chat scroll area
         if (scrollArea && !scrollArea.contains(target)) {
           e.preventDefault();
+          e.stopPropagation();
+          return;
+        }
+        
+        // If scrolling within chat area, prevent scroll chaining at boundaries
+        if (scrollArea && scrollArea.contains(target)) {
+          const touch = e.touches[0];
+          const currentY = touch.clientY;
+          const deltaY = lastTouchY ? currentY - lastTouchY : 0;
+          setLastTouchY(currentY);
+          
+          const scrollTop = scrollArea.scrollTop;
+          const scrollHeight = scrollArea.scrollHeight;
+          const clientHeight = scrollArea.clientHeight;
+          
+          const isAtTop = scrollTop <= 1; // Small threshold for precision
+          const isAtBottom = scrollTop + clientHeight >= scrollHeight - 1;
+          const isScrollingUp = deltaY > 0;
+          const isScrollingDown = deltaY < 0;
+          
+          // Prevent scroll chaining at boundaries
+          if ((isAtTop && isScrollingUp) || (isAtBottom && isScrollingDown)) {
+            e.preventDefault();
+            e.stopPropagation();
+          }
+        }
+      }
+    };
+
+    const handleTouchEnd = () => {
+      setTouchStartY(null);
+      setLastTouchY(null);
+    };
+
+    const handleWheel = (e: WheelEvent) => {
+      const keyboardHeight = window.innerHeight - (window.visualViewport?.height || window.innerHeight);
+      
+      if (keyboardHeight > 150) {
+        const target = e.target as Element;
+        const scrollArea = scrollAreaRef.current?.querySelector('[data-radix-scroll-area-viewport]');
+        
+        if (scrollArea && scrollArea.contains(target)) {
+          const scrollTop = scrollArea.scrollTop;
+          const scrollHeight = scrollArea.scrollHeight;
+          const clientHeight = scrollArea.clientHeight;
+          
+          const isAtTop = scrollTop <= 1;
+          const isAtBottom = scrollTop + clientHeight >= scrollHeight - 1;
+          const isScrollingUp = e.deltaY < 0;
+          const isScrollingDown = e.deltaY > 0;
+          
+          // Prevent scroll chaining at boundaries
+          if ((isAtTop && isScrollingUp) || (isAtBottom && isScrollingDown)) {
+            e.preventDefault();
+            e.stopPropagation();
+          }
         }
       }
     };
 
     const handleScroll = (e: Event) => {
-      // Prevent document scrolling when keyboard is open
       const keyboardHeight = window.innerHeight - (window.visualViewport?.height || window.innerHeight);
       
-      if (keyboardHeight > 150 && e.target === document) {
+      // Prevent any document-level scrolling when keyboard is open
+      if (keyboardHeight > 150 && (e.target === document || e.target === document.body || e.target === document.documentElement)) {
         e.preventDefault();
+        e.stopPropagation();
       }
     };
 
-    document.addEventListener('touchmove', handleTouchMove, { passive: false });
-    document.addEventListener('scroll', handleScroll, { passive: false });
+    // Add event listeners with capture to intercept events early
+    document.addEventListener('touchstart', handleTouchStart, { passive: false, capture: true });
+    document.addEventListener('touchmove', handleTouchMove, { passive: false, capture: true });
+    document.addEventListener('touchend', handleTouchEnd, { passive: false, capture: true });
+    document.addEventListener('wheel', handleWheel, { passive: false, capture: true });
+    document.addEventListener('scroll', handleScroll, { passive: false, capture: true });
 
     return () => {
-      document.removeEventListener('touchmove', handleTouchMove);
-      document.removeEventListener('scroll', handleScroll);
+      document.removeEventListener('touchstart', handleTouchStart, true);
+      document.removeEventListener('touchmove', handleTouchMove, true);
+      document.removeEventListener('touchend', handleTouchEnd, true);
+      document.removeEventListener('wheel', handleWheel, true);
+      document.removeEventListener('scroll', handleScroll, true);
     };
-  }, [isMobile]);
+  }, [isMobile, lastTouchY]);
 
   useEffect(() => {
     let timeoutId: NodeJS.Timeout | null = null;
