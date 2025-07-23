@@ -480,6 +480,8 @@ export default function PersonaChatPage() {
   
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
+    e.stopPropagation();
+    
     if (!input.trim() || !persona || !activeChatId) return;
   
     const userMessage: ChatMessage = { role: 'user', content: input, isRead: false };
@@ -494,25 +496,47 @@ export default function PersonaChatPage() {
     };
     
     setPersona(updatedPersona);
-    // Save to database immediately to persist the message
-    await savePersona(updatedPersona);
     
+    // Clear input immediately to prevent any UI lag
     setInput('');
     
-    // Handle focus differently for mobile to prevent keyboard flickering
-    if (isMobile) {
-      // On mobile, use requestAnimationFrame to maintain focus without flickering
-      requestAnimationFrame(() => {
-        if (textareaRef.current) {
-          textareaRef.current.focus();
-          textareaRef.current.style.height = 'auto';
-        }
-      });
+    // On mobile, maintain focus aggressively
+    if (isMobile && textareaRef.current) {
+      // Reset height immediately
+      textareaRef.current.style.height = 'auto';
+      
+      // Use multiple strategies to maintain focus
+      const textarea = textareaRef.current;
+      
+      // Strategy 1: Immediate focus
+      textarea.focus();
+      
+      // Strategy 2: Focus after next tick
+      setTimeout(() => textarea.focus(), 0);
+      
+      // Strategy 3: Focus after microtask
+      Promise.resolve().then(() => textarea.focus());
+      
+      // Strategy 4: Focus after any potential blur
+      const handleBlur = (event: FocusEvent) => {
+        event.preventDefault();
+        setTimeout(() => textarea.focus(), 0);
+      };
+      
+      textarea.addEventListener('blur', handleBlur, { once: true });
+      
+      // Clean up the blur listener after a short time
+      setTimeout(() => {
+        textarea.removeEventListener('blur', handleBlur);
+      }, 200);
     } else {
-      // On desktop, normal focus behavior
+      // Desktop behavior
       textareaRef.current?.focus();
       if (textareaRef.current) textareaRef.current.style.height = 'auto';
     }
+    
+    // Save to database after UI updates
+    await savePersona(updatedPersona);
     
     setError(null);
   
