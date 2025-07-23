@@ -973,15 +973,19 @@ export default function PersonaChatPage() {
       
       // If keyboard opened (height decreased significantly)
       if (heightDifference > 150) {
-        // Simple scroll to bottom after a brief delay
-        setTimeout(() => {
-          if (scrollAreaRef.current) {
-            const scrollContainer = scrollAreaRef.current.querySelector('[data-radix-scroll-area-viewport]');
-            if (scrollContainer) {
+        // Immediately scroll to bottom to prevent bubbles from jumping up
+        if (scrollAreaRef.current) {
+          const scrollContainer = scrollAreaRef.current.querySelector('[data-radix-scroll-area-viewport]');
+          if (scrollContainer) {
+            // Scroll immediately, no delay to prevent the jump
+            scrollContainer.scrollTop = scrollContainer.scrollHeight;
+            
+            // Also ensure we stay at bottom after any layout adjustments
+            requestAnimationFrame(() => {
               scrollContainer.scrollTop = scrollContainer.scrollHeight;
-            }
+            });
           }
-        }, 100);
+        }
       }
       
       previousHeight = currentHeight;
