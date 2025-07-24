@@ -104,46 +104,46 @@
   /* Simple mobile scaling with adaptive real-time sizing */
   @media (max-width: 768px) {
     html {
-      font-size: clamp(14px, 3vw, 16px); /* Adaptive base size */
+      font-size: clamp(15px, 3.5vw, 17px); /* Slightly bigger base size */
     }
     
-    /* Adaptive text sizes that scale with viewport */
-    .text-xs { font-size: clamp(0.6rem, 2vw, 0.7rem); }
-    .text-sm { font-size: clamp(0.75rem, 2.5vw, 0.85rem); }
-    .text-base { font-size: clamp(0.85rem, 3vw, 0.95rem); }
-    .text-lg { font-size: clamp(1rem, 3.5vw, 1.1rem); }
-    .text-xl { font-size: clamp(1.15rem, 4vw, 1.25rem); }
+    /* Adaptive text sizes that scale with viewport - slightly bigger */
+    .text-xs { font-size: clamp(0.65rem, 2.2vw, 0.75rem); }
+    .text-sm { font-size: clamp(0.8rem, 2.8vw, 0.9rem); }
+    .text-base { font-size: clamp(0.9rem, 3.2vw, 1rem); }
+    .text-lg { font-size: clamp(1.05rem, 3.8vw, 1.15rem); }
+    .text-xl { font-size: clamp(1.2rem, 4.2vw, 1.3rem); }
     
-    /* Adaptive padding and margins */
-    .p-1 { padding: clamp(0.2rem, 1vw, 0.3rem); }
-    .p-2 { padding: clamp(0.4rem, 2vw, 0.6rem); }
-    .p-3 { padding: clamp(0.6rem, 2.5vw, 0.8rem); }
-    .p-4 { padding: clamp(0.8rem, 3vw, 1rem); }
-    .p-6 { padding: clamp(1.2rem, 4vw, 1.4rem); }
+    /* Adaptive padding and margins - slightly bigger */
+    .p-1 { padding: clamp(0.25rem, 1.2vw, 0.35rem); }
+    .p-2 { padding: clamp(0.45rem, 2.2vw, 0.65rem); }
+    .p-3 { padding: clamp(0.65rem, 2.8vw, 0.85rem); }
+    .p-4 { padding: clamp(0.85rem, 3.2vw, 1.05rem); }
+    .p-6 { padding: clamp(1.25rem, 4.2vw, 1.45rem); }
     
-    .px-2 { padding-left: clamp(0.4rem, 2vw, 0.6rem); padding-right: clamp(0.4rem, 2vw, 0.6rem); }
-    .px-3 { padding-left: clamp(0.6rem, 2.5vw, 0.8rem); padding-right: clamp(0.6rem, 2.5vw, 0.8rem); }
-    .px-4 { padding-left: clamp(0.8rem, 3vw, 1rem); padding-right: clamp(0.8rem, 3vw, 1rem); }
+    .px-2 { padding-left: clamp(0.45rem, 2.2vw, 0.65rem); padding-right: clamp(0.45rem, 2.2vw, 0.65rem); }
+    .px-3 { padding-left: clamp(0.65rem, 2.8vw, 0.85rem); padding-right: clamp(0.65rem, 2.8vw, 0.85rem); }
+    .px-4 { padding-left: clamp(0.85rem, 3.2vw, 1.05rem); padding-right: clamp(0.85rem, 3.2vw, 1.05rem); }
     
-    .py-2 { padding-top: clamp(0.4rem, 2vw, 0.6rem); padding-bottom: clamp(0.4rem, 2vw, 0.6rem); }
-    .py-3 { padding-top: clamp(0.6rem, 2.5vw, 0.8rem); padding-bottom: clamp(0.6rem, 2.5vw, 0.8rem); }
+    .py-2 { padding-top: clamp(0.35rem, 1.8vw, 0.55rem); padding-bottom: clamp(0.35rem, 1.8vw, 0.55rem); } /* Reduced vertical padding */
+    .py-3 { padding-top: clamp(0.5rem, 2.2vw, 0.7rem); padding-bottom: clamp(0.5rem, 2.2vw, 0.7rem); } /* Reduced vertical padding */
     
-    /* Adaptive gaps */
-    .gap-1 { gap: clamp(0.2rem, 1vw, 0.3rem); }
-    .gap-2 { gap: clamp(0.4rem, 2vw, 0.6rem); }
-    .gap-3 { gap: clamp(0.6rem, 2.5vw, 0.8rem); }
-    .gap-4 { gap: clamp(0.8rem, 3vw, 1rem); }
+    /* Adaptive gaps - slightly bigger */
+    .gap-1 { gap: clamp(0.25rem, 1.2vw, 0.35rem); }
+    .gap-2 { gap: clamp(0.45rem, 2.2vw, 0.65rem); }
+    .gap-3 { gap: clamp(0.65rem, 2.8vw, 0.85rem); }
+    .gap-4 { gap: clamp(0.85rem, 3.2vw, 1.05rem); }
     
-    /* Adaptive heights and widths */
-    .h-4 { height: clamp(0.8rem, 3vw, 1rem); }
-    .h-5 { height: clamp(1rem, 3.5vw, 1.2rem); }
-    .h-10 { height: clamp(2rem, 6vw, 2.5rem); }
-    .h-16 { height: clamp(3.2rem, 8vw, 4rem); }
+    /* Adaptive heights and widths - slightly bigger */
+    .h-4 { height: clamp(0.85rem, 3.2vw, 1.05rem); }
+    .h-5 { height: clamp(1.05rem, 3.8vw, 1.25rem); }
+    .h-10 { height: clamp(2.1rem, 6.2vw, 2.6rem); }
+    .h-16 { height: clamp(3.3rem, 8.2vw, 4.1rem); }
     
-    .w-4 { width: clamp(0.8rem, 3vw, 1rem); }
-    .w-5 { width: clamp(1rem, 3.5vw, 1.2rem); }
-    .w-10 { width: clamp(2rem, 6vw, 2.5rem); }
-    .w-16 { width: clamp(3.2rem, 8vw, 4rem); }
+    .w-4 { width: clamp(0.85rem, 3.2vw, 1.05rem); }
+    .w-5 { width: clamp(1.05rem, 3.8vw, 1.25rem); }
+    .w-10 { width: clamp(2.1rem, 6.2vw, 2.6rem); }
+    .w-16 { width: clamp(3.3rem, 8.2vw, 4.1rem); }
     
     /* Fix input container alignment issues */
     .flex.items-end {
@@ -157,10 +157,17 @@
       justify-content: center;
     }
     
-    /* Fix textarea alignment */
+    /* Fix textarea alignment and reduce height */
     textarea {
       display: flex;
       align-items: center;
+      min-height: clamp(1.8rem, 5vw, 2.2rem); /* Reduced height */
+      line-height: 1.2; /* Tighter line height */
+    }
+    
+    /* Reduce input container height */
+    .border.bg-secondary\/50 {
+      padding: clamp(0.3rem, 1.5vw, 0.5rem); /* Reduced container padding */
     }
   }
 
