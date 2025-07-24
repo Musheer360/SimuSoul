@@ -161,13 +161,13 @@
     textarea {
       display: flex;
       align-items: center;
-      min-height: clamp(1.6rem, 4.5vw, 2rem); /* Thinner textarea */
-      line-height: 1.2; /* Tighter line height */
+      min-height: clamp(1.4rem, 4vw, 1.8rem); /* Even thinner textarea */
+      line-height: 1.1; /* Tighter line height */
     }
     
-    /* Make input container much thinner with equal button spacing */
+    /* Make input container much thinner with equal button spacing on all sides */
     .border.bg-secondary\/50 {
-      padding: clamp(0.25rem, 1.2vw, 0.4rem); /* Thinner container - equal spacing for button */
+      padding: clamp(0.15rem, 0.8vw, 0.25rem); /* Much thinner - equal to button's right spacing */
     }
   }
 
