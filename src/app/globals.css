@@ -147,28 +147,33 @@
     
     /* Fix input form alignment - ONLY target the input form, not message bubbles */
     form.flex.w-full.items-end {
-      align-items: center;
+      align-items: flex-end; /* Change to flex-end for proper multi-line alignment */
     }
     
-    /* Ensure buttons in input form stay centered and don't shrink */
+    /* Ensure buttons in input form stay at bottom-right when textarea expands */
     form.flex.w-full button {
       display: flex;
       align-items: center;
       justify-content: center;
       flex-shrink: 0;
+      align-self: flex-end; /* Keep button at bottom when textarea grows */
     }
     
-    /* Fix textarea alignment and make it slightly thicker */
+    /* Fix textarea with max 4 lines and proper sizing */
     form.flex.w-full textarea {
-      min-height: clamp(1.5rem, 4vw, 1.9rem); /* Slightly thicker textarea */
+      min-height: clamp(1.5rem, 4vw, 1.9rem); /* Single line height */
+      max-height: clamp(6rem, 16vw, 7.6rem); /* Max 4 lines (4 × single line height) */
       line-height: 1.2; /* Comfortable line height */
-      padding: clamp(0.4rem, 2vw, 0.6rem); /* Slightly more textarea padding */
+      padding: clamp(0.4rem, 2vw, 0.6rem); /* Comfortable textarea padding */
+      resize: none; /* Prevent manual resize */
+      overflow-y: auto; /* Allow scrolling when max height reached */
     }
     
-    /* Make input container slightly thicker with perfect send button spacing */
+    /* Input container with proper alignment for multi-line */
     form.flex.w-full.items-end {
-      padding: clamp(0.2rem, 1vw, 0.3rem); /* Slightly thicker container padding */
-      gap: clamp(0.4rem, 2vw, 0.6rem); /* Proper gap between textarea and button */
+      padding: clamp(0.2rem, 1vw, 0.3rem); /* Container padding */
+      gap: clamp(0.4rem, 2vw, 0.6rem); /* Gap between textarea and button */
+      align-items: flex-end; /* Align items to bottom for multi-line support */
     }
   }
 

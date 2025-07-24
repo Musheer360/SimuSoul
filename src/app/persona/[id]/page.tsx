@@ -1470,7 +1470,7 @@ export default function PersonaChatPage() {
                                 onKeyDown={handleKeyDown}
                                 rows={1}
                                 placeholder={`Message ${persona.name}...`}
-                                className="flex-1 resize-none border-0 bg-transparent p-2 text-base shadow-none focus-visible:ring-0 max-h-40 no-scrollbar"
+                                className="flex-1 resize-none border-0 bg-transparent p-2 text-base shadow-none focus-visible:ring-0 no-scrollbar"
                             />
                             <Button
                                 type="submit"
