@@ -1204,7 +1204,7 @@ export default function PersonaChatPage() {
             className={cn(
               transitionClass,
               "flex flex-col bg-card/80 backdrop-blur-sm",
-              "fixed bottom-0 left-0 top-16 z-30 w-80 border-r md:static md:bottom-auto md:top-auto md:h-auto md:w-auto md:transform-none md:transition-all",
+              "fixed bottom-0 left-0 top-16 z-30 w-80 border-r border-t-0 md:static md:bottom-auto md:top-auto md:h-auto md:w-auto md:transform-none md:transition-all",
               (touchStartX === null) && (isSidebarOpen ? "translate-x-0" : "-translate-x-full"),
               isSidebarOpen ? "md:w-80" : "md:w-0 md:p-0 md:opacity-0 md:border-r-0",
               !isSidebarOpen && "md:overflow-hidden"
@@ -1296,7 +1296,7 @@ export default function PersonaChatPage() {
                 <div className="flex gap-2 mb-2">
                     <AlertDialog open={isClearAllDialogOpen} onOpenChange={setIsClearAllDialogOpen}>
                         <AlertDialogTrigger asChild>
-                            <Button variant="outline" className="flex-1">
+                            <Button variant="outline" className="flex-1 h-12">
                                 <Trash2 className="mr-2 h-4 w-4" /> Clear All
                             </Button>
                         </AlertDialogTrigger>
@@ -1318,7 +1318,7 @@ export default function PersonaChatPage() {
                             </AlertDialogFooter>
                         </AlertDialogContent>
                     </AlertDialog>
-                    <Button variant="outline" className="flex-1" onClick={handleNewChat}>
+                    <Button variant="outline" className="flex-1 h-12" onClick={handleNewChat}>
                         <MessageSquarePlus className="mr-2 h-4 w-4" /> New Chat
                     </Button>
                 </div>
@@ -1335,7 +1335,7 @@ export default function PersonaChatPage() {
                             onClick={() => { if (isMobile) setIsSidebarOpen(false); }}
                         >
                            <div className={cn(
-                                "flex justify-between items-center p-3 rounded-md transition-colors",
+                                "flex justify-between items-center p-2 rounded-md transition-colors",
                                 activeChatId === chat.id
                                 ? 'bg-secondary text-foreground'
                                 : 'bg-secondary/50 text-muted-foreground hover:bg-secondary/80 hover:text-foreground'
