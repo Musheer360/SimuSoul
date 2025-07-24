@@ -158,17 +158,17 @@
       flex-shrink: 0;
     }
     
-    /* Fix textarea alignment and make it thinner */
+    /* Fix textarea alignment and make it slightly thicker */
     form.flex.w-full textarea {
-      min-height: clamp(1.2rem, 3.5vw, 1.6rem); /* Much thinner textarea */
-      line-height: 1.1; /* Tighter line height */
-      padding: clamp(0.3rem, 1.5vw, 0.5rem); /* Minimal textarea padding */
+      min-height: clamp(1.5rem, 4vw, 1.9rem); /* Slightly thicker textarea */
+      line-height: 1.2; /* Comfortable line height */
+      padding: clamp(0.4rem, 2vw, 0.6rem); /* Slightly more textarea padding */
     }
     
-    /* Make input container much thinner with perfect send button spacing */
+    /* Make input container slightly thicker with perfect send button spacing */
     form.flex.w-full.items-end {
-      padding: clamp(0.1rem, 0.5vw, 0.2rem); /* Very thin container padding for equal spacing */
-      gap: clamp(0.3rem, 1.5vw, 0.5rem); /* Proper gap between textarea and button */
+      padding: clamp(0.2rem, 1vw, 0.3rem); /* Slightly thicker container padding */
+      gap: clamp(0.4rem, 2vw, 0.6rem); /* Proper gap between textarea and button */
     }
   }
 
