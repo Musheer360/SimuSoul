@@ -145,28 +145,27 @@
     .w-10 { width: clamp(2.1rem, 6.2vw, 2.6rem); }
     .w-16 { width: clamp(3.3rem, 8.2vw, 4.1rem); }
     
-    /* Fix input container alignment issues */
-    .flex.items-end {
+    /* Fix input form alignment - ONLY target the input form, not message bubbles */
+    form.flex.w-full.items-end {
       align-items: center;
     }
     
-    /* Ensure buttons stay centered */
-    button {
+    /* Ensure buttons in input form stay centered and don't shrink */
+    form.flex.w-full button {
       display: flex;
       align-items: center;
       justify-content: center;
+      flex-shrink: 0;
     }
     
     /* Fix textarea alignment and make input container thinner */
     textarea {
-      display: flex;
-      align-items: center;
       min-height: clamp(1.4rem, 4vw, 1.8rem); /* Even thinner textarea */
       line-height: 1.1; /* Tighter line height */
     }
     
-    /* Make input container much thinner with equal button spacing on all sides */
-    .border.bg-secondary\/50 {
+    /* Make input container much thinner - ONLY for input form */
+    form.flex.w-full .border.bg-secondary\/50 {
       padding: clamp(0.15rem, 0.8vw, 0.25rem); /* Much thinner - equal to button's right spacing */
     }
   }
