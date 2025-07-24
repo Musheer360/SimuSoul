@@ -1322,8 +1322,8 @@ export default function PersonaChatPage() {
                         <MessageSquarePlus className="mr-2 h-4 w-4" /> New Chat
                     </Button>
                 </div>
-                <ScrollArea className="flex-1 -mx-4 scroll-contain">
-                  <div className="px-4">
+                <ScrollArea className="flex-1">
+                  <div className="">
                     {sortedChats.length > 0 ? (
                       <div className="space-y-1">
                       {sortedChats.map(chat => (
