@@ -1186,9 +1186,13 @@ export default function PersonaChatPage() {
           <div
             onClick={() => setIsSidebarOpen(false)}
             className={cn(
-              "fixed inset-x-0 top-16 bottom-0 z-20 bg-black/60 backdrop-blur-sm md:hidden",
-              isSidebarOpen ? "block" : "hidden"
+              "fixed inset-x-0 top-16 bottom-0 z-20 backdrop-blur-sm md:hidden transition-all duration-300",
+              isSidebarOpen ? "bg-black/60" : "bg-black/0 pointer-events-none"
             )}
+            style={{
+              opacity: isSidebarOpen ? 1 : 0,
+              transition: 'opacity 0.3s ease-in-out, background-color 0.3s ease-in-out'
+            }}
           />
           <div 
             ref={sidebarRef}

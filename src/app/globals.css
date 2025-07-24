@@ -157,17 +157,17 @@
       justify-content: center;
     }
     
-    /* Fix textarea alignment and reduce height */
+    /* Fix textarea alignment and make input container thinner */
     textarea {
       display: flex;
       align-items: center;
-      min-height: clamp(1.8rem, 5vw, 2.2rem); /* Reduced height */
+      min-height: clamp(1.6rem, 4.5vw, 2rem); /* Thinner textarea */
       line-height: 1.2; /* Tighter line height */
     }
     
-    /* Reduce input container height */
+    /* Make input container much thinner with equal button spacing */
     .border.bg-secondary\/50 {
-      padding: clamp(0.3rem, 1.5vw, 0.5rem); /* Reduced container padding */
+      padding: clamp(0.25rem, 1.2vw, 0.4rem); /* Thinner container - equal spacing for button */
     }
   }
 
