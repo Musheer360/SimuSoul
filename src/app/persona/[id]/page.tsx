@@ -89,7 +89,7 @@ const ChatMessageItem = memo(function ChatMessageItem({
     >
       <div 
         className={cn(
-          "max-w-[85%] rounded-lg px-4 py-2.5 min-w-0",
+          "max-w-[85%] rounded-lg px-4 py-2.5 min-w-0 flex items-center",
           message.role === 'user'
             ? 'bg-primary text-primary-foreground'
             : 'bg-secondary',
@@ -183,11 +183,11 @@ const TypingIndicator = memo(function TypingIndicator({ isFirstBubble }: { isFir
       )}
     >
       <div className={cn(
-        "flex h-11 items-center rounded-lg bg-secondary px-4",
+        "flex h-11 items-center justify-center rounded-lg bg-secondary px-4",
         "rounded-tl-none",
         "rounded-br-lg"
       )}>
-        <div className="flex items-center justify-center space-x-1.5 h-full">
+        <div className="flex items-center justify-center space-x-1.5">
           <div className="w-2 h-2 rounded-full bg-muted-foreground animate-typing-dot-1"></div>
           <div className="w-2 h-2 rounded-full bg-muted-foreground animate-typing-dot-2"></div>
           <div className="w-2 h-2 rounded-full bg-muted-foreground animate-typing-dot-3"></div>
@@ -1187,7 +1187,7 @@ export default function PersonaChatPage() {
           <div
             onClick={() => setIsSidebarOpen(false)}
             className={cn(
-              "fixed inset-x-0 top-16 bottom-0 z-20 backdrop-blur-sm md:hidden transition-all duration-300",
+              "fixed inset-x-0 top-0 bottom-0 z-20 backdrop-blur-sm md:hidden transition-all duration-300",
               isSidebarOpen ? "bg-black/60" : "bg-black/0 pointer-events-none"
             )}
             style={{
@@ -1205,11 +1205,12 @@ export default function PersonaChatPage() {
             className={cn(
               transitionClass,
               "flex flex-col bg-card/80 backdrop-blur-sm",
-              "fixed bottom-0 left-0 top-16 z-30 w-80 border-r border-t-0 md:static md:bottom-auto md:top-auto md:h-auto md:w-auto md:transform-none md:transition-all",
+              "fixed bottom-0 left-0 top-0 z-30 w-80 border-r border-t-0 md:static md:bottom-auto md:top-auto md:h-auto md:w-auto md:transform-none md:transition-all",
               (touchStartX === null) && (isSidebarOpen ? "translate-x-0" : "-translate-x-full"),
               isSidebarOpen ? "md:w-80" : "md:w-0 md:p-0 md:opacity-0 md:border-r-0",
               !isSidebarOpen && "md:overflow-hidden"
           )}>
+            <div className="pt-16"> {/* Padding for main header */}
              <Dialog open={isManagementDialogOpen} onOpenChange={setIsManagementDialogOpen}>
                 <DialogTrigger asChild>
                     <div className="p-4 flex-shrink-0 cursor-pointer hover:bg-secondary transition-colors rounded-lg">
@@ -1366,6 +1367,7 @@ export default function PersonaChatPage() {
                   </div>
                 </ScrollArea>
             </div>
+            </div> {/* Close padding wrapper */}
           </div>
           
           <div className="flex-1 flex flex-col bg-background/80 backdrop-blur-sm min-w-0">
