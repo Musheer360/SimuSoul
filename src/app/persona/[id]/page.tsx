@@ -82,7 +82,7 @@ const ChatMessageItem = memo(function ChatMessageItem({
   return (
     <div
       className={cn(
-        "flex flex-col animate-fade-in-up",
+        "flex flex-col animate-bubble-in",
         message.role === 'user' ? 'items-end' : 'items-start',
         isFirstInSequence ? 'mt-4' : 'mt-1'
       )}
@@ -173,11 +173,61 @@ function PersonaChatSkeleton() {
   );
 }
 
+const TransformingMessageBubble = memo(function TransformingMessageBubble({ 
+  isTyping, 
+  message, 
+  isFirstBubble 
+}: { 
+  isTyping: boolean; 
+  message?: string; 
+  isFirstBubble: boolean; 
+}) {
+  const [isTransforming, setIsTransforming] = useState(false);
+  
+  useEffect(() => {
+    if (!isTyping && message) {
+      setIsTransforming(true);
+      // Reset transformation state after animation
+      const timer = setTimeout(() => setIsTransforming(false), 200);
+      return () => clearTimeout(timer);
+    }
+  }, [isTyping, message]);
+
+  return (
+    <div
+      className={cn(
+        "flex animate-bubble-in",
+        "justify-start",
+        isFirstBubble ? 'mt-4' : 'mt-1'
+      )}
+    >
+      <div className={cn(
+        "flex items-center justify-center rounded-lg bg-secondary px-4",
+        "rounded-tl-none rounded-br-lg",
+        isTyping ? "h-11" : "min-h-11 py-2.5",
+        isTransforming && "animate-typing-to-message"
+      )}>
+        {isTyping ? (
+          <div className="flex items-center justify-center space-x-1.5">
+            <div className="w-2 h-2 rounded-full bg-muted-foreground animate-typing-dot-1"></div>
+            <div className="w-2 h-2 rounded-full bg-muted-foreground animate-typing-dot-2"></div>
+            <div className="w-2 h-2 rounded-full bg-muted-foreground animate-typing-dot-3"></div>
+          </div>
+        ) : (
+          <div className="max-w-none">
+            <FormattedMessage content={message || ''} />
+          </div>
+        )}
+      </div>
+    </div>
+  );
+});
+
 const TypingIndicator = memo(function TypingIndicator({ isFirstBubble }: { isFirstBubble: boolean }) {
   return (
     <div
       className={cn(
-        "flex animate-fade-in-up",
+        "flex animate-bubble-in",
         "justify-start",
         isFirstBubble ? 'mt-4' : 'mt-1'
       )}
@@ -214,6 +264,7 @@ export default function PersonaChatPage() {
   const [error, setError] = useState<string | null>(null);
   const [isAiResponding, setIsAiResponding] = useState(false);
   const [isAiTyping, setIsAiTyping] = useState(false);
+  const [transformingMessage, setTransformingMessage] = useState<string | null>(null);
 
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [isManagementDialogOpen, setIsManagementDialogOpen] = useState(false);
@@ -420,9 +471,13 @@ export default function PersonaChatPage() {
       });
 
       if (res.response && res.response.length > 0) {
-        setIsAiTyping(true);
         for (let i = 0; i < res.response.length; i++) {
           const messageContent = res.response[i];
+          
+          // Start typing for this message
+          setIsAiTyping(true);
+          setTransformingMessage(null);
+          
           const { minWpm, maxWpm } = personaRef.current!;
           const wpm = Math.floor(Math.random() * (maxWpm - minWpm + 1)) + minWpm;
           const words = messageContent.split(/\s+/).filter(Boolean).length;
@@ -430,6 +485,14 @@ export default function PersonaChatPage() {
           const delay = Math.max(900, Math.min(typingTimeMs, 4000));
           await new Promise(resolve => setTimeout(resolve, delay));
           
+          // Transform typing indicator to message
+          setTransformingMessage(messageContent);
+          setIsAiTyping(false);
+          
+          // Wait for transformation animation
+          await new Promise(resolve => setTimeout(resolve, 300));
+          
+          // Add the actual message to state
           let updatedPersona: Persona | null = null;
           setPersona(current => {
             if (!current) return null;
@@ -447,6 +510,9 @@ export default function PersonaChatPage() {
             return updatedPersona;
           });
           
+          // Clear transforming message
+          setTransformingMessage(null);
+          
           // Save to database immediately after each AI message
           if (updatedPersona) {
             await savePersona(updatedPersona);
@@ -457,7 +523,7 @@ export default function PersonaChatPage() {
       console.error(err);
       setError(err.message || 'An unknown error occurred.');
     } finally {
-        setIsAiTyping(false);
+        // Don't set isAiTyping to false here since it's handled per message
         if (messagesSinceLastResponseRef.current.length > 0) {
             triggerAIResponse();
         } else {
@@ -1448,7 +1514,13 @@ export default function PersonaChatPage() {
                            );
                         })}
 
-                        {isAiTyping && <TypingIndicator isFirstBubble={isTypingIndicatorFirstBubble} />}
+                        {(isAiTyping || transformingMessage) && (
+                          <TransformingMessageBubble 
+                            isTyping={isAiTyping} 
+                            message={transformingMessage || undefined} 
+                            isFirstBubble={isTypingIndicatorFirstBubble} 
+                          />
+                        )}
 
                         {error && (
                         <Alert variant="destructive" className="mt-4">

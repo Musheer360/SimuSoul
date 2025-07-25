@@ -98,6 +98,14 @@ export default {
           '0%': { 'background-position': '0% 50%' },
           '100%': { 'background-position': '100% 50%' },
         },
+        'bubble-in': {
+          from: { opacity: '0', transform: 'scale(0.8)' },
+          to: { opacity: '1', transform: 'scale(1)' },
+        },
+        'typing-to-message': {
+          from: { transform: 'scale(1)' },
+          to: { transform: 'scale(1.02)' },
+        },
       },
       animation: {
         'accordion-down': 'accordion-down 0.2s ease-out',
@@ -108,6 +116,8 @@ export default {
         'typing-dot-2': 'typing-bounce 1.2s infinite ease-in-out 0.2s',
         'typing-dot-3': 'typing-bounce 1.2s infinite ease-in-out 0.4s',
         'animated-gradient': 'animated-gradient 6s ease-in-out infinite alternate',
+        'bubble-in': 'bubble-in 0.3s ease-out forwards',
+        'typing-to-message': 'typing-to-message 0.2s ease-out forwards',
       },
     },
   },
