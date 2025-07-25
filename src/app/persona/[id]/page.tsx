@@ -1407,7 +1407,7 @@ export default function PersonaChatPage() {
                                 ? 'bg-secondary text-foreground'
                                 : 'bg-secondary/50 text-muted-foreground hover:bg-secondary/80 hover:text-foreground'
                             )}>
-                            <div className="flex-1 text-sm truncate pr-2 min-w-0">
+                            <div className="flex-1 text-sm truncate pr-2 min-w-0 pl-3">
                                 <AnimatedChatTitle title={chat.title.length > 30 ? `${chat.title.substring(0, 30)}...` : chat.title} />
                             </div>
                             <Button
