@@ -25,7 +25,7 @@ import { getAllPersonas, deletePersona } from '@/lib/db';
 // Updated skeleton to match card aspect ratio, preventing layout shifts.
 function PersonaCardSkeleton() {
   return (
-    <Skeleton className="w-full h-[60vh] rounded-lg" />
+    <Skeleton className="w-full h-full rounded-lg" />
   );
 }
 
@@ -49,10 +49,9 @@ export default function PersonasPage() {
   }, []);
 
   return (
-    // Removed h-full to allow the page to scroll vertically
-    <div className="flex flex-col">
-      <div className="container py-8 flex flex-col">
-        <div className="flex flex-col sm:flex-row justify-between items-center mb-8">
+    <div className="h-full flex flex-col">
+      <div className="container py-8 flex flex-col h-full">
+        <div className="flex flex-col sm:flex-row justify-between items-center mb-8 flex-shrink-0">
           <div className="text-center sm:text-left mb-4 sm:mb-0">
             <h1 className="text-3xl font-bold font-headline tracking-tight">Your Personas</h1>
             <p className="text-muted-foreground mt-1">Manage your AI companions or create new ones.</p>
@@ -65,19 +64,19 @@ export default function PersonasPage() {
         </div>
 
         {isLoading ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 flex-1">
             {/* Display 3 skeletons for loading state */}
-            <PersonaCardSkeleton />
-            <PersonaCardSkeleton />
-            <PersonaCardSkeleton />
+            <div className="h-full min-h-[300px]"><PersonaCardSkeleton /></div>
+            <div className="h-full min-h-[300px]"><PersonaCardSkeleton /></div>
+            <div className="h-full min-h-[300px]"><PersonaCardSkeleton /></div>
           </div>
         ) : personas.length > 0 ? (
-          // Grid layout with 3 columns on desktop
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+          // Grid layout with viewport-aware card heights
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 flex-1 auto-rows-fr">
             {personas.map((persona) => (
               <div
                 key={persona.id}
-                className="relative group" // Removed h-full
+                className="relative group h-full min-h-[300px]"
               >
                 <AlertDialog>
                   <AlertDialogTrigger asChild>
@@ -109,15 +108,15 @@ export default function PersonasPage() {
                   </AlertDialogContent>
                 </AlertDialog>
 
-                <Link href={`/persona/${persona.id}`} className="block">
-                  {/* Card now has a fixed height relative to viewport height */}
-                  <Card className="w-full h-[60vh] overflow-hidden border border-border/20 group-hover:border-primary transition-all duration-300 group-hover:shadow-2xl group-hover:shadow-primary/20 bg-card/80 backdrop-blur-sm">
+                <Link href={`/persona/${persona.id}`} className="block h-full">
+                  {/* Card now uses full available height within the grid */}
+                  <Card className="w-full h-full overflow-hidden border border-border/20 group-hover:border-primary transition-all duration-300 group-hover:shadow-2xl group-hover:shadow-primary/20 bg-card/80 backdrop-blur-sm">
                       <div className="h-full relative overflow-hidden">
                         <Image
                           src={persona.profilePictureUrl}
                           alt={persona.name}
                           fill
-                          sizes="(max-width: 768px) 50vw, 33vw" // Optimized for responsive grid
+                          sizes="(max-width: 768px) 100vw, (max-width: 1024px) 50vw, 33vw"
                           className="object-cover group-hover:scale-105 transition-transform duration-500 ease-in-out"
                           data-ai-hint="persona portrait"
                         />
