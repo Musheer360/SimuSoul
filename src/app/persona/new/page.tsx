@@ -282,9 +282,9 @@ export default function NewPersonaPage() {
           </CardHeader>
           <CardContent>
               <Tabs value={activeTab} onValueChange={setActiveTab}>
-              <TabsList className="grid w-full grid-cols-2">
-                  <TabsTrigger value="manual">Manual</TabsTrigger>
-                  <TabsTrigger value="ai">
+              <TabsList className="grid w-full grid-cols-2 h-8 p-0.5">
+                  <TabsTrigger value="manual" className="h-7">Manual</TabsTrigger>
+                  <TabsTrigger value="ai" className="h-7">
                   <Wand2 className="mr-2 h-4 w-4 hidden sm:inline-block" /> Generate with AI
                   </TabsTrigger>
               </TabsList>
