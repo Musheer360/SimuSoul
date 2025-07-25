@@ -7,6 +7,7 @@
 
 import { callGeminiApi } from '@/lib/api-key-manager';
 import type { ChatMessage, Persona, UserDetails, ChatSession } from '@/lib/types';
+import { generateTimeAwarenessPrompt } from '@/lib/time-awareness';
 import { z } from 'zod';
 
 const ChatMessageSchema = z.object({
@@ -95,8 +96,9 @@ const ChatWithPersonaOutputOpenAPISchema = {
 };
 
 
-function buildChatPrompt(input: ChatWithPersonaInput): string {
+function buildChatPrompt(input: ChatWithPersonaInput, persona: Persona): string {
     const userIdentifier = input.userDetails?.name?.split(' ')[0] || 'the user';
+    const timeAwarenessPrompt = generateTimeAwarenessPrompt(persona);
 
     const forbiddenTopicsSection = `
 8.  **STRICTLY FORBIDDEN TOPICS:** You MUST NOT discuss, mention, or allude to the following topics under any circumstances. If the user brings them up, you must politely, neutrally, and briefly deflect the conversation to a different, safe topic. Do not moralize or lecture. If the user is persistent, you should use your "Ignore" ability.
@@ -214,7 +216,7 @@ ${input.chatHistory.map(msg => `**${msg.role}**: ${msg.content}`).join('\n')}` :
 
 ---
 **${userIdentifier}'s new messages to you:**
-${input.userMessages.map(msg => `- ${msg}`).join('\n')}
+${input.userMessages.map(msg => `- ${msg}`).join('\n')}${timeAwarenessPrompt}
 
 ---
 **Final Instruction:** Now, as ${input.personaName}, generate your response. Your response MUST perfectly match the defined **Response Style Guide** in every way (tone, grammar, typos, punctuation, casing, etc.). This is your most important task. Your output MUST be in the specified JSON format.`;
@@ -268,7 +270,7 @@ export async function chatWithPersona(
     isTestMode: isTestMode,
   };
 
-  const prompt = buildChatPrompt(input);
+  const prompt = buildChatPrompt(input, persona);
 
   const requestBody = {
     contents: [{ parts: [{ text: prompt }] }],

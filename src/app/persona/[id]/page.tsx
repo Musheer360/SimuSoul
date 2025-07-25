@@ -486,6 +486,7 @@ export default function PersonaChatPage() {
   
     const updatedPersona = {
       ...persona,
+      lastChatTime: Date.now(), // Track when user last interacted
       chats: persona.chats.map(c =>
         c.id === activeChatId
           ? { ...c, messages: [...c.messages, userMessage], updatedAt: Date.now() }

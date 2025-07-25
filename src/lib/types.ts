@@ -27,6 +27,7 @@ export interface Persona {
   maxWpm: number;
   chats: ChatSession[];
   memories: string[];
+  lastChatTime?: number; // Timestamp of last chat interaction
   ignoredState?: {
     isIgnored: boolean;
     reason?: string;
