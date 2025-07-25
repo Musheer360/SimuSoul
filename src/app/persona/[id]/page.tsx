@@ -82,7 +82,7 @@ const ChatMessageItem = memo(function ChatMessageItem({
   return (
     <div
       className={cn(
-        "flex flex-col animate-bubble-in",
+        "flex flex-col",
         message.role === 'user' ? 'items-end' : 'items-start',
         isFirstInSequence ? 'mt-4' : 'mt-1'
       )}
@@ -187,8 +187,8 @@ const TransformingMessageBubble = memo(function TransformingMessageBubble({
   useEffect(() => {
     if (!isTyping && message) {
       setIsTransforming(true);
-      // Reset transformation state after animation
-      const timer = setTimeout(() => setIsTransforming(false), 200);
+      // Reset transformation state immediately since no animation
+      const timer = setTimeout(() => setIsTransforming(false), 50);
       return () => clearTimeout(timer);
     }
   }, [isTyping, message]);
@@ -196,7 +196,7 @@ const TransformingMessageBubble = memo(function TransformingMessageBubble({
   return (
     <div
       className={cn(
-        "flex animate-bubble-in",
+        "flex",
         "justify-start",
         isFirstBubble ? 'mt-4' : 'mt-1'
       )}
@@ -204,8 +204,7 @@ const TransformingMessageBubble = memo(function TransformingMessageBubble({
       <div className={cn(
         "flex items-center justify-center rounded-lg bg-secondary px-4",
         "rounded-tl-none rounded-br-lg",
-        isTyping ? "h-11" : "min-h-11 py-2.5",
-        isTransforming && "animate-typing-to-message"
+        isTyping ? "h-11" : "min-h-11 py-2.5"
       )}>
         {isTyping ? (
           <div className="flex items-center justify-center space-x-1.5">
@@ -227,7 +226,7 @@ const TypingIndicator = memo(function TypingIndicator({ isFirstBubble }: { isFir
   return (
     <div
       className={cn(
-        "flex animate-bubble-in",
+        "flex",
         "justify-start",
         isFirstBubble ? 'mt-4' : 'mt-1'
       )}
@@ -489,8 +488,8 @@ export default function PersonaChatPage() {
           setTransformingMessage(messageContent);
           setIsAiTyping(false);
           
-          // Wait for transformation animation
-          await new Promise(resolve => setTimeout(resolve, 300));
+          // Wait for transformation (minimal delay since no animation)
+          await new Promise(resolve => setTimeout(resolve, 100));
           
           // Add the actual message to state
           let updatedPersona: Persona | null = null;
