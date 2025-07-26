@@ -183,13 +183,22 @@ const TransformingMessageBubble = memo(function TransformingMessageBubble({
   isFirstBubble: boolean; 
 }) {
   const [isTransforming, setIsTransforming] = useState(false);
+  const [showMessage, setShowMessage] = useState(false);
   
   useEffect(() => {
     if (!isTyping && message) {
       setIsTransforming(true);
-      // Reset transformation state immediately since no animation
-      const timer = setTimeout(() => setIsTransforming(false), 50);
-      return () => clearTimeout(timer);
+      // Small delay to allow the typing dots to fade out
+      const showTimer = setTimeout(() => setShowMessage(true), 150);
+      // Reset transformation state after animation completes
+      const resetTimer = setTimeout(() => setIsTransforming(false), 300);
+      return () => {
+        clearTimeout(showTimer);
+        clearTimeout(resetTimer);
+      };
+    } else if (isTyping) {
+      setShowMessage(false);
+      setIsTransforming(false);
     }
   }, [isTyping, message]);
 
@@ -202,21 +211,32 @@ const TransformingMessageBubble = memo(function TransformingMessageBubble({
       )}
     >
       <div className={cn(
-        "flex items-center justify-center rounded-lg bg-secondary px-4",
+        "flex items-center justify-center rounded-lg bg-secondary px-4 transition-all duration-200 ease-in-out",
         "rounded-tl-none rounded-br-lg",
-        isTyping ? "h-11" : "min-h-11 py-2.5"
+        isTyping || !showMessage ? "h-11" : "min-h-11 py-2.5"
       )}>
-        {isTyping ? (
-          <div className="flex items-center justify-center space-x-1.5">
+        <div className="relative w-full">
+          {/* Typing dots */}
+          <div className={cn(
+            "flex items-center justify-center space-x-1.5 transition-opacity duration-150",
+            isTyping ? "opacity-100" : "opacity-0"
+          )}>
             <div className="w-2 h-2 rounded-full bg-muted-foreground animate-typing-dot-1"></div>
             <div className="w-2 h-2 rounded-full bg-muted-foreground animate-typing-dot-2"></div>
             <div className="w-2 h-2 rounded-full bg-muted-foreground animate-typing-dot-3"></div>
           </div>
-        ) : (
-          <div className="max-w-none">
-            <FormattedMessage content={message || ''} />
+          
+          {/* Message content */}
+          <div className={cn(
+            "transition-opacity duration-200 ease-in-out",
+            showMessage ? "opacity-100" : "opacity-0",
+            !showMessage && "absolute inset-0 pointer-events-none"
+          )}>
+            <div className="max-w-none">
+              <FormattedMessage content={message || ''} />
+            </div>
           </div>
-        )}
+        </div>
       </div>
     </div>
   );
@@ -877,9 +897,21 @@ export default function PersonaChatPage() {
   const handleConfirmDeleteChat = useCallback(async () => {
     if (!persona || !chatToDelete) return;
 
+    // Check if the chat being deleted is the one that caused the ignoring
+    const shouldResetIgnoreState = persona.ignoredState?.isIgnored && 
+                                   persona.ignoredState?.chatId === chatToDelete.id;
+
     const updatedPersona = {
         ...persona,
-        chats: persona.chats.filter(c => c.id !== chatToDelete.id)
+        chats: persona.chats.filter(c => c.id !== chatToDelete.id),
+        // Reset ignore state if this chat caused the ignoring
+        ...(shouldResetIgnoreState && {
+          ignoredState: {
+            isIgnored: false,
+            reason: undefined,
+            chatId: undefined,
+          }
+        })
     };
     setPersona(updatedPersona);
     await savePersona(updatedPersona);
@@ -895,7 +927,16 @@ export default function PersonaChatPage() {
   const handleClearAllChats = useCallback(async () => {
     if (!persona) return;
 
-    const updatedPersona = { ...persona, chats: [] };
+    const updatedPersona = { 
+      ...persona, 
+      chats: [],
+      // Always reset ignore state when clearing all chats
+      ignoredState: {
+        isIgnored: false,
+        reason: undefined,
+        chatId: undefined,
+      }
+    };
     setPersona(updatedPersona);
     await savePersona(updatedPersona);
 
