@@ -1240,7 +1240,7 @@ export default function PersonaChatPage() {
               isSidebarOpen ? "md:w-80" : "md:w-0 md:p-0 md:opacity-0 md:border-r-0",
               !isSidebarOpen && "md:overflow-hidden"
           )}>
-            <div className="pt-16"> {/* Padding for main header */}
+            <div className="pt-16 md:pt-0"> {/* Padding for main header on mobile only */}
              <Dialog open={isManagementDialogOpen} onOpenChange={setIsManagementDialogOpen}>
                 <DialogTrigger asChild>
                     <div className="p-4 flex-shrink-0 cursor-pointer hover:bg-secondary transition-colors rounded-lg">
