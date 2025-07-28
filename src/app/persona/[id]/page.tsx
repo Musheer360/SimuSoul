@@ -196,13 +196,6 @@ const TypingIndicator = memo(function TypingIndicator({ isFirstBubble }: { isFir
     </div>
   );
 });
-          <div className="w-2 h-2 rounded-full bg-muted-foreground animate-typing-dot-2"></div>
-          <div className="w-2 h-2 rounded-full bg-muted-foreground animate-typing-dot-3"></div>
-        </div>
-      </div>
-    </div>
-  );
-});
 
 export default function PersonaChatPage() {
   const router = useRouter();
