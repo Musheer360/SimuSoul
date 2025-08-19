@@ -1,5 +1,12 @@
-# Firebase Studio
+# SimuSoul - Firebase Studio
 
-This is a NextJS starter in Firebase Studio.
+This is a NextJS starter project built with Firebase Studio integration.
 
-To get started, take a look at src/app/page.tsx.
+## Getting Started
+
+To get started with development, take a look at `src/app/page.tsx`.
+
+## Features
+- NextJS framework
+- Firebase integration
+- Modern React development
