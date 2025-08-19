@@ -9,11 +9,11 @@ export function AppViewportManager({ children }: { children: React.ReactNode }) 
   useEffect(() => {
     const layoutElement = layoutRef.current;
     // Check for visualViewport support.
-    if (!layoutElement || typeof window.visualViewport === 'undefined') {
+    const visualViewport = window.visualViewport;
+    if (!layoutElement || !visualViewport) {
       return;
     }
 
-    const visualViewport = window.visualViewport;
     const documentElement = document.documentElement;
 
     const handleResize = () => {

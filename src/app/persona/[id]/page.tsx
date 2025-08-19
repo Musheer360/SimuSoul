@@ -989,9 +989,10 @@ export default function PersonaChatPage() {
 
   // Simple auto-scroll to bottom when mobile keyboard opens
   useEffect(() => {
-    if (!isMobile || typeof window.visualViewport === 'undefined') return;
+    if (!isMobile) return;
 
     const visualViewport = window.visualViewport;
+    if (!visualViewport) return;
     let previousHeight = visualViewport.height;
     
     const handleViewportChange = () => {

@@ -15,7 +15,10 @@ export function FormattedMessage({ content }: { content: string }) {
     pre: ({ node, children, ...props }: any) => {
       const [isCopied, setIsCopied] = useState(false);
       
-      const codeElement = React.Children.toArray(children)[0] as React.ReactElement;
+      const codeElement = React.Children.toArray(children)[0] as React.ReactElement<{
+        className?: string;
+        children?: React.ReactNode;
+      }>;
       
       if (!React.isValidElement(codeElement)) {
         return <pre {...props}>{children}</pre>;
