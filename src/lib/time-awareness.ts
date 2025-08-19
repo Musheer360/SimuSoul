@@ -39,7 +39,8 @@ export function getTimeAwarenessContext(persona: Persona): TimeContext {
     shouldMention = false;
     contextHint = 'Recent conversation. No need to mention time unless it fits naturally.';
   } else if (hours < 2) {
-    timePassed = `about ${Math.floor(minutes / 60)} hour${hours > 1 ? 's' : ''} ago`;
+    const roundedHours = Math.max(1, Math.round(minutes / 60));
+    timePassed = `about ${roundedHours} hour${roundedHours > 1 ? 's' : ''} ago`;
     shouldMention = shouldMentionBasedOnPersona(persona, 'short_break');
     contextHint = 'Short break in conversation. Mention time only if it fits your personality and relationship.';
   } else if (hours < 12) {
