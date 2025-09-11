@@ -69,7 +69,6 @@ const ChatMessageItem = memo(function ChatMessageItem({
   messageIndex,
   onMessageClick,
   showIgnoredStatus,
-  animationClass,
 }: {
   message: ChatMessage;
   isFirstInSequence: boolean;
@@ -79,15 +78,13 @@ const ChatMessageItem = memo(function ChatMessageItem({
   messageIndex: number;
   onMessageClick: (index: number) => void;
   showIgnoredStatus: boolean;
-  animationClass?: string;
 }) {
   return (
     <div
       className={cn(
-        "flex flex-col transition-all duration-300 ease-out",
+        "flex flex-col",
         message.role === 'user' ? 'items-end' : 'items-start',
-        isFirstInSequence ? 'mt-4' : 'mt-1',
-        animationClass
+        isFirstInSequence ? 'mt-4' : 'mt-1'
       )}
     >
       <div 
@@ -227,7 +224,6 @@ export default function PersonaChatPage() {
   const [isAiResponding, setIsAiResponding] = useState(false);
   const [isAiTyping, setIsAiTyping] = useState(false);
   const [isTypingTransitioning, setIsTypingTransitioning] = useState(false);
-  const [lastMessageCount, setLastMessageCount] = useState(0);
 
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [isManagementDialogOpen, setIsManagementDialogOpen] = useState(false);
@@ -461,9 +457,6 @@ export default function PersonaChatPage() {
             const chat = current.chats.find(c => c.id === chatIdNow);
             if (!chat) return current;
             
-            // Update last message count before adding new message
-            setLastMessageCount(chat.messages.length);
-            
             const newAssistantMessage: ChatMessage = { role: 'assistant', content: messageContent };
             updatedPersona = {
               ...current,
@@ -514,12 +507,6 @@ export default function PersonaChatPage() {
     if (!input.trim() || !persona || !activeChatId) return;
   
     const userMessage: ChatMessage = { role: 'user', content: input, isIgnored: false };
-
-    // Update last message count before adding user message
-    const currentChat = persona.chats.find(c => c.id === activeChatId);
-    if (currentChat) {
-      setLastMessageCount(currentChat.messages.length);
-    }
   
     const updatedPersona = {
       ...persona,
@@ -1490,11 +1477,6 @@ export default function PersonaChatPage() {
                              }
                            }
 
-                           const isNewMessage = index >= lastMessageCount;
-                           const animationClass = isNewMessage 
-                             ? (message.role === 'assistant' ? 'animate-message-spawn-left' : 'animate-message-spawn-right')
-                             : '';
-
                            return (
                              <div key={index} data-message-bubble>
                                <ChatMessageItem
@@ -1506,7 +1488,6 @@ export default function PersonaChatPage() {
                                  messageIndex={index}
                                  onMessageClick={handleMessageClick}
                                  showIgnoredStatus={showIgnoredStatus}
-                                 animationClass={animationClass}
                                />
                              </div>
                            );
