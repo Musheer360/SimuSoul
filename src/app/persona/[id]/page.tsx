@@ -87,7 +87,7 @@ const ChatMessageItem = memo(function ChatMessageItem({
         "flex flex-col transition-all duration-300 ease-out",
         message.role === 'user' ? 'items-end' : 'items-start',
         isFirstInSequence ? 'mt-4' : 'mt-1',
-        isNewMessage && message.role === 'assistant' && 'animate-message-appear'
+        isNewMessage && message.role === 'assistant' && 'animate-message-spawn'
       )}
     >
       <div 

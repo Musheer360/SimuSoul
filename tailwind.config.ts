@@ -102,9 +102,22 @@ export default {
           '0%': { 'background-position': '0% 50%' },
           '100%': { 'background-position': '100% 50%' },
         },
-        'message-appear': {
-          from: { opacity: '0', transform: 'translateY(-8px) scale(0.98)' },
-          to: { opacity: '1', transform: 'translateY(0) scale(1)' },
+        'message-spawn': {
+          '0%': { 
+            opacity: '0', 
+            transform: 'translateY(20px) scale(0.9)',
+            transformOrigin: 'bottom left'
+          },
+          '60%': { 
+            opacity: '0.8', 
+            transform: 'translateY(-2px) scale(1.02)',
+            transformOrigin: 'bottom left'
+          },
+          '100%': { 
+            opacity: '1', 
+            transform: 'translateY(0) scale(1)',
+            transformOrigin: 'bottom left'
+          },
         },
         'typing-to-message': {
           from: { transform: 'scale(1)' },
@@ -121,7 +134,7 @@ export default {
         'typing-dot-2': 'typing-bounce 1.2s infinite ease-in-out 0.2s',
         'typing-dot-3': 'typing-bounce 1.2s infinite ease-in-out 0.4s',
         'animated-gradient': 'animated-gradient 6s ease-in-out infinite alternate',
-        'message-appear': 'message-appear 0.3s ease-out forwards',
+        'message-spawn': 'message-spawn 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) forwards',
         'typing-to-message': 'typing-to-message 0.2s ease-out forwards',
       },
     },
