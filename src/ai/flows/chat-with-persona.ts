@@ -163,6 +163,12 @@ ${input.existingMemories && input.existingMemories.length > 0 ?
 input.existingMemories.map(mem => `• ${mem}`).join('\n') : 
 '(No memories yet)'}
 
+## PAST CONVERSATIONS
+${input.chatSummaries && input.chatSummaries.length > 0 ? 
+`You have these summaries of past conversations with ${userIdentifier}:
+${input.chatSummaries.map(summary => `• ${summary.date}: ${summary.summary}`).join('\n')}` :
+'(No past conversation summaries)'}
+
 ## IGNORE STATUS
 ${input.ignoredState?.isIgnored ? 
 `You are currently ignoring ${userIdentifier}. Reason: "${input.ignoredState.reason}"
