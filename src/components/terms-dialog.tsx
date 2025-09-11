@@ -1,76 +1,73 @@
 'use client';
 
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog';
+import { useState, useEffect } from 'react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Separator } from '@/components/ui/separator';
 
-interface TermsDialogProps {
-  open: boolean;
-  onAccept: () => void;
-}
+export function TermsDialog() {
+  const [isOpen, setIsOpen] = useState(false);
 
-export function TermsDialog({ open, onAccept }: TermsDialogProps) {
-  const currentYear = new Date().getFullYear();
+  useEffect(() => {
+    const hasAccepted = localStorage.getItem('simusoul-terms-accepted');
+    if (!hasAccepted) {
+      setIsOpen(true);
+    }
+  }, []);
+
+  const handleAccept = () => {
+    localStorage.setItem('simusoul-terms-accepted', 'true');
+    setIsOpen(false);
+  };
 
   return (
-    <Dialog open={open}>
-      <DialogContent className="sm:max-w-lg" onInteractOutside={(e) => e.preventDefault()} showCloseButton={false}>
+    <Dialog open={isOpen} onOpenChange={() => {}}>
+      <DialogContent className="max-w-2xl max-h-[80vh]">
         <DialogHeader>
-          <DialogTitle className="font-headline text-2xl text-center">
-            Welcome to SimuSoul!
-          </DialogTitle>
-          <DialogDescription className="text-center">
-            Before you begin, please review our terms and guidelines.
-          </DialogDescription>
+          <DialogTitle>Terms and Conditions</DialogTitle>
         </DialogHeader>
-        <ScrollArea className="h-80 w-full rounded-md border p-4">
-          <div className="space-y-6 text-muted-foreground text-sm">
-            <section>
-              <h2 className="text-lg font-headline text-foreground mb-2">Privacy Policy</h2>
-              <p className="mb-2">
-                Your privacy is paramount. SimuSoul operates almost entirely on your local device.
-              </p>
-              <ul className="list-disc pl-5 space-y-1">
-                <li><strong>Local Data Storage:</strong> All persona data, chat messages, and user settings are stored exclusively in your web browser's IndexedDB. This data is not uploaded to, or stored on, any server controlled by us.</li>
-                <li><strong>AI Interaction Data:</strong> To enable chat functionality, your conversation prompts (including persona details and chat history) are sent to the Google Gemini API. Please be aware that this data is subject to Google's own privacy policies and terms of service.</li>
-                <li><strong>Sensitive Information:</strong> We strongly advise against entering any real, personal, or sensitive information (such as passwords, credit card numbers, or personal addresses) into your conversations.</li>
+        <ScrollArea className="h-96 pr-4">
+          <div className="space-y-4 text-sm">
+            <div>
+              <h3 className="font-semibold mb-2">Important Disclaimers</h3>
+              <ul className="space-y-2 text-muted-foreground">
+                <li>• SimuSoul is for entertainment only - all personas are fictional AI</li>
+                <li>• No medical, legal, or professional advice is provided</li>
+                <li>• AI personas cannot discuss politics, LGBTQ+, abortion, religion, or medical topics</li>
+                <li>• Always consult real professionals for serious matters</li>
+                <li>• Must be 18+ to use this service</li>
               </ul>
-            </section>
+            </div>
             
-            <Separator />
-
-            <section>
-              <h2 className="text-lg font-headline text-foreground mb-2">Guidelines & Disclaimer</h2>
-               <p className="mb-2">
-                By using SimuSoul, you agree to the following terms:
+            <div>
+              <h3 className="font-semibold mb-2">Medical Disclaimer</h3>
+              <p className="text-muted-foreground">
+                SimuSoul does not provide medical advice. Even "doctor" personas are fictional and cannot give real medical guidance. 
+                Always consult qualified healthcare professionals for medical concerns.
               </p>
-              <ul className="list-disc pl-5 space-y-1">
-                <li><strong>User Responsibility:</strong> You are solely responsible for the content you create and the interactions you have with the AI personas. The AI-generated content is for entertainment purposes only and should not be considered factual or professional advice.</li>
-                <li><strong>Content Guardrails:</strong> The application has built-in restrictions to prevent the generation of content related to religious figures, political debates, sexuality, or other controversial topics. These guardrails are in place to foster a safe and neutral creative environment.</li>
-                <li><strong>No Liability:</strong> Musheer Alam and any associated parties are not liable for any content generated by the AI, any data loss, or any other issues arising from the use of this application. You use SimuSoul at your own risk.</li>
-              </ul>
-            </section>
+            </div>
 
-             <Separator />
+            <div>
+              <h3 className="font-semibold mb-2">Content Restrictions</h3>
+              <p className="text-muted-foreground">
+                AI personas will refuse to discuss sensitive topics including politics, social issues, LGBTQ+ topics, 
+                reproductive issues, religion, and medical advice to ensure a safe experience.
+              </p>
+            </div>
 
-            <div className="text-center text-xs">
-              <p>&copy; {currentYear} Musheer Alam. All Rights Reserved.</p>
+            <div>
+              <h3 className="font-semibold mb-2">Emergency Notice</h3>
+              <p className="text-muted-foreground">
+                For emergencies, contact 911 or local emergency services. SimuSoul cannot handle crisis situations.
+              </p>
             </div>
           </div>
         </ScrollArea>
-        <DialogFooter>
-          <Button onClick={onAccept} className="w-full">
-            Acknowledge & Continue
+        <div className="flex justify-end gap-2 pt-4">
+          <Button onClick={handleAccept}>
+            I Accept and Understand
           </Button>
-        </DialogFooter>
+        </div>
       </DialogContent>
     </Dialog>
   );

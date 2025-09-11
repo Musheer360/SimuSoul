@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import './globals.css';
 import { SiteHeader } from '@/components/site-header';
 import { Toaster } from '@/components/ui/toaster';
+import { TermsDialog } from '@/components/terms-dialog';
 import { cn } from '@/lib/utils';
 import { ThemeProvider } from '@/components/theme-provider';
 import { AppViewportManager } from '@/components/app-viewport-manager';
@@ -45,6 +46,7 @@ export default function RootLayout({
               <main className="flex-1 overflow-y-auto no-scrollbar">{children}</main>
             </AppViewportManager>
             <Toaster />
+            <TermsDialog />
         </ThemeProvider>
       </body>
     </html>
