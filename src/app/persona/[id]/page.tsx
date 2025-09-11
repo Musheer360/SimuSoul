@@ -1478,7 +1478,7 @@ export default function PersonaChatPage() {
                            }
 
                            return (
-                             <div key={index} data-message-bubble style={{border: message.role === 'user' ? '1px solid red' : 'none'}}>
+                             <div key={index} data-message-bubble>
                                <ChatMessageItem
                                  message={message}
                                  isFirstInSequence={isFirstInSequence}
