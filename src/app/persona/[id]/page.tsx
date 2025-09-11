@@ -696,20 +696,6 @@ export default function PersonaChatPage() {
             // Valid chat ID in URL, use it
             if (activeChatId !== chatIdFromQuery) {
                 setActiveChatId(chatIdFromQuery);
-                
-                // Clear ignored state if switching to a different chat
-                if (persona.ignoredState?.isIgnored && persona.ignoredState?.chatId !== chatIdFromQuery) {
-                    const updatedPersona = {
-                        ...persona,
-                        ignoredState: {
-                            isIgnored: false,
-                            reason: undefined,
-                            chatId: undefined,
-                        }
-                    };
-                    setPersona(updatedPersona);
-                    savePersona(updatedPersona);
-                }
             }
         } else {
             // Invalid chat ID in URL, redirect to create new chat
