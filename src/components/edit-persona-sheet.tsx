@@ -4,6 +4,7 @@
 import { useState, useEffect, FormEvent } from 'react';
 import type { Persona } from '@/lib/types';
 import { moderatePersonaContent } from '@/ai/flows/moderate-persona-content';
+import { generatePersonaProfilePicture } from '@/ai/flows/generate-persona-profile-picture';
 import { Button } from '@/components/ui/button';
 import {
   Sheet,
@@ -18,7 +19,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { Loader2, Save } from 'lucide-react';
+import { Loader2, Save, RefreshCw } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { ScrollArea } from './ui/scroll-area';
 import { isTestModeActive } from '@/lib/api-key-manager';
@@ -37,6 +38,7 @@ export function EditPersonaSheet({ persona, open, onOpenChange, onPersonaUpdate 
   const { toast } = useToast();
   const [formData, setFormData] = useState(persona);
   const [isSaving, setIsSaving] = useState(false);
+  const [isRegeneratingAvatar, setIsRegeneratingAvatar] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -79,7 +81,7 @@ export function EditPersonaSheet({ persona, open, onOpenChange, onPersonaUpdate 
             ...dataToValidate,
             minWpm: formData.minWpm,
             maxWpm: formData.maxWpm,
-            profilePictureUrl: persona.profilePictureUrl
+            profilePictureUrl: formData.profilePictureUrl
         };
 
         onPersonaUpdate(updatedPersonaData);
@@ -91,6 +93,31 @@ export function EditPersonaSheet({ persona, open, onOpenChange, onPersonaUpdate 
         toast({ variant: 'destructive', title: 'Update Failed', description: err.message });
     } finally {
         setIsSaving(false);
+    }
+  };
+
+  const handleRegenerateAvatar = async () => {
+    setIsRegeneratingAvatar(true);
+    setError(null);
+    
+    try {
+      const result = await generatePersonaProfilePicture({
+        personaName: formData.name,
+        personaTraits: formData.traits,
+        personaBackstory: formData.backstory,
+      });
+      
+      setFormData(prev => ({
+        ...prev,
+        profilePictureUrl: result.profilePictureDataUri
+      }));
+      
+      toast({ title: 'Avatar Regenerated!', description: 'New avatar generated successfully.' });
+    } catch (err: any) {
+      setError(err.message || 'Failed to regenerate avatar.');
+      toast({ variant: 'destructive', title: 'Avatar Generation Failed', description: err.message });
+    } finally {
+      setIsRegeneratingAvatar(false);
     }
   };
 
@@ -106,6 +133,31 @@ export function EditPersonaSheet({ persona, open, onOpenChange, onPersonaUpdate 
         <form onSubmit={handleSubmit} className="flex-1 flex flex-col min-h-0">
             <ScrollArea className="flex-1 px-6">
                 <div className="space-y-4 pb-6">
+                    <div className="space-y-2">
+                        <Label>Avatar</Label>
+                        <div className="flex items-center gap-4">
+                            <img 
+                                src={formData.profilePictureUrl} 
+                                alt={formData.name}
+                                className="w-16 h-16 rounded-full object-cover"
+                            />
+                            <Button 
+                                type="button"
+                                variant="outline" 
+                                size="sm"
+                                onClick={handleRegenerateAvatar}
+                                disabled={isRegeneratingAvatar}
+                            >
+                                {isRegeneratingAvatar ? (
+                                    <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                                ) : (
+                                    <RefreshCw className="w-4 h-4 mr-2" />
+                                )}
+                                Regenerate
+                            </Button>
+                        </div>
+                    </div>
+
                     <div className="space-y-2">
                         <Label htmlFor="edit-name">Name</Label>
                         <Input id="edit-name" name="name" value={formData.name} onChange={handleInputChange} required />
