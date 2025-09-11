@@ -514,6 +514,12 @@ export default function PersonaChatPage() {
     if (!input.trim() || !persona || !activeChatId) return;
   
     const userMessage: ChatMessage = { role: 'user', content: input, isIgnored: false };
+
+    // Update last message count before adding user message
+    const currentChat = persona.chats.find(c => c.id === activeChatId);
+    if (currentChat) {
+      setLastMessageCount(currentChat.messages.length);
+    }
   
     const updatedPersona = {
       ...persona,
