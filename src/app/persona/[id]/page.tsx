@@ -777,8 +777,17 @@ export default function PersonaChatPage() {
     return persona?.chats.find(c => c.id === activeChatId);
   }, [persona, activeChatId]);
 
+  // Auto-focus input on new chats
+  useEffect(() => {
+    if (activeChat && activeChat.messages.length === 0 && textareaRef.current) {
+      setTimeout(() => textareaRef.current?.focus(), 100);
+    }
+  }, [activeChat?.id]);
+
   const messagesToDisplay = useMemo(() => {
-      return activeChat?.messages || [];
+      const messages = activeChat?.messages || [];
+      console.log('Messages to display:', messages.length, 'for chat:', activeChatId);
+      return messages;
   }, [activeChat]);
 
   // Performance optimization: Memoize latest user message index calculation
