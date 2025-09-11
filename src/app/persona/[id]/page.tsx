@@ -451,14 +451,13 @@ export default function PersonaChatPage() {
           setIsTypingTransitioning(false);
           
           // Add the actual message to state
-          let updatedPersona: Persona | null = null;
           setPersona(current => {
             if (!current) return null;
             const chat = current.chats.find(c => c.id === chatIdNow);
             if (!chat) return current;
             
             const newAssistantMessage: ChatMessage = { role: 'assistant', content: messageContent };
-            updatedPersona = {
+            const updatedPersona = {
               ...current,
               chats: current.chats.map(c =>
                 c.id === chatIdNow
@@ -466,15 +465,16 @@ export default function PersonaChatPage() {
                   : c
               ),
             };
+            
+            // Save to database immediately after state update
+            savePersona(updatedPersona).catch(err => {
+              console.error('Failed to save persona:', err);
+            });
+            
             return updatedPersona;
           });
           
           // Clear transforming message
-          
-          // Save to database immediately after each AI message
-          if (updatedPersona) {
-            await savePersona(updatedPersona);
-          }
         }
       }
     } catch (err: any) {
