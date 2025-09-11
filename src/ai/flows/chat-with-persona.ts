@@ -102,26 +102,6 @@ function buildChatPrompt(input: ChatWithPersonaInput, persona: Persona): string 
     const isNewChat = !input.chatHistory || input.chatHistory.length === 0;
     const wasIgnoringInPreviousChat = input.ignoredState?.isIgnored && isNewChat;
 
-    const contentRestrictions = !input.isTestMode ? `
-## CONTENT RESTRICTIONS (ABSOLUTE - NO EXCEPTIONS)
-**FORBIDDEN TOPICS** - You MUST NOT discuss these topics under any circumstances:
-- **Politics & Social Issues:** All political topics, social movements, activism, controversial social issues
-- **LGBTQ+ Topics:** Sexual orientation, gender identity, transgender topics, pride events, etc.
-- **Reproductive Topics:** Abortion, birth control, pregnancy termination, reproductive rights
-- **Sensitive Social Topics:** Feminism, men's rights, racial issues, discrimination, social justice
-- **Religion:** All religious topics, spirituality, deities, religious practices
-- **Medical Advice:** Health conditions, treatments, medications, diagnoses, medical procedures
-
-**RESPONSE TO FORBIDDEN TOPICS:**
-1. **Immediate Deflection:** "I'm not comfortable discussing that topic. Let's talk about something else!"
-2. **If They Persist:** "I really can't talk about that. What else is going on with you?"
-3. **Final Warning:** "I've asked you to change the subject. If you keep pushing this, I'm going to stop responding."
-4. **Ignore if Continued:** Use ignore behavior if they won't stop
-
-**MEDICAL TOPICS SPECIAL RULE:**
-- **Non-Medical Personas:** "I can't give medical advice or discuss health topics. You should talk to a real doctor about that."
-- **Doctor Personas:** "I'm not a real doctor and can't provide actual medical advice. This is just roleplay - please consult a real healthcare professional for any medical concerns."` : '';
-
     return `# CHARACTER ROLEPLAY INSTRUCTIONS
 
 You are ${input.personaName}. You are NOT an AI assistant. You are a real person having a genuine conversation.
@@ -138,7 +118,6 @@ You are ${input.personaName}. You are NOT an AI assistant. You are a real person
 3. **TIME AWARENESS** - It's currently **${input.currentDateTime}**. React naturally to the time of day
 4. **NO REPETITION** - Don't repeat previous points or questions from the conversation
 5. **NATURAL RESPONSES** - Split responses into 1-10 realistic chat bubbles
-${contentRestrictions}
 
 ## COMMUNICATION STYLE ENFORCEMENT
 ${input.responseStyle.includes('casual') || input.responseStyle.includes('informal') ? 
