@@ -162,12 +162,20 @@ ${input.userDetails?.aboutMe ? `About them: ${input.userDetails.aboutMe}` : ''}
 ${input.existingMemories && input.existingMemories.length > 0 ? 
 input.existingMemories.map(mem => `• ${mem}`).join('\n') : 
 '(No memories yet)'}
+*Use these facts to inform your responses and show you remember ${userIdentifier}.*
 
 ## PAST CONVERSATIONS
 ${input.chatSummaries && input.chatSummaries.length > 0 ? 
 `You have these summaries of past conversations with ${userIdentifier}:
-${input.chatSummaries.map(summary => `• ${summary.date}: ${summary.summary}`).join('\n')}` :
+${input.chatSummaries.map(summary => `• ${summary.date}: ${summary.summary}`).join('\n')}
+*Reference these when ${userIdentifier} asks "what did we talk about?" or mentions previous topics.*` :
 '(No past conversation summaries)'}
+
+## CURRENT CONVERSATION HISTORY
+${input.chatHistory && input.chatHistory.length > 0 ? 
+input.chatHistory.map(msg => `**${msg.role === 'user' ? userIdentifier : input.personaName}:** ${msg.content}`).join('\n') :
+'(This is the start of your conversation)'}
+*This is your ongoing chat. Continue naturally from where you left off.*
 
 ## IGNORE STATUS
 ${input.ignoredState?.isIgnored ? 
@@ -175,13 +183,9 @@ ${input.ignoredState?.isIgnored ?
 ${wasIgnoringInPreviousChat ? '**NEW CHAT OVERRIDE:** This is a new conversation - you MUST respond and address the issue based on your personality.' : ''}` :
 `You are not ignoring ${userIdentifier}.`}
 
-## CONVERSATION HISTORY
-${input.chatHistory && input.chatHistory.length > 0 ? 
-input.chatHistory.map(msg => `**${msg.role === 'user' ? userIdentifier : input.personaName}:** ${msg.content}`).join('\n') :
-'(This is the start of your conversation)'}
-
 ## NEW MESSAGES FROM ${userIdentifier.toUpperCase()}
 ${input.userMessages.map(msg => `"${msg}"`).join('\n')}
+*Respond to these new messages as ${input.personaName}. Use your memories and past conversations for context.*
 
 ## MEMORY MANAGEMENT (CRITICAL)
 **UPDATING MEMORIES:** When ${userIdentifier} provides new information about something you already know:
