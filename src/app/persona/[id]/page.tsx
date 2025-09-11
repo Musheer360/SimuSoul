@@ -84,10 +84,10 @@ const ChatMessageItem = memo(function ChatMessageItem({
   return (
     <div
       className={cn(
-        "flex flex-col",
+        "flex flex-col transition-all duration-300 ease-out",
         message.role === 'user' ? 'items-end' : 'items-start',
         isFirstInSequence ? 'mt-4' : 'mt-1',
-        isNewMessage && message.role === 'assistant' && 'animate-bubble-in'
+        isNewMessage && message.role === 'assistant' && 'animate-message-appear'
       )}
     >
       <div 
@@ -186,19 +186,20 @@ const TypingIndicator = memo(function TypingIndicator({
   return (
     <div
       className={cn(
-        "flex",
-        "justify-start",
+        "flex justify-start transition-all duration-200 ease-out",
         isFirstBubble ? 'mt-4' : 'mt-1',
-        isTransitioning && "animate-fade-out"
+        isTransitioning && "opacity-0 scale-95"
       )}
     >
       <div className={cn(
-        "flex h-11 items-center justify-center rounded-lg bg-secondary px-4 transition-all duration-150",
-        "rounded-tl-none",
-        "rounded-br-lg",
-        isTransitioning && "scale-95 opacity-0"
+        "flex h-11 items-center justify-center rounded-lg bg-secondary px-4 transition-all duration-200 ease-out",
+        "rounded-tl-none rounded-br-lg",
+        isTransitioning && "scale-98"
       )}>
-        <div className="flex items-center justify-center space-x-1.5">
+        <div className={cn(
+          "flex items-center justify-center space-x-1.5 transition-opacity duration-200",
+          isTransitioning && "opacity-0"
+        )}>
           <div className="w-2 h-2 rounded-full bg-muted-foreground animate-typing-dot-1"></div>
           <div className="w-2 h-2 rounded-full bg-muted-foreground animate-typing-dot-2"></div>
           <div className="w-2 h-2 rounded-full bg-muted-foreground animate-typing-dot-3"></div>
@@ -446,14 +447,12 @@ export default function PersonaChatPage() {
           const delay = Math.max(900, Math.min(typingTimeMs, 4000));
           await new Promise(resolve => setTimeout(resolve, delay));
           
-          // Add transition animation before showing message
+          // Smooth transition from typing to message
           setIsTypingTransitioning(true);
-          await new Promise(resolve => setTimeout(resolve, 150));
+          await new Promise(resolve => setTimeout(resolve, 200));
           setIsAiTyping(false);
+          await new Promise(resolve => setTimeout(resolve, 100));
           setIsTypingTransitioning(false);
-          
-          // Small delay for smooth transition
-          await new Promise(resolve => setTimeout(resolve, 50));
           
           // Add the actual message to state
           let updatedPersona: Persona | null = null;
