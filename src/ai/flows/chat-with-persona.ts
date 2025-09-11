@@ -252,7 +252,14 @@ export async function chatWithPersona(
     return { response: [], newMemories: [], removedMemories: [], shouldIgnore: persona.ignoredState?.isIgnored || false };
   }
 
-  const jsonResponse = JSON.parse(response.candidates[0].content.parts[0].text);
+  let responseText = response.candidates[0].content.parts[0].text;
+  
+  // Clean up malformed JSON responses
+  responseText = responseText.replace(/",\s*"/g, '", "'); // Fix comma spacing
+  responseText = responseText.replace(/",\s*,/g, '",'); // Remove double commas
+  responseText = responseText.replace(/,\s*]/g, ']'); // Remove trailing commas in arrays
+
+  const jsonResponse = JSON.parse(responseText);
   const validatedResponse = ChatWithPersonaOutputSchema.safeParse(jsonResponse);
 
   if (!validatedResponse.success) {
