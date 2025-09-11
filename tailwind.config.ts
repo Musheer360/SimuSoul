@@ -82,6 +82,10 @@ export default {
           from: { opacity: '0' },
           to: { opacity: '1' },
         },
+        'fade-out': {
+          from: { opacity: '1', transform: 'scale(1)' },
+          to: { opacity: '0', transform: 'scale(0.95)' },
+        },
         'fade-in-up': {
           from: { opacity: '0', transform: 'translateY(10px)' },
           to: { opacity: '1', transform: 'translateY(0)' },
@@ -99,8 +103,8 @@ export default {
           '100%': { 'background-position': '100% 50%' },
         },
         'bubble-in': {
-          from: { opacity: '0', transform: 'scale(0.8)' },
-          to: { opacity: '1', transform: 'scale(1)' },
+          from: { opacity: '0', transform: 'scale(0.9) translateY(10px)' },
+          to: { opacity: '1', transform: 'scale(1) translateY(0)' },
         },
         'typing-to-message': {
           from: { transform: 'scale(1)' },
@@ -111,12 +115,13 @@ export default {
         'accordion-down': 'accordion-down 0.2s ease-out',
         'accordion-up': 'accordion-up 0.2s ease-out',
         'fade-in': 'fade-in 0.5s ease-out forwards',
+        'fade-out': 'fade-out 0.15s ease-out forwards',
         'fade-in-up': 'fade-in-up 0.7s ease-out forwards',
         'typing-dot-1': 'typing-bounce 1.2s infinite ease-in-out',
         'typing-dot-2': 'typing-bounce 1.2s infinite ease-in-out 0.2s',
         'typing-dot-3': 'typing-bounce 1.2s infinite ease-in-out 0.4s',
         'animated-gradient': 'animated-gradient 6s ease-in-out infinite alternate',
-        'bubble-in': 'bubble-in 0.3s ease-out forwards',
+        'bubble-in': 'bubble-in 0.25s ease-out forwards',
         'typing-to-message': 'typing-to-message 0.2s ease-out forwards',
       },
     },

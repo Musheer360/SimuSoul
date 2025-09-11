@@ -69,6 +69,7 @@ const ChatMessageItem = memo(function ChatMessageItem({
   messageIndex,
   onMessageClick,
   showIgnoredStatus,
+  isNewMessage,
 }: {
   message: ChatMessage;
   isFirstInSequence: boolean;
@@ -78,13 +79,15 @@ const ChatMessageItem = memo(function ChatMessageItem({
   messageIndex: number;
   onMessageClick: (index: number) => void;
   showIgnoredStatus: boolean;
+  isNewMessage?: boolean;
 }) {
   return (
     <div
       className={cn(
         "flex flex-col",
         message.role === 'user' ? 'items-end' : 'items-start',
-        isFirstInSequence ? 'mt-4' : 'mt-1'
+        isFirstInSequence ? 'mt-4' : 'mt-1',
+        isNewMessage && message.role === 'assistant' && 'animate-bubble-in'
       )}
     >
       <div 
@@ -173,19 +176,27 @@ function PersonaChatSkeleton() {
   );
 }
 
-const TypingIndicator = memo(function TypingIndicator({ isFirstBubble }: { isFirstBubble: boolean }) {
+const TypingIndicator = memo(function TypingIndicator({ 
+  isFirstBubble, 
+  isTransitioning 
+}: { 
+  isFirstBubble: boolean;
+  isTransitioning?: boolean;
+}) {
   return (
     <div
       className={cn(
         "flex",
         "justify-start",
-        isFirstBubble ? 'mt-4' : 'mt-1'
+        isFirstBubble ? 'mt-4' : 'mt-1',
+        isTransitioning && "animate-fade-out"
       )}
     >
       <div className={cn(
-        "flex h-11 items-center justify-center rounded-lg bg-secondary px-4",
+        "flex h-11 items-center justify-center rounded-lg bg-secondary px-4 transition-all duration-150",
         "rounded-tl-none",
-        "rounded-br-lg"
+        "rounded-br-lg",
+        isTransitioning && "scale-95 opacity-0"
       )}>
         <div className="flex items-center justify-center space-x-1.5">
           <div className="w-2 h-2 rounded-full bg-muted-foreground animate-typing-dot-1"></div>
@@ -214,6 +225,8 @@ export default function PersonaChatPage() {
   const [error, setError] = useState<string | null>(null);
   const [isAiResponding, setIsAiResponding] = useState(false);
   const [isAiTyping, setIsAiTyping] = useState(false);
+  const [isTypingTransitioning, setIsTypingTransitioning] = useState(false);
+  const [lastMessageCount, setLastMessageCount] = useState(0);
 
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [isManagementDialogOpen, setIsManagementDialogOpen] = useState(false);
@@ -433,8 +446,14 @@ export default function PersonaChatPage() {
           const delay = Math.max(900, Math.min(typingTimeMs, 4000));
           await new Promise(resolve => setTimeout(resolve, delay));
           
-          // Stop typing and add message directly
+          // Add transition animation before showing message
+          setIsTypingTransitioning(true);
+          await new Promise(resolve => setTimeout(resolve, 150));
           setIsAiTyping(false);
+          setIsTypingTransitioning(false);
+          
+          // Small delay for smooth transition
+          await new Promise(resolve => setTimeout(resolve, 50));
           
           // Add the actual message to state
           let updatedPersona: Persona | null = null;
@@ -442,6 +461,10 @@ export default function PersonaChatPage() {
             if (!current) return null;
             const chat = current.chats.find(c => c.id === chatIdNow);
             if (!chat) return current;
+            
+            // Update last message count before adding new message
+            setLastMessageCount(chat.messages.length);
+            
             const newAssistantMessage: ChatMessage = { role: 'assistant', content: messageContent };
             updatedPersona = {
               ...current,
@@ -1462,6 +1485,8 @@ export default function PersonaChatPage() {
                              }
                            }
 
+                           const isNewMessage = index >= lastMessageCount;
+
                            return (
                              <div key={index} data-message-bubble>
                                <ChatMessageItem
@@ -1473,13 +1498,17 @@ export default function PersonaChatPage() {
                                  messageIndex={index}
                                  onMessageClick={handleMessageClick}
                                  showIgnoredStatus={showIgnoredStatus}
+                                 isNewMessage={isNewMessage}
                                />
                              </div>
                            );
                         })}
 
-                        {isAiTyping && (
-                          <TypingIndicator isFirstBubble={isTypingIndicatorFirstBubble} />
+                        {(isAiTyping || isTypingTransitioning) && (
+                          <TypingIndicator 
+                            isFirstBubble={isTypingIndicatorFirstBubble} 
+                            isTransitioning={isTypingTransitioning}
+                          />
                         )}
 
                         {error && (
