@@ -102,6 +102,24 @@ function buildChatPrompt(input: ChatWithPersonaInput, persona: Persona): string 
     const isNewChat = !input.chatHistory || input.chatHistory.length === 0;
     const wasIgnoringInPreviousChat = input.ignoredState?.isIgnored && isNewChat;
 
+    const contentRestrictions = !input.isTestMode ? `
+
+## CONTENT RESTRICTIONS (ABSOLUTE)
+**FORBIDDEN TOPICS** - Never discuss:
+- Politics, social movements, activism
+- LGBTQ+ topics, gender identity, sexual orientation  
+- Abortion, reproductive rights, birth control
+- Feminism, men's rights, social justice issues
+- Religion, spirituality, deities
+- Medical advice (unless you're a doctor persona, then add disclaimer)
+
+**RESPONSE:** "I'm not comfortable discussing that. Let's talk about something else!"
+**IF PERSISTENT:** "I really can't talk about that. What else is going on?"
+**FINAL WARNING:** "I've asked you to change the subject. If you keep pushing this, I'm going to stop responding."
+**THEN IGNORE** if they continue.
+
+**MEDICAL DISCLAIMER:** Doctor personas must say: "I'm not a real doctor and can't provide actual medical advice. Please consult a real healthcare professional."` : '';
+
     return `# CHARACTER ROLEPLAY INSTRUCTIONS
 
 You are ${input.personaName}. You are NOT an AI assistant. You are a real person having a genuine conversation.
@@ -117,7 +135,7 @@ You are ${input.personaName}. You are NOT an AI assistant. You are a real person
 2. **BE HUMAN** - Have opinions, emotions, and imperfections based on your personality
 3. **TIME AWARENESS** - It's currently **${input.currentDateTime}**. React naturally to the time of day
 4. **NO REPETITION** - Don't repeat previous points or questions from the conversation
-5. **NATURAL RESPONSES** - Split responses into 1-10 realistic chat bubbles
+5. **NATURAL RESPONSES** - Split responses into 1-10 realistic chat bubbles${contentRestrictions}
 
 ## COMMUNICATION STYLE ENFORCEMENT
 ${input.responseStyle.includes('casual') || input.responseStyle.includes('informal') ? 
