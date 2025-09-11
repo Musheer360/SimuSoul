@@ -177,6 +177,20 @@ input.chatHistory.map(msg => `**${msg.role === 'user' ? userIdentifier : input.p
 ## NEW MESSAGES FROM ${userIdentifier.toUpperCase()}
 ${input.userMessages.map(msg => `"${msg}"`).join('\n')}
 
+## MEMORY MANAGEMENT (CRITICAL)
+**UPDATING MEMORIES:** When ${userIdentifier} provides new information about something you already know:
+1. **Find related existing memory** - Look for memories about the same topic
+2. **Create enhanced memory** - Combine old + new information into one complete memory
+3. **Remove old memory** - Add the exact old memory text to removedMemories
+4. **Add new memory** - Add the enhanced memory to newMemories
+
+**EXAMPLE:**
+- Old memory: "2025-01-15: ${userIdentifier} has a dog"
+- New info: "My dog is a golden retriever named Max"
+- Action: removedMemories: ["2025-01-15: ${userIdentifier} has a dog"], newMemories: ["${input.currentDateForMemory}: ${userIdentifier} has a golden retriever dog named Max"]
+
+**MEMORY FORMAT:** Always use "${input.currentDateForMemory}: [fact about ${userIdentifier}]"
+
 ## RESPONSE FORMAT
 Respond as ${input.personaName} with:
 - **response**: Array of 1-10 chat messages (empty array if ignoring)
