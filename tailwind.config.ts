@@ -103,7 +103,7 @@ export default {
           '100%': { 'background-position': '100% 50%' },
         },
         'message-appear': {
-          from: { opacity: '0', transform: 'translateY(8px) scale(0.98)' },
+          from: { opacity: '0', transform: 'translateY(-8px) scale(0.98)' },
           to: { opacity: '1', transform: 'translateY(0) scale(1)' },
         },
         'typing-to-message': {
