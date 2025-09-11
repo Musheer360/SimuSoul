@@ -69,7 +69,7 @@ const ChatMessageItem = memo(function ChatMessageItem({
   messageIndex,
   onMessageClick,
   showIgnoredStatus,
-  isNewMessage,
+  animationClass,
 }: {
   message: ChatMessage;
   isFirstInSequence: boolean;
@@ -79,7 +79,7 @@ const ChatMessageItem = memo(function ChatMessageItem({
   messageIndex: number;
   onMessageClick: (index: number) => void;
   showIgnoredStatus: boolean;
-  isNewMessage?: boolean;
+  animationClass?: string;
 }) {
   return (
     <div
@@ -87,7 +87,7 @@ const ChatMessageItem = memo(function ChatMessageItem({
         "flex flex-col transition-all duration-300 ease-out",
         message.role === 'user' ? 'items-end' : 'items-start',
         isFirstInSequence ? 'mt-4' : 'mt-1',
-        isNewMessage && message.role === 'assistant' && 'animate-message-spawn'
+        animationClass
       )}
     >
       <div 
@@ -1485,6 +1485,9 @@ export default function PersonaChatPage() {
                            }
 
                            const isNewMessage = index >= lastMessageCount;
+                           const animationClass = isNewMessage 
+                             ? (message.role === 'assistant' ? 'animate-message-spawn-left' : 'animate-message-spawn-right')
+                             : '';
 
                            return (
                              <div key={index} data-message-bubble>
@@ -1497,7 +1500,7 @@ export default function PersonaChatPage() {
                                  messageIndex={index}
                                  onMessageClick={handleMessageClick}
                                  showIgnoredStatus={showIgnoredStatus}
-                                 isNewMessage={isNewMessage}
+                                 animationClass={animationClass}
                                />
                              </div>
                            );
