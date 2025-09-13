@@ -22,10 +22,10 @@ import {
 } from '@/components/ui/alert-dialog';
 import { getAllPersonas, deletePersona } from '@/lib/db';
 
-// Updated skeleton to match fixed card height, preventing layout shifts.
+// Updated skeleton to match flex layout with consistent sizing
 function PersonaCardSkeleton() {
   return (
-    <div className="h-80 rounded-lg border overflow-hidden">
+    <div className="w-full sm:w-80 h-80 rounded-lg border overflow-hidden flex-shrink-0">
       <Skeleton className="w-full h-80" />
       <div className="absolute inset-0 flex flex-col justify-end p-6">
         <Skeleton className="h-6 w-3/4 mb-2" />
@@ -70,18 +70,18 @@ export default function PersonasPage() {
         </div>
 
         {isLoading ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="flex flex-wrap gap-6 justify-center sm:justify-start pb-12">
             {Array.from({ length: 6 }).map((_, i) => (
               <PersonaCardSkeleton key={i} />
             ))}
           </div>
         ) : personas.length > 0 ? (
-          // Grid layout with fixed card heights to prevent resizing
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+          // Flex layout with consistent card sizing and equal margins
+          <div className="flex flex-wrap gap-6 justify-center sm:justify-start pb-12">
             {personas.map((persona) => (
               <div
                 key={persona.id}
-                className="relative group h-80"
+                className="relative group w-full sm:w-80 h-80 flex-shrink-0"
               >
                 <AlertDialog>
                   <AlertDialogTrigger asChild>
