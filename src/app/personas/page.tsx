@@ -88,7 +88,7 @@ export default function PersonasPage() {
                     <Button
                       variant="ghost"
                       // Button is always visible on mobile, appears on hover on desktop
-                      className="absolute top-3 right-3 z-10 h-8 w-8 p-0 text-white/90 hover:text-destructive focus-visible:ring-0 focus-visible:ring-offset-0 transition-opacity md:opacity-0 group-hover:opacity-100"
+                      className="absolute top-3 right-3 z-10 h-8 w-8 p-0 text-destructive hover:text-destructive focus-visible:ring-0 focus-visible:ring-offset-0 transition-opacity md:opacity-0 group-hover:opacity-100"
                       aria-label={`Delete ${persona.name}`}
                     >
                       <Trash2 className="h-5 w-5" />
