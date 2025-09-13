@@ -46,8 +46,14 @@ export default function PersonasPage() {
       const headerHeight = 200; // Approximate header + margins
       const bottomMargin = 48; // pb-12 = 48px
       const availableHeight = viewportHeight - headerHeight - bottomMargin;
-      const rowsNeeded = Math.ceil(personas.length / 3); // 3 cards per row on desktop
-      const gapSpace = (rowsNeeded - 1) * 24; // gap-6 = 24px
+      
+      // Calculate rows based on screen size and number of personas
+      const isMobile = window.innerWidth < 640;
+      const isTablet = window.innerWidth < 1024;
+      const cardsPerRow = isMobile ? 1 : isTablet ? 2 : 3;
+      const rowsNeeded = Math.ceil(personas.length / cardsPerRow);
+      
+      const gapSpace = (rowsNeeded - 1) * 24; // gap-6 = 24px between rows
       const calculatedHeight = Math.max(320, (availableHeight - gapSpace) / rowsNeeded);
       setCardHeight(calculatedHeight);
     };
@@ -88,14 +94,14 @@ export default function PersonasPage() {
         </div>
 
         {isLoading ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 pb-12">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
             {Array.from({ length: 6 }).map((_, i) => (
               <PersonaCardSkeleton key={i} />
             ))}
           </div>
         ) : personas.length > 0 ? (
           // Grid layout using calculated viewport height
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 pb-12">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
             {personas.map((persona) => (
               <div
                 key={persona.id}
