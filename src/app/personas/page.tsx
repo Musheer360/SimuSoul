@@ -22,11 +22,11 @@ import {
 } from '@/components/ui/alert-dialog';
 import { getAllPersonas, deletePersona } from '@/lib/db';
 
-// Updated skeleton to match card aspect ratio, preventing layout shifts.
+// Updated skeleton to match fixed card height, preventing layout shifts.
 function PersonaCardSkeleton() {
   return (
     <div className="h-80 rounded-lg border overflow-hidden">
-      <Skeleton className="w-full h-full" />
+      <Skeleton className="w-full h-80" />
       <div className="absolute inset-0 flex flex-col justify-end p-6">
         <Skeleton className="h-6 w-3/4 mb-2" />
         <Skeleton className="h-4 w-1/2" />
@@ -57,7 +57,7 @@ export default function PersonasPage() {
   return (
     <div className="h-full flex flex-col">
       <div className="container py-8 flex flex-col h-full">
-        <div className="flex flex-col sm:flex-row justify-between items-center mb-8 flex-shrink-0">
+        <div className="flex flex-col sm:flex-row justify-between items-center mb-12 flex-shrink-0">
           <div className="text-center sm:text-left mb-4 sm:mb-0">
             <h1 className="text-3xl font-bold font-headline tracking-tight">Your Personas</h1>
             <p className="text-muted-foreground mt-1">Manage your AI companions or create new ones.</p>
@@ -76,12 +76,12 @@ export default function PersonasPage() {
             ))}
           </div>
         ) : personas.length > 0 ? (
-          // Grid layout with viewport-aware card heights
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 flex-1 auto-rows-fr">
+          // Grid layout with fixed card heights to prevent resizing
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
             {personas.map((persona) => (
               <div
                 key={persona.id}
-                className="relative group h-full min-h-[300px]"
+                className="relative group h-80"
               >
                 <AlertDialog>
                   <AlertDialogTrigger asChild>
@@ -113,10 +113,10 @@ export default function PersonasPage() {
                   </AlertDialogContent>
                 </AlertDialog>
 
-                <Link href={`/persona/${persona.id}`} className="block h-full">
-                  {/* Card now uses full available height within the grid */}
-                  <Card className="w-full h-full overflow-hidden border border-border/20 group-hover:border-primary transition-all duration-300 group-hover:shadow-2xl group-hover:shadow-primary/20 bg-card/80 backdrop-blur-sm">
-                      <div className="h-full relative overflow-hidden">
+                <Link href={`/persona/${persona.id}`} className="block h-80">
+                  {/* Card with fixed height to maintain consistent sizing */}
+                  <Card className="w-full h-80 overflow-hidden border border-border/20 group-hover:border-primary transition-all duration-300 group-hover:shadow-2xl group-hover:shadow-primary/20 bg-card/80 backdrop-blur-sm">
+                      <div className="h-80 relative overflow-hidden">
                         <Image
                           src={persona.profilePictureUrl}
                           alt={persona.name}
