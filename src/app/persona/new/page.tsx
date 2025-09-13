@@ -253,6 +253,12 @@ export default function NewPersonaPage() {
       };
 
       await savePersona(newPersona);
+      
+      toast({
+        title: 'Persona Created!',
+        description: 'Your new persona is ready to chat.',
+      });
+      
       router.push(`/persona/${newPersona.id}?chat=${newChat.id}`);
 
     } catch (err: any) {
