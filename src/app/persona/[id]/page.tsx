@@ -1348,7 +1348,7 @@ export default function PersonaChatPage() {
                 </DialogContent>
             </Dialog>
             
-            <div className="px-4 pb-2 flex-shrink-0">
+            <div className="px-4 pb-2 pt-3 flex-shrink-0">
                 <div className="flex gap-2">
                     <AlertDialog open={isClearAllDialogOpen} onOpenChange={setIsClearAllDialogOpen}>
                         <AlertDialogTrigger asChild>
