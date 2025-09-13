@@ -1347,9 +1347,8 @@ export default function PersonaChatPage() {
                     </div>
                 </DialogContent>
             </Dialog>
-            
             <div className="p-4 flex-1 flex flex-col min-h-0 border-t">
-                <div className="flex gap-2 mb-2">
+                <div className="flex gap-2 mb-2 flex-shrink-0">
                     <AlertDialog open={isClearAllDialogOpen} onOpenChange={setIsClearAllDialogOpen}>
                         <AlertDialogTrigger asChild>
                             <Button variant="outline" className="flex-1 h-12">
@@ -1378,11 +1377,12 @@ export default function PersonaChatPage() {
                         <MessageSquarePlus className="mr-2 h-4 w-4" /> New Chat
                     </Button>
                 </div>
-                <ScrollArea className="flex-1">
-                  <div className="">
-                    {sortedChats.length > 0 ? (
-                      <div className="space-y-1">
-                      {sortedChats.map(chat => (
+                <div className="flex-1 min-h-0">
+                  <ScrollArea className="h-full">
+                    <div className="pr-4">
+                      {sortedChats.length > 0 ? (
+                        <div className="space-y-1">
+                        {sortedChats.map(chat => (
                         <Link 
                             key={chat.id} 
                             href={`/persona/${persona.id}?chat=${chat.id}`} 
@@ -1413,13 +1413,14 @@ export default function PersonaChatPage() {
                             </Button>
                           </div>
                         </Link>
-                      ))}
-                      </div>
-                    ) : (
-                      <p className="text-sm text-muted-foreground text-center py-4">No chats yet.</p>
-                    )}
-                  </div>
-                </ScrollArea>
+                        ))}
+                        </div>
+                      ) : (
+                        <p className="text-sm text-muted-foreground text-center py-4">No chats yet.</p>
+                      )}
+                    </div>
+                  </ScrollArea>
+                </div>
             </div>
             </div> {/* Close padding wrapper */}
           </div>
