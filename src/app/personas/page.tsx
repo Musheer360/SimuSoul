@@ -42,7 +42,8 @@ export default function PersonasPage() {
 
   useEffect(() => {
     const calculateCardHeight = () => {
-      const viewportHeight = window.innerHeight;
+      // Use visual viewport for mobile browsers to account for UI toolbars
+      const viewportHeight = window.visualViewport ? window.visualViewport.height : window.innerHeight;
       const headerHeight = 200; // Approximate header + margins
       const bottomMargin = 48; // mb-12 equivalent for last row
       const availableHeight = viewportHeight - headerHeight - bottomMargin;
@@ -54,7 +55,17 @@ export default function PersonasPage() {
 
     calculateCardHeight();
     window.addEventListener('resize', calculateCardHeight);
-    return () => window.removeEventListener('resize', calculateCardHeight);
+    // Listen to visual viewport changes for mobile browsers
+    if (window.visualViewport) {
+      window.visualViewport.addEventListener('resize', calculateCardHeight);
+    }
+    
+    return () => {
+      window.removeEventListener('resize', calculateCardHeight);
+      if (window.visualViewport) {
+        window.visualViewport.removeEventListener('resize', calculateCardHeight);
+      }
+    };
   }, []); // No dependency on personas.length - size stays consistent
 
   useEffect(() => {
