@@ -1264,7 +1264,7 @@ export default function PersonaChatPage() {
               isSidebarOpen ? "md:w-80" : "md:w-0 md:p-0 md:opacity-0 md:border-r-0",
               !isSidebarOpen && "md:overflow-hidden"
           )}>
-            <div className="pt-16 md:pt-0"> {/* Padding for main header on mobile only */}
+            <div className="pt-16 md:pt-0 flex flex-col h-full"> {/* Padding for main header on mobile only */}
              <Dialog open={isManagementDialogOpen} onOpenChange={setIsManagementDialogOpen}>
                 <DialogTrigger asChild>
                     <div className="p-4 flex-shrink-0 cursor-pointer hover:bg-secondary transition-colors rounded-lg">
@@ -1348,11 +1348,11 @@ export default function PersonaChatPage() {
                 </DialogContent>
             </Dialog>
             
-            <div className="p-4 flex-1 flex flex-col min-h-0 border-t">
-                <div className="flex gap-2 mb-2">
+            <div className="px-4 pb-2 flex-shrink-0">
+                <div className="flex gap-2">
                     <AlertDialog open={isClearAllDialogOpen} onOpenChange={setIsClearAllDialogOpen}>
                         <AlertDialogTrigger asChild>
-                            <Button variant="outline" className="flex-1 h-12">
+                            <Button variant="outline" className="flex-1 h-10">
                                 <Trash2 className="mr-2 h-4 w-4" /> Clear All
                             </Button>
                         </AlertDialogTrigger>
@@ -1374,15 +1374,17 @@ export default function PersonaChatPage() {
                             </AlertDialogFooter>
                         </AlertDialogContent>
                     </AlertDialog>
-                    <Button variant="outline" className="flex-1 h-12" onClick={handleNewChat}>
+                    <Button variant="outline" className="flex-1 h-10" onClick={handleNewChat}>
                         <MessageSquarePlus className="mr-2 h-4 w-4" /> New Chat
                     </Button>
                 </div>
-                <ScrollArea className="flex-1">
-                  <div className="">
+            </div>
+            
+            <div className="flex-1 min-h-0 px-4 pb-4">
+                <ScrollArea className="h-full">
+                  <div className="space-y-1 pr-4">
                     {sortedChats.length > 0 ? (
-                      <div className="space-y-1">
-                      {sortedChats.map(chat => (
+                      sortedChats.map(chat => (
                         <Link 
                             key={chat.id} 
                             href={`/persona/${persona.id}?chat=${chat.id}`} 
@@ -1413,8 +1415,7 @@ export default function PersonaChatPage() {
                             </Button>
                           </div>
                         </Link>
-                      ))}
-                      </div>
+                      ))
                     ) : (
                       <p className="text-sm text-muted-foreground text-center py-4">No chats yet.</p>
                     )}
