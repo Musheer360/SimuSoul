@@ -42,27 +42,31 @@ export default function PersonasPage() {
 
   useEffect(() => {
     const calculateCardHeight = () => {
-      // Use visual viewport for mobile browsers to account for UI toolbars
-      const viewportHeight = window.visualViewport ? window.visualViewport.height : window.innerHeight;
-      const headerHeight = 200; // Approximate header + margins
-      const bottomMargin = 48; // mb-12 equivalent for last row
+      // Get actual visible height accounting for mobile browser UI
+      let viewportHeight = window.innerHeight;
+      if (typeof window !== 'undefined' && 'visualViewport' in window && window.visualViewport) {
+        viewportHeight = window.visualViewport.height;
+      }
+      
+      const headerHeight = 220; // Increased to account for actual header space
+      const bottomMargin = 40; // Reduced margin to prevent overflow
       const availableHeight = viewportHeight - headerHeight - bottomMargin;
       
       // Use available height minus bottom margin for consistent sizing
-      const calculatedHeight = Math.max(320, availableHeight);
+      const calculatedHeight = Math.max(280, availableHeight);
       setCardHeight(calculatedHeight);
     };
 
     calculateCardHeight();
     window.addEventListener('resize', calculateCardHeight);
     // Listen to visual viewport changes for mobile browsers
-    if (window.visualViewport) {
+    if (typeof window !== 'undefined' && 'visualViewport' in window && window.visualViewport) {
       window.visualViewport.addEventListener('resize', calculateCardHeight);
     }
     
     return () => {
       window.removeEventListener('resize', calculateCardHeight);
-      if (window.visualViewport) {
+      if (typeof window !== 'undefined' && 'visualViewport' in window && window.visualViewport) {
         window.visualViewport.removeEventListener('resize', calculateCardHeight);
       }
     };
@@ -119,7 +123,7 @@ export default function PersonasPage() {
               return (
                 <div
                   key={persona.id}
-                  className={`relative group ${isLastRow ? 'mb-12' : ''}`}
+                  className={`relative group ${isLastRow ? 'mb-10' : ''}`}
                   style={{height: `${cardHeight}px`}}
                 >
                 <AlertDialog>
