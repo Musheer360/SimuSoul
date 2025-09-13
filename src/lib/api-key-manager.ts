@@ -45,8 +45,26 @@ export async function callGeminiApi<T>(
   model: string,
   body: Record<string, any>
 ): Promise<T> {
-  const { gemini: customKeys } = await getApiKeys();
-  const validKeys = customKeys?.filter(Boolean) || [];
+  // Add retry logic for database initialization
+  let apiKeys;
+  let retryCount = 0;
+  const maxRetries = 3;
+  
+  while (retryCount < maxRetries) {
+    try {
+      apiKeys = await getApiKeys();
+      break;
+    } catch (error) {
+      retryCount++;
+      if (retryCount >= maxRetries) {
+        throw new Error('Failed to retrieve API keys from database. Please refresh the page and try again.');
+      }
+      // Wait briefly before retrying
+      await new Promise(resolve => setTimeout(resolve, 100 * retryCount));
+    }
+  }
+
+  const validKeys = apiKeys?.gemini?.filter(Boolean) || [];
 
   if (validKeys.length === 0) {
     throw new Error('No API key provided. Please add your Gemini API key in the settings page to use the application.');
@@ -69,7 +87,7 @@ export async function callGeminiApi<T>(
       });
 
       if (!response.ok) {
-        const errorData = await response.json();
+        const errorData = await response.json().catch(() => ({}));
         throw new Error(`API Error (${response.status}): ${errorData?.error?.message || 'Unknown error'}`);
       }
 
