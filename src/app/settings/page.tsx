@@ -196,7 +196,7 @@ export default function SettingsPage() {
                   </Button>
                 )}
                  <p className="text-xs text-muted-foreground pt-1">
-                   Your keys are stored locally and used for all AI requests. If left empty, a server-provided key will be used.
+                   Get your free API key from <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">Google AI Studio</a>. Keys are stored locally on your device.
                  </p>
               </div>
             </div>
