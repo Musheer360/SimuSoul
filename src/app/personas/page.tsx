@@ -50,7 +50,7 @@ export default function PersonasPage() {
       
       // Different header heights for mobile vs desktop
       const isMobile = window.innerWidth < 640;
-      const headerHeight = isMobile ? 280 : 220; // More space needed on mobile
+      const headerHeight = isMobile ? 250 : 220; // Reduced mobile header height
       const bottomMargin = 40; // Reduced margin to prevent overflow
       const availableHeight = viewportHeight - headerHeight - bottomMargin;
       
