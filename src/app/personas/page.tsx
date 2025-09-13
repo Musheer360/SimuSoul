@@ -44,24 +44,22 @@ export default function PersonasPage() {
     const calculateCardHeight = () => {
       const viewportHeight = window.innerHeight;
       const headerHeight = 200; // Approximate header + margins
-      const bottomMargin = 48; // pb-12 = 48px
+      const bottomMargin = 48; // Bottom margin space
       const availableHeight = viewportHeight - headerHeight - bottomMargin;
       
-      // Calculate rows based on screen size and number of personas
+      // Calculate height for single row only - don't shrink when more cards are added
       const isMobile = window.innerWidth < 640;
       const isTablet = window.innerWidth < 1024;
-      const cardsPerRow = isMobile ? 1 : isTablet ? 2 : 3;
-      const rowsNeeded = Math.ceil(personas.length / cardsPerRow);
+      const singleRowHeight = isMobile ? availableHeight : availableHeight / 2; // On desktop, assume 2 rows max fit nicely
       
-      const gapSpace = (rowsNeeded - 1) * 24; // gap-6 = 24px between rows
-      const calculatedHeight = Math.max(320, (availableHeight - gapSpace) / rowsNeeded);
+      const calculatedHeight = Math.max(320, singleRowHeight - 12); // Account for gap
       setCardHeight(calculatedHeight);
     };
 
     calculateCardHeight();
     window.addEventListener('resize', calculateCardHeight);
     return () => window.removeEventListener('resize', calculateCardHeight);
-  }, [personas.length]);
+  }, []); // Remove personas.length dependency
 
   useEffect(() => {
     async function loadPersonas() {
