@@ -22,11 +22,11 @@ import {
 } from '@/components/ui/alert-dialog';
 import { getAllPersonas, deletePersona } from '@/lib/db';
 
-// Updated skeleton to match flex layout with consistent sizing
+// Updated skeleton to use calculated viewport height
 function PersonaCardSkeleton() {
   return (
-    <div className="w-full sm:w-80 h-80 rounded-lg border overflow-hidden flex-shrink-0">
-      <Skeleton className="w-full h-80" />
+    <div className="rounded-lg border overflow-hidden" style={{height: 'calc((100vh - 200px) / 2 - 12px)'}}>
+      <Skeleton className="w-full h-full" />
       <div className="absolute inset-0 flex flex-col justify-end p-6">
         <Skeleton className="h-6 w-3/4 mb-2" />
         <Skeleton className="h-4 w-1/2" />
@@ -70,18 +70,19 @@ export default function PersonasPage() {
         </div>
 
         {isLoading ? (
-          <div className="flex flex-wrap gap-6 justify-center sm:justify-start pb-12">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 pb-12">
             {Array.from({ length: 6 }).map((_, i) => (
               <PersonaCardSkeleton key={i} />
             ))}
           </div>
         ) : personas.length > 0 ? (
-          // Flex layout with consistent card sizing and equal margins
-          <div className="flex flex-wrap gap-6 justify-center sm:justify-start pb-12">
+          // Grid layout using full viewport height with equal margins
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 pb-12" style={{minHeight: 'calc(100vh - 200px)'}}>
             {personas.map((persona) => (
               <div
                 key={persona.id}
-                className="relative group w-full sm:w-80 h-80 flex-shrink-0"
+                className="relative group"
+                style={{height: 'calc((100vh - 200px) / 2 - 12px)'}}
               >
                 <AlertDialog>
                   <AlertDialogTrigger asChild>
@@ -113,10 +114,10 @@ export default function PersonasPage() {
                   </AlertDialogContent>
                 </AlertDialog>
 
-                <Link href={`/persona/${persona.id}`} className="block h-80">
-                  {/* Card with fixed height to maintain consistent sizing */}
-                  <Card className="w-full h-80 overflow-hidden border border-border/20 group-hover:border-primary transition-all duration-300 group-hover:shadow-2xl group-hover:shadow-primary/20 bg-card/80 backdrop-blur-sm">
-                      <div className="h-80 relative overflow-hidden">
+                <Link href={`/persona/${persona.id}`} className="block h-full">
+                  {/* Card using calculated viewport height */}
+                  <Card className="w-full h-full overflow-hidden border border-border/20 group-hover:border-primary transition-all duration-300 group-hover:shadow-2xl group-hover:shadow-primary/20 bg-card/80 backdrop-blur-sm">
+                      <div className="h-full relative overflow-hidden">
                         <Image
                           src={persona.profilePictureUrl}
                           alt={persona.name}
