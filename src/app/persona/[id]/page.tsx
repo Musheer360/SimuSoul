@@ -1267,7 +1267,7 @@ export default function PersonaChatPage() {
             <div className="pt-16 md:pt-0 flex flex-col h-full"> {/* Padding for main header on mobile only */}
              <Dialog open={isManagementDialogOpen} onOpenChange={setIsManagementDialogOpen}>
                 <DialogTrigger asChild>
-                    <div className="p-4 flex-shrink-0 cursor-pointer hover:bg-secondary transition-colors rounded-lg">
+                    <div className="p-4 flex-shrink-0 cursor-pointer rounded-lg">
                         <div className="flex items-center gap-4">
                             <Image
                                 src={persona.profilePictureUrl}
@@ -1381,8 +1381,8 @@ export default function PersonaChatPage() {
             </div>
             
             <div className="flex-1 min-h-0 px-4 pb-4">
-                <ScrollArea className="h-full">
-                  <div className="space-y-1 pr-4">
+                <ScrollArea className="h-full" type="never">
+                  <div className="space-y-1">
                     {sortedChats.length > 0 ? (
                       sortedChats.map(chat => (
                         <Link 
