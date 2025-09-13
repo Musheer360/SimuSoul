@@ -44,9 +44,10 @@ export default function PersonasPage() {
     const calculateCardHeight = () => {
       const viewportHeight = window.innerHeight;
       const headerHeight = 200; // Approximate header + margins
-      const availableHeight = viewportHeight - headerHeight;
+      const bottomMargin = 48; // mb-12 equivalent for last row
+      const availableHeight = viewportHeight - headerHeight - bottomMargin;
       
-      // Use full available height - this will be the consistent size for all cards
+      // Use available height minus bottom margin for consistent sizing
       const calculatedHeight = Math.max(320, availableHeight);
       setCardHeight(calculatedHeight);
     };
@@ -95,12 +96,21 @@ export default function PersonasPage() {
         ) : personas.length > 0 ? (
           // Grid layout using calculated viewport height
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-            {personas.map((persona) => (
-              <div
-                key={persona.id}
-                className="relative group"
-                style={{height: `${cardHeight}px`}}
-              >
+            {personas.map((persona, index) => {
+              // Calculate if this card is in the last row
+              const isMobile = typeof window !== 'undefined' && window.innerWidth < 640;
+              const isTablet = typeof window !== 'undefined' && window.innerWidth < 1024;
+              const cardsPerRow = isMobile ? 1 : isTablet ? 2 : 3;
+              const totalCards = personas.length;
+              const lastRowStartIndex = Math.floor((totalCards - 1) / cardsPerRow) * cardsPerRow;
+              const isLastRow = index >= lastRowStartIndex;
+              
+              return (
+                <div
+                  key={persona.id}
+                  className={`relative group ${isLastRow ? 'mb-12' : ''}`}
+                  style={{height: `${cardHeight}px`}}
+                >
                 <AlertDialog>
                   <AlertDialogTrigger asChild>
                     <Button
@@ -155,7 +165,8 @@ export default function PersonasPage() {
                     </Card>
                 </Link>
               </div>
-            ))}
+            );
+            })}
           </div>
         ) : (
           <div className="flex flex-col items-center justify-center text-center py-20 flex-1">
