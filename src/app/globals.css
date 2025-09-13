@@ -41,33 +41,33 @@
   }
 
   .dark {
-    --background: 224 71% 4%; /* Tokyo Night Dark */
-    --foreground: 210 40% 98%; /* Almost white */
+    --background: 0 0% 0%; /* Pure black AMOLED */
+    --foreground: 0 0% 98%; /* Almost white */
 
-    --card: 224 71% 8%; /* Darker Card */
-    --card-foreground: 210 40% 98%;
+    --card: 0 0% 3%; /* Very dark gray */
+    --card-foreground: 0 0% 98%;
 
-    --popover: 224 71% 4%;
-    --popover-foreground: 210 40% 98%;
+    --popover: 0 0% 0%;
+    --popover-foreground: 0 0% 98%;
 
-    --primary: 272 68% 61%; /* Vivid Purple */
-    --primary-foreground: 0 0% 100%;
+    --primary: 0 0% 98%; /* White primary for contrast */
+    --primary-foreground: 0 0% 0%;
 
-    --secondary: 224 71% 10%; /* Darker secondary */
-    --secondary-foreground: 210 40% 98%;
+    --secondary: 0 0% 8%; /* Dark gray */
+    --secondary-foreground: 0 0% 98%;
 
-    --muted: 224 71% 10%;
-    --muted-foreground: 210 40% 60%;
+    --muted: 0 0% 8%;
+    --muted-foreground: 0 0% 60%;
 
-    --accent: 224 71% 10%;
-    --accent-foreground: 210 40% 98%;
+    --accent: 0 0% 8%;
+    --accent-foreground: 0 0% 98%;
 
-    --destructive: 0 62.8% 50.6%; /* Brighter Red for dark mode */
+    --destructive: 0 84% 60%;
     --destructive-foreground: 0 0% 98%;
 
-    --border: 224 71% 12%;
-    --input: 224 71% 12%;
-    --ring: 272 68% 61%;
+    --border: 0 0% 12%;
+    --input: 0 0% 8%;
+    --ring: 0 0% 98%;
   }
 }
 
