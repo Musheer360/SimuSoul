@@ -25,7 +25,13 @@ import { getAllPersonas, deletePersona } from '@/lib/db';
 // Updated skeleton to match card aspect ratio, preventing layout shifts.
 function PersonaCardSkeleton() {
   return (
-    <Skeleton className="w-full h-full rounded-lg" />
+    <div className="h-80 rounded-lg border overflow-hidden">
+      <Skeleton className="w-full h-full" />
+      <div className="absolute inset-0 flex flex-col justify-end p-6">
+        <Skeleton className="h-6 w-3/4 mb-2" />
+        <Skeleton className="h-4 w-1/2" />
+      </div>
+    </div>
   );
 }
 
@@ -64,11 +70,10 @@ export default function PersonasPage() {
         </div>
 
         {isLoading ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 flex-1">
-            {/* Display 3 skeletons for loading state */}
-            <div className="h-full min-h-[300px]"><PersonaCardSkeleton /></div>
-            <div className="h-full min-h-[300px]"><PersonaCardSkeleton /></div>
-            <div className="h-full min-h-[300px]"><PersonaCardSkeleton /></div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+            {Array.from({ length: 6 }).map((_, i) => (
+              <PersonaCardSkeleton key={i} />
+            ))}
           </div>
         ) : personas.length > 0 ? (
           // Grid layout with viewport-aware card heights
