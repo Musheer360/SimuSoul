@@ -25,7 +25,7 @@ import { getAllPersonas, deletePersona } from '@/lib/db';
 // Updated skeleton to use calculated viewport height
 function PersonaCardSkeleton() {
   return (
-    <div className="rounded-lg border overflow-hidden" style={{height: 'calc((100vh - 200px) / 2 - 12px)'}}>
+    <div className="rounded-lg border overflow-hidden h-80">
       <Skeleton className="w-full h-full" />
       <div className="absolute inset-0 flex flex-col justify-end p-6">
         <Skeleton className="h-6 w-3/4 mb-2" />
@@ -38,6 +38,24 @@ function PersonaCardSkeleton() {
 export default function PersonasPage() {
   const [personas, setPersonas] = useState<Persona[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [cardHeight, setCardHeight] = useState(320);
+
+  useEffect(() => {
+    const calculateCardHeight = () => {
+      const viewportHeight = window.innerHeight;
+      const headerHeight = 200; // Approximate header + margins
+      const bottomMargin = 48; // pb-12 = 48px
+      const availableHeight = viewportHeight - headerHeight - bottomMargin;
+      const rowsNeeded = Math.ceil(personas.length / 3); // 3 cards per row on desktop
+      const gapSpace = (rowsNeeded - 1) * 24; // gap-6 = 24px
+      const calculatedHeight = Math.max(320, (availableHeight - gapSpace) / rowsNeeded);
+      setCardHeight(calculatedHeight);
+    };
+
+    calculateCardHeight();
+    window.addEventListener('resize', calculateCardHeight);
+    return () => window.removeEventListener('resize', calculateCardHeight);
+  }, [personas.length]);
 
   useEffect(() => {
     async function loadPersonas() {
@@ -76,13 +94,13 @@ export default function PersonasPage() {
             ))}
           </div>
         ) : personas.length > 0 ? (
-          // Grid layout using full viewport height with equal margins
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 pb-12" style={{minHeight: 'calc(100vh - 200px)'}}>
+          // Grid layout using calculated viewport height
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 pb-12">
             {personas.map((persona) => (
               <div
                 key={persona.id}
                 className="relative group"
-                style={{height: 'calc((100vh - 200px) / 2 - 12px)'}}
+                style={{height: `${cardHeight}px`}}
               >
                 <AlertDialog>
                   <AlertDialogTrigger asChild>
