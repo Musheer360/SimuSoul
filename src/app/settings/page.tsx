@@ -204,8 +204,8 @@ export default function SettingsPage() {
             <Separator />
             
             <div className="space-y-4 rounded-lg border border-destructive/50 p-4">
-                <h3 className="font-semibold font-headline text-xl text-destructive">Danger Zone</h3>
-                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                <h3 className="font-semibold font-headline text-xl text-destructive text-center">Danger Zone</h3>
+                <div className="text-center space-y-4">
                     <div>
                         <p className="font-medium">Reset Application</p>
                         <p className="text-sm text-muted-foreground">
@@ -214,7 +214,7 @@ export default function SettingsPage() {
                     </div>
                     <AlertDialog>
                         <AlertDialogTrigger asChild>
-                            <Button variant="destructive" className="w-full sm:w-auto flex-shrink-0">
+                            <Button variant="destructive" className="w-full">
                                 <Trash2 className="mr-2 h-4 w-4" /> Clear All Data
                             </Button>
                         </AlertDialogTrigger>
