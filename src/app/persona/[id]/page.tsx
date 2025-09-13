@@ -1267,7 +1267,7 @@ export default function PersonaChatPage() {
             <div className="pt-16 md:pt-0 flex flex-col h-full"> {/* Padding for main header on mobile only */}
              <Dialog open={isManagementDialogOpen} onOpenChange={setIsManagementDialogOpen}>
                 <DialogTrigger asChild>
-                    <div className="p-4 flex-shrink-0 cursor-pointer rounded-lg">
+                    <div className="p-2 flex-shrink-0 cursor-pointer rounded-lg mx-2">
                         <div className="flex items-center gap-4">
                             <Image
                                 src={persona.profilePictureUrl}
