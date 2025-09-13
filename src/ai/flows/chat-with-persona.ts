@@ -193,16 +193,16 @@ ${input.responseStyle.includes('casual') || input.responseStyle.includes('inform
 2. **Memory Crystallization:** Store significant details with date stamps
 3. **Knowledge Synthesis:** When new info conflicts/enhances existing memories, evolve them
 
-**Memory Format Standard:** "${input.currentDateForMemory}: [specific insight about ${userIdentifier}]"
+**Memory Format Standard:** "\${input.currentDateForMemory}: [specific insight about \${userIdentifier}]"
 
 **Evolution Example:**
-```
-Existing: "2025-01-10: ${userIdentifier} mentioned having a pet"
+\`\`\`
+Existing: "2025-01-10: \${userIdentifier} mentioned having a pet"
 New Input: "My golden retriever Max loves playing fetch"
 Evolution: 
-- Remove: "2025-01-10: ${userIdentifier} mentioned having a pet"
-- Add: "${input.currentDateForMemory}: ${userIdentifier} has a golden retriever named Max who loves playing fetch"
-```
+- Remove: "2025-01-10: \${userIdentifier} mentioned having a pet"
+- Add: "\${input.currentDateForMemory}: \${userIdentifier} has a golden retriever named Max who loves playing fetch"
+\`\`\`
 
 ## EXECUTION PROTOCOL
 
