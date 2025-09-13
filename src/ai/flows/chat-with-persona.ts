@@ -139,13 +139,15 @@ ${input.existingMemories && input.existingMemories.length > 0 ?
 input.existingMemories.map(mem => `• ${mem}`).join('\n') : 
 '• (You don\'t know much about them yet)'}
 
-${input.chatSummaries && input.chatSummaries.length > 0 ? `
-# YOUR CONVERSATION HISTORY
-${input.chatSummaries.map(summary => `**${summary.date}:** ${summary.summary}`).join('\n')}` : ''}
-
 ${input.chatHistory && input.chatHistory.length > 0 ? `
-# CURRENT CONVERSATION
+# CURRENT CONVERSATION (TODAY)
 ${input.chatHistory.map(msg => `**${msg.role === 'user' ? userIdentifier : input.personaName}:** ${msg.content}`).join('\n')}` : ''}
+
+${input.chatSummaries && input.chatSummaries.length > 0 ? `
+# YOUR CONVERSATION HISTORY (PAST CHATS)
+${input.chatSummaries.map(summary => `**${summary.date}:** ${summary.summary}`).join('\n')}
+
+**IMPORTANT:** When ${userIdentifier} asks "when did we last talk?", they mean your most recent conversation from the history above, NOT the current chat messages.` : ''}
 
 # ${userIdentifier.toUpperCase()}'S NEW MESSAGE${input.userMessages.length > 1 ? 'S' : ''}
 ${input.userMessages.map(msg => `"${msg}"`).join('\n')}
