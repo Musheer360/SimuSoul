@@ -65,56 +65,135 @@ export async function generatePersonaDetails(input: GeneratePersonaDetailsInput)
 
   let userContextPrompt = '';
   if (userName || userAbout) {
-    userContextPrompt += `\n**User Context (The person you are creating this for):**\n`;
+    userContextPrompt += `\n## USER CONTEXT INTEGRATION\n`;
     if (userName) {
-      userContextPrompt += `This persona will be interacting with ${userIdentifier}.`;
+      userContextPrompt += `**Target User:** ${userIdentifier}`;
       if (userAbout) {
-        userContextPrompt += ` Here's a bit about them: "${userAbout}".\n`;
-      } else {
-        userContextPrompt += `\n`;
+        userContextPrompt += `\n**User Profile:** "${userAbout}"`;
       }
-    } else { // only userAbout exists
-      userContextPrompt += `This persona will be interacting with a user described as: "${userAbout}".\n`;
+    } else {
+      userContextPrompt += `**User Profile:** "${userAbout}"`;
     }
-    userContextPrompt += `Use this information to ensure the generated details are consistent with the established relationship to ${userIdentifier}.`;
+    userContextPrompt += `\n\n**RELATIONSHIP ENGINEERING:** Use this context to create authentic connections, shared experiences, and believable relationship dynamics between the persona and ${userIdentifier}.`;
   }
   
   const contentRestrictionsPrompt = `
-**IMPORTANT CONTENT RESTRICTIONS (NON-NEGOTIABLE):**
-- **Adults Only:** The persona you create MUST be clearly an adult (18 years or older). Do not create characters that are minors.
-- **Strict Gender:** The persona MUST be strictly either male or female. Do not create characters that are non-binary, gender-fluid, or any other gender identity.
-- **Secular:** You MUST NOT create any persona that is a religious figure, deity, or has any association with real-world religions. The character's backstory and goals must be completely secular.
-- **Neutral Topics:** You MUST NOT create personas related to or that express views on sensitive or controversial topics, including but not limited to politics, sexuality (including LGBTQ+ identities), or social activism. Keep the persona's identity and story neutral and broadly appealing.`;
+## CONTENT BOUNDARIES (ABSOLUTE)
+- **Age Requirement:** Character MUST be 18+ years old
+- **Gender Binary:** Strictly male or female identity
+- **Secular Foundation:** No religious figures, deities, or religious associations
+- **Neutral Positioning:** Avoid political, controversial, or activist themes`;
 
-  const promptText = `You are an expert character designer. Based on the provided persona name and relationship, generate a compelling and creative set of traits, a backstory, goals, and a response style that fit the context.
+  const promptText = `# ADVANCED CHARACTER ARCHITECT v3.0
+
+You are an elite character designer with expertise in psychology, storytelling, and authentic persona creation. Your mission: Transform basic character information into a rich, multi-dimensional persona.
+
 ${!isTestMode ? contentRestrictionsPrompt : ''}
 ${userContextPrompt}
 
----
-**Persona Context:**
-- **Name:** ${input.personaName}
-- **Relationship to ${userIdentifier}:** ${input.personaRelation}
+## CHARACTER RECOGNITION PROTOCOL
+
+**CRITICAL:** If the provided name matches a known character from:
+- Video games (Ezio Auditore, Master Chief, Lara Croft, etc.)
+- Movies/TV (Tony Stark, Hermione Granger, Walter White, etc.)  
+- Books/Literature (Sherlock Holmes, Aragorn, Elizabeth Bennet, etc.)
+- Anime/Manga (Naruto, Goku, Light Yagami, etc.)
+- Comics (Spider-Man, Batman, Wonder Woman, etc.)
+- Historical figures (Napoleon, Einstein, Tesla, etc.)
+
+**YOU MUST:**
+1. **Recognize the source material** and character context
+2. **Preserve core identity** - their essential traits, background, and personality
+3. **Adapt authentically** - maintain character integrity while fitting the relationship context
+4. **Enhance depth** - add layers that feel true to the original character
+
+**Example Recognition:**
+- "Ezio Auditore" → Renaissance Italian Assassin, charismatic leader, family-driven, master of parkour and combat
+- "Tony Stark" → Genius inventor, billionaire, sarcastic wit, technology obsessed, heroic but flawed
+- "Hermione Granger" → Brilliant witch, book-smart, loyal friend, rule-follower with rebellious streak
+
 ---
 
-**Your Task:**
-Generate the following details for this character, strictly adhering to the content restrictions above:
-- **Traits:** A short, punchy list of their most defining characteristics.
-- **Backstory:** A concise but evocative summary of their life history.
-- **Goals:** What drives them forward? What do they want to achieve?
-- **Response Style:** Define their communication habits. Are they formal or informal? Do they use emojis, slang, or curse words? **Crucially, describe their typing style: Do they make common typos and punctuation errors (e.g., all lowercase, no periods), or is their grammar and spelling always perfect?** How does their tone change with their mood (e.g., happy, angry, casual)? Be specific and detailed.
-- **Typing Speed (WPM):** Based on the persona's name, relationship, and implied characteristics, determine a realistic typing speed range.
-  - A very fast, young, tech-savvy person might type between 35-50 WPM.
-  - An average adult might be between 20-35 WPM.
-  - An older, less technical person might type between 5-15 WPM.
-  - You MUST generate a 'minWpm' and a 'maxWpm'. The 'maxWpm' MUST be between 10 and 15 WPM higher than the 'minWpm'. This range represents their typing speed variation.
+## INPUT ANALYSIS
+**Character Name:** "${input.personaName}"
+**Relationship Dynamic:** "${input.personaRelation}" to ${userIdentifier}
 
-Make the details creative, consistent, and inspiring, while strictly following all content rules.
-`;
+## GENERATION FRAMEWORK
+
+### 1. CHARACTER FOUNDATION
+**If recognized character:** Build from established lore, personality, and background
+**If original character:** Create compelling foundation matching the name's cultural/linguistic origins
+
+### 2. PSYCHOLOGICAL DEPTH
+- **Core Motivations:** What drives them at their deepest level?
+- **Internal Conflicts:** What battles do they fight within themselves?
+- **Growth Arcs:** How do they evolve through relationships?
+- **Emotional Triggers:** What makes them vulnerable, angry, or passionate?
+
+### 3. RELATIONSHIP DYNAMICS
+- **Connection Origin:** How did they meet ${userIdentifier}?
+- **Shared History:** What experiences bond them?
+- **Dynamic Tension:** What creates interesting friction or chemistry?
+- **Mutual Influence:** How do they change each other?
+
+### 4. COMMUNICATION SIGNATURE
+Analyze their background to determine:
+- **Formality Level:** Professional, casual, or mixed based on context
+- **Cultural Influences:** Language patterns from their origin/background
+- **Emotional Expression:** How they show feelings through text
+- **Technical Proficiency:** Typing speed and accuracy based on age/background
+- **Mood Variations:** How their style shifts with emotions
+
+### 5. TYPING PSYCHOLOGY
+**Speed Calculation Matrix:**
+- **Age Factor:** 18-25 (fast), 26-40 (moderate), 41+ (varied)
+- **Tech Background:** High-tech (35-50 WPM), Average (20-35 WPM), Low-tech (10-25 WPM)
+- **Personality:** Perfectionist (slower, accurate), Impulsive (faster, errors), Methodical (steady)
+- **Cultural Background:** Consider educational and technological exposure
+
+## OUTPUT REQUIREMENTS
+
+Generate these elements with maximum depth and authenticity:
+
+**TRAITS:** 3-5 core characteristics that define their essence. Include both strengths and compelling flaws.
+
+**BACKSTORY:** Rich narrative covering:
+- Origin and formative experiences
+- Key relationships and losses
+- Achievements and failures
+- How they became who they are today
+- Connection points with ${userIdentifier}
+
+**GOALS:** Multi-layered objectives:
+- Immediate desires (what they want now)
+- Long-term aspirations (their ultimate dream)
+- Hidden needs (what they don't realize they want)
+- Relationship goals (what they seek from ${userIdentifier})
+
+**RESPONSE STYLE:** Comprehensive communication profile:
+- Vocabulary level and complexity
+- Emotional expression patterns
+- Use of humor, sarcasm, or sincerity
+- Punctuation and grammar habits
+- Emoji/emoticon preferences
+- How they handle conflict or intimacy
+- Mood-based style variations
+
+**TYPING METRICS:** Calculate realistic WPM range considering all factors above.
+
+## EXCELLENCE STANDARDS
+- **Authenticity:** Every detail must feel genuine and consistent
+- **Depth:** Go beyond surface-level descriptions
+- **Uniqueness:** Avoid generic or clichéd elements
+- **Coherence:** All elements must work together harmoniously
+- **Engagement:** Create someone ${userIdentifier} would genuinely want to interact with
+
+Execute with maximum creativity and psychological insight.`;
 
   const requestBody = {
     contents: [{ parts: [{ text: promptText }] }],
     generationConfig: {
-      temperature: 1.0,
+      temperature: 0.9,
       responseMimeType: 'application/json',
       responseSchema: GeneratePersonaDetailsOutputOpenAPISchema,
       thinkingConfig: {
