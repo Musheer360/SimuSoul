@@ -67,8 +67,13 @@ function parseWhatsAppChat(chatContent: string, personName: string): string[] {
 
 function shouldFallbackToFlash(error: unknown): boolean {
   if (!error || typeof error !== 'object') return false;
+  const status = (error as any).status;
+  const code = ((error as any).code || '').toString().toUpperCase();
   const message = (error as Error).message?.toLowerCase() || '';
   return (
+    status === 429 ||
+    code === 'RESOURCE_EXHAUSTED' ||
+    code.includes('QUOTA') ||
     message.includes('billing') ||
     message.includes('quota') ||
     message.includes('429') ||
@@ -196,6 +201,7 @@ Respond ONLY with valid JSON. Make every field rich with specific, authentic det
       throw error;
     }
 
+    // Fall back to the best free-tier option with a small thinking budget to preserve quality without billing.
     const flashRequestBody = {
       ...requestBody,
       generationConfig: {
