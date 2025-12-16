@@ -86,16 +86,31 @@ function isGeminiApiError(error: unknown): error is GeminiApiError {
 function shouldFallbackToFlash(error: unknown): boolean {
   if (!isGeminiApiError(error)) return false;
   const status = error.status;
-  const code = (error.code || '').toString().toUpperCase();
+  const rawCode = (error.code || '').toString();
+  const normalizedCode = rawCode.toUpperCase();
   const message = (error.message || '').toLowerCase();
   return (
     status === 429 ||
-    code === 'RESOURCE_EXHAUSTED' ||
-    code.includes('QUOTA') ||
+    normalizedCode === 'RESOURCE_EXHAUSTED' ||
+    normalizedCode.includes('QUOTA') ||
+    rawCode.includes('quota') ||
     message.includes('billing') ||
     message.includes('quota') ||
     message.includes('429') ||
     message.includes('limit: 0')
+  );
+}
+
+function isThinkingConfigUnsupported(error: unknown): boolean {
+  if (!isGeminiApiError(error)) return false;
+  const code = (error.code || '').toString().toUpperCase();
+  const message = (error.message || '').toLowerCase();
+  return (
+    code === 'INVALID_ARGUMENT' ||
+    message.includes('thinkingconfig') ||
+    message.includes('thinking config') ||
+    message.includes('unknown field') ||
+    message.includes('unsupported')
   );
 }
 
@@ -236,9 +251,9 @@ Respond ONLY with valid JSON. Make every field rich with specific, authentic det
     try {
       response = await callGeminiApi<any>('gemini-2.5-flash:generateContent', flashRequestBody);
     } catch (flashError) {
-      const flashMessage = (flashError as Error).message?.toLowerCase() || '';
-      if (flashMessage.includes('thinking') || flashMessage.includes('unsupported') || flashMessage.includes('unknown field')) {
-        const { thinkingConfig, ...restGenerationConfig } = flashRequestBody.generationConfig || {};
+      if (isThinkingConfigUnsupported(flashError)) {
+        const generationConfig = flashRequestBody.generationConfig || {};
+        const { thinkingConfig, ...restGenerationConfig } = generationConfig;
         response = await callGeminiApi<any>('gemini-2.5-flash:generateContent', {
           ...flashRequestBody,
           generationConfig: restGenerationConfig,
