@@ -227,14 +227,6 @@ export default function NewPersonaPage() {
   };
 
   const handleGenerateDetails = async () => {
-    } catch (e: any) {
-      toast({ variant: 'destructive', title: 'Generation Failed', description: e.message || 'An unknown error occurred.' });
-    } finally {
-      setIsGeneratingFull(false);
-    }
-  };
-
-  const handleGenerateDetails = async () => {
     const name = nameRef.current?.value;
     const relation = relationRef.current?.value;
 
