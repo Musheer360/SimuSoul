@@ -74,7 +74,13 @@ const FLASH_FALLBACK_TOP_K = 32;
 const FLASH_FALLBACK_THINKING_BUDGET = 1024;
 
 function isGeminiApiError(error: unknown): error is GeminiApiError {
-  return typeof error === 'object' && error !== null;
+  if (!error || typeof error !== 'object') return false;
+  const candidate = error as Partial<GeminiApiError>;
+  return (
+    typeof candidate.message === 'string' ||
+    typeof candidate.status === 'number' ||
+    typeof candidate.code === 'string'
+  );
 }
 
 function shouldFallbackToFlash(error: unknown): boolean {
@@ -227,7 +233,20 @@ Respond ONLY with valid JSON. Make every field rich with specific, authentic det
       },
     };
 
-    response = await callGeminiApi<any>('gemini-2.5-flash:generateContent', flashRequestBody);
+    try {
+      response = await callGeminiApi<any>('gemini-2.5-flash:generateContent', flashRequestBody);
+    } catch (flashError) {
+      const flashMessage = (flashError as Error).message?.toLowerCase() || '';
+      if (flashMessage.includes('thinking') || flashMessage.includes('unsupported') || flashMessage.includes('unknown field')) {
+        const { thinkingConfig, ...restGenerationConfig } = flashRequestBody.generationConfig || {};
+        response = await callGeminiApi<any>('gemini-2.5-flash:generateContent', {
+          ...flashRequestBody,
+          generationConfig: restGenerationConfig,
+        });
+      } else {
+        throw flashError;
+      }
+    }
   }
   
   const textContent = response.candidates?.[0]?.content?.parts?.[0]?.text;
