@@ -67,6 +67,16 @@ function parseWhatsAppChat(chatContent: string, personName: string): string[] {
 
 type GeminiApiError = { status?: number; code?: string; message?: string };
 
+type PersonaGenerationConfig = {
+  temperature?: number;
+  responseMimeType?: string;
+  responseSchema?: unknown;
+  topP?: number;
+  topK?: number;
+  thinkingConfig?: { thinkingBudget?: number };
+  [key: string]: unknown;
+};
+
 // Tuned fallback config for the free-tier Gemini Flash model to balance quality and quota-free availability.
 const FLASH_FALLBACK_TEMPERATURE = 0.45;
 const FLASH_FALLBACK_TOP_P = 0.95;
@@ -83,12 +93,19 @@ function isGeminiApiError(error: unknown): error is GeminiApiError {
   );
 }
 
+function getGeminiErrorDetails(error: GeminiApiError) {
+  const rawCode = (error.code || '').toString();
+  return {
+    status: error.status,
+    rawCode,
+    normalizedCode: rawCode.toUpperCase(),
+    message: (error.message || '').toLowerCase(),
+  };
+}
+
 function shouldFallbackToFlash(error: unknown): boolean {
   if (!isGeminiApiError(error)) return false;
-  const status = error.status;
-  const rawCode = (error.code || '').toString();
-  const normalizedCode = rawCode.toUpperCase();
-  const message = (error.message || '').toLowerCase();
+  const { status, normalizedCode, message } = getGeminiErrorDetails(error);
   const isRateLimited = status === 429 || message.includes('429');
   const isQuotaBlocked = normalizedCode === 'RESOURCE_EXHAUSTED' || normalizedCode.includes('QUOTA') || message.includes('quota');
   const isBillingBlocked = message.includes('billing') || message.includes('limit: 0');
@@ -97,11 +114,10 @@ function shouldFallbackToFlash(error: unknown): boolean {
 
 function isThinkingConfigUnsupported(error: unknown): boolean {
   if (!isGeminiApiError(error)) return false;
-  const code = (error.code || '').toString().toUpperCase();
-  const message = (error.message || '').toLowerCase();
+  const { normalizedCode, message } = getGeminiErrorDetails(error);
   const mentionsThinkingConfig = /thinking[_\s]?config/.test(message);
   const mentionsUnsupportedField = message.includes('unknown field "thinkingconfig"') || message.includes('unknown field "thinking config"') || message.includes('unsupported field "thinkingconfig"');
-  return mentionsThinkingConfig || mentionsUnsupportedField || (code === 'INVALID_ARGUMENT' && mentionsUnsupportedField);
+  return mentionsThinkingConfig || mentionsUnsupportedField;
 }
 
 export async function generatePersonaFromChat(input: GeneratePersonaFromChatInput): Promise<GeneratePersonaFromChatOutput> {
@@ -242,10 +258,10 @@ Respond ONLY with valid JSON. Make every field rich with specific, authentic det
       response = await callGeminiApi<any>('gemini-2.5-flash:generateContent', flashRequestBody);
     } catch (flashError) {
       if (isThinkingConfigUnsupported(flashError)) {
-        const generationConfig = flashRequestBody.generationConfig && typeof flashRequestBody.generationConfig === 'object'
+        const generationConfig: PersonaGenerationConfig = flashRequestBody.generationConfig && typeof flashRequestBody.generationConfig === 'object'
           ? flashRequestBody.generationConfig
           : {};
-        const { thinkingConfig, ...restGenerationConfig } = generationConfig as Record<string, unknown>;
+        const { thinkingConfig, ...restGenerationConfig } = generationConfig;
         response = await callGeminiApi<any>('gemini-2.5-flash:generateContent', {
           ...flashRequestBody,
           generationConfig: restGenerationConfig,
