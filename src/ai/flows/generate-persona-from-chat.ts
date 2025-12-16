@@ -65,11 +65,23 @@ function parseWhatsAppChat(chatContent: string, personName: string): string[] {
   return personMessages;
 }
 
+type GeminiApiError = { status?: number; code?: string; message?: string };
+
+// Tuned fallback config for the free-tier Gemini Flash model to balance quality and quota-free availability.
+const FLASH_FALLBACK_TEMPERATURE = 0.45;
+const FLASH_FALLBACK_TOP_P = 0.95;
+const FLASH_FALLBACK_TOP_K = 32;
+const FLASH_FALLBACK_THINKING_BUDGET = 1024;
+
+function isGeminiApiError(error: unknown): error is GeminiApiError {
+  return typeof error === 'object' && error !== null;
+}
+
 function shouldFallbackToFlash(error: unknown): boolean {
-  if (!error || typeof error !== 'object') return false;
-  const status = (error as any).status;
-  const code = ((error as any).code || '').toString().toUpperCase();
-  const message = (error as Error).message?.toLowerCase() || '';
+  if (!isGeminiApiError(error)) return false;
+  const status = error.status;
+  const code = (error.code || '').toString().toUpperCase();
+  const message = (error.message || '').toLowerCase();
   return (
     status === 429 ||
     code === 'RESOURCE_EXHAUSTED' ||
@@ -206,11 +218,11 @@ Respond ONLY with valid JSON. Make every field rich with specific, authentic det
       ...requestBody,
       generationConfig: {
         ...requestBody.generationConfig,
-        temperature: 0.45,
-        topP: 0.95,
-        topK: 32,
+        temperature: FLASH_FALLBACK_TEMPERATURE,
+        topP: FLASH_FALLBACK_TOP_P,
+        topK: FLASH_FALLBACK_TOP_K,
         thinkingConfig: {
-          thinkingBudget: 1024,
+          thinkingBudget: FLASH_FALLBACK_THINKING_BUDGET,
         },
       },
     };
