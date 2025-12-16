@@ -75,17 +75,23 @@ export function generatePlaceholderAvatar(name: string): string {
     .slice(0, 2)
     .join('');
   
-  // Generate a consistent color based on the name
+  // Generate a random pastel color based on the name
   let hash = 0;
   for (let i = 0; i < name.length; i++) {
     hash = name.charCodeAt(i) + ((hash << 5) - hash);
   }
   const hue = Math.abs(hash % 360);
-  const bgColor = `hsl(${hue}, 65%, 45%)`;
+  // Pastel colors: high lightness (75-85%), moderate saturation (50-70%)
+  const saturation = 50 + Math.abs((hash >> 8) % 20); // 50-70%
+  const lightness = 75 + Math.abs((hash >> 16) % 10); // 75-85%
+  const bgColor = `hsl(${hue}, ${saturation}%, ${lightness}%)`;
+  // Darker text color for contrast on pastel backgrounds
+  const textColor = `hsl(${hue}, ${saturation}%, 25%)`;
   
+  // Use dominant-baseline="central" for proper vertical centering
   const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256" viewBox="0 0 256 256">
     <rect width="256" height="256" fill="${bgColor}"/>
-    <text x="128" y="140" font-family="system-ui, -apple-system, sans-serif" font-size="96" font-weight="600" fill="white" text-anchor="middle">${initials}</text>
+    <text x="128" y="128" font-family="system-ui, -apple-system, sans-serif" font-size="96" font-weight="600" fill="${textColor}" text-anchor="middle" dominant-baseline="central">${initials}</text>
   </svg>`;
   
   return `data:image/svg+xml;base64,${btoa(svg)}`;
