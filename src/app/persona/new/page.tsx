@@ -5,6 +5,7 @@ import { useEffect, useState, useRef, FormEvent } from 'react';
 import { useRouter } from 'next/navigation';
 import { generatePersonaDetails } from '@/ai/flows/generate-persona-details';
 import { generatePersonaFromPrompt, GeneratePersonaFromPromptOutput } from '@/ai/flows/generate-full-persona';
+import { generatePersonaFromChat } from '@/ai/flows/generate-persona-from-chat';
 import { generatePersonaProfilePicture } from '@/ai/flows/generate-persona-profile-picture';
 import { moderatePersonaContent } from '@/ai/flows/moderate-persona-content';
 import type { Persona, ChatSession, UserDetails } from '@/lib/types';
@@ -21,7 +22,7 @@ import {
 } from '@/components/ui/card';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Loader2, Sparkles, Wand2 } from 'lucide-react';
+import { Loader2, Sparkles, Wand2, Upload } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { savePersona, getUserDetails } from '@/lib/db';
 import { isTestModeActive } from '@/lib/api-key-manager';
@@ -91,6 +92,11 @@ export default function NewPersonaPage() {
   const [activeTab, setActiveTab] = useState('manual');
   const [prompt, setPrompt] = useState('');
   
+  // Chat clone state
+  const [chatContent, setChatContent] = useState('');
+  const [personNameForClone, setPersonNameForClone] = useState('');
+  const [isGeneratingFromChat, setIsGeneratingFromChat] = useState(false);
+  
   const [isGeneratingFull, setIsGeneratingFull] = useState(false);
   const [isGeneratingDetails, setIsGeneratingDetails] = useState(false);
   const [isCreating, setIsCreating] = useState(false);
@@ -136,12 +142,91 @@ export default function NewPersonaPage() {
       }
 
       setFormData(result);
-      setFormKey(Date.now()); // Force re-render of form with new default values
+      setFormKey(Date.now());
       setActiveTab('manual');
       toast({
         title: 'Persona Generated!',
         description: 'Review the details below and create your persona.',
       });
+    } catch (err: any) {
+      setError(err.message || 'Failed to generate persona.');
+      toast({
+        variant: 'destructive',
+        title: 'Generation Failed',
+        description: err.message || 'An error occurred.',
+      });
+    } finally {
+      setIsGeneratingFull(false);
+    }
+  };
+
+  const handleGenerateFromChat = async () => {
+    if (!chatContent || !personNameForClone) return;
+    setIsGeneratingFromChat(true);
+    setError(null);
+    try {
+      const result = await generatePersonaFromChat({
+        chatContent,
+        personName: personNameForClone,
+        userName: userDetails?.name,
+        userAbout: userDetails?.about,
+      });
+      
+      const testMode = await isTestModeActive();
+      const moderationResult = await moderatePersonaContent({ ...result, age: result.age || undefined, isTestMode: testMode });
+
+      if (!moderationResult.isSafe) {
+        throw new Error(GENERIC_MODERATION_ERROR);
+      }
+
+      // Map chat analysis fields to form fields
+      setFormData({
+        name: result.name,
+        age: result.age,
+        relation: result.relation,
+        traits: result.traits,
+        backstory: result.backstory,
+        goals: result.interests, // Use interests as goals
+        responseStyle: `${result.communicationStyle}\n\nEmotional Tone: ${result.emotionalTone}\n\nValues: ${result.values}\n\nQuirks: ${result.quirks}`,
+        minWpm: 0,
+        maxWpm: 0,
+      });
+      
+      setFormKey(Date.now());
+      setActiveTab('manual');
+      toast({
+        title: 'Persona Cloned!',
+        description: `Successfully analyzed ${personNameForClone}'s chat. Review and create.`,
+      });
+    } catch (err: any) {
+      setError(err.message || 'Failed to analyze chat.');
+      toast({
+        variant: 'destructive',
+        title: 'Analysis Failed',
+        description: err.message || 'An error occurred.',
+      });
+    } finally {
+      setIsGeneratingFromChat(false);
+    }
+  };
+
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const content = event.target?.result as string;
+      setChatContent(content);
+      toast({
+        title: 'File Loaded',
+        description: `${file.name} loaded successfully.`,
+      });
+    };
+    reader.readAsText(file);
+  };
+
+  const handleGenerateDetails = async () => {
     } catch (e: any) {
       toast({ variant: 'destructive', title: 'Generation Failed', description: e.message || 'An unknown error occurred.' });
     } finally {
@@ -288,10 +373,13 @@ export default function NewPersonaPage() {
           </CardHeader>
           <CardContent>
               <Tabs value={activeTab} onValueChange={setActiveTab}>
-              <TabsList className="grid w-full grid-cols-2 h-8 p-0.5">
+              <TabsList className="grid w-full grid-cols-3 h-8 p-0.5">
                   <TabsTrigger value="manual" className="h-7">Manual</TabsTrigger>
                   <TabsTrigger value="ai" className="h-7">
-                  <Wand2 className="mr-2 h-4 w-4 hidden sm:inline-block" /> Generate with AI
+                  <Wand2 className="mr-2 h-4 w-4 hidden sm:inline-block" /> AI Generate
+                  </TabsTrigger>
+                  <TabsTrigger value="clone" className="h-7">
+                  <Upload className="mr-2 h-4 w-4 hidden sm:inline-block" /> Clone Chat
                   </TabsTrigger>
               </TabsList>
               <TabsContent value="manual" className="pt-6">
@@ -452,6 +540,82 @@ export default function NewPersonaPage() {
                         <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Generating...</>
                       ) : (
                         <><Wand2 className="mr-2 h-4 w-4" /> Generate Persona from Prompt</>
+                      )}
+                  </Button>
+                  </div>
+              </TabsContent>
+              <TabsContent value="clone" className="pt-6">
+                  <div className="space-y-4">
+                  <div className="space-y-2">
+                      <Label htmlFor="personName">Person's Name in Chat</Label>
+                      <Input
+                        id="personName"
+                        value={personNameForClone}
+                        onChange={(e) => setPersonNameForClone(e.target.value)}
+                        placeholder="e.g., Sarah, John"
+                        required
+                      />
+                      <p className="text-xs text-muted-foreground">
+                        Enter the exact name as it appears in the WhatsApp chat.
+                      </p>
+                  </div>
+                  
+                  <div className="space-y-2">
+                      <Label>Upload Chat File</Label>
+                      <div className="flex items-center gap-2">
+                        <Input
+                          type="file"
+                          accept=".txt,.zip"
+                          onChange={handleFileUpload}
+                          className="cursor-pointer"
+                        />
+                      </div>
+                      <p className="text-xs text-muted-foreground">
+                        Upload WhatsApp chat export (.txt or .zip file)
+                      </p>
+                  </div>
+
+                  <div className="relative">
+                      <div className="absolute inset-0 flex items-center">
+                        <span className="w-full border-t" />
+                      </div>
+                      <div className="relative flex justify-center text-xs uppercase">
+                        <span className="bg-card px-2 text-muted-foreground">Or paste chat</span>
+                      </div>
+                  </div>
+
+                  <div className="space-y-2">
+                      <Label htmlFor="chatContent">Paste Chat Content</Label>
+                      <Textarea
+                        id="chatContent"
+                        value={chatContent}
+                        onChange={(e) => setChatContent(e.target.value)}
+                        placeholder="Paste your WhatsApp chat export here...&#10;&#10;Example format:&#10;02/09/2025, 8:34 PM - John: Hey, how are you?&#10;02/09/2025, 8:35 PM - Sarah: I'm good! How about you?"
+                        rows={8}
+                        className="resize-none font-mono text-xs"
+                      />
+                      <p className="text-xs text-muted-foreground">
+                        Paste the exported WhatsApp chat. Minimum 10 messages required.
+                      </p>
+                  </div>
+
+                  {error && (
+                      <Alert variant="destructive">
+                      <AlertTitle>Error</AlertTitle>
+                      <AlertDescription>{error}</AlertDescription>
+                      </Alert>
+                  )}
+
+                  <Button
+                      className="w-full"
+                      onClick={handleGenerateFromChat}
+                      disabled={isGeneratingFromChat || !chatContent || !personNameForClone}
+                      size="lg"
+                  >
+                      {isGeneratingFromChat ? (
+                        <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Analyzing Chat...</>
+                      ) : (
+                        <><Sparkles className="mr-2 h-4 w-4" /> Clone Persona from Chat</>
                       )}
                   </Button>
                   </div>
