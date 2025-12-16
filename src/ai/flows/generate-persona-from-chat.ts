@@ -65,6 +65,17 @@ function parseWhatsAppChat(chatContent: string, personName: string): string[] {
   return personMessages;
 }
 
+function shouldFallbackToFlash(error: unknown): boolean {
+  if (!error || typeof error !== 'object') return false;
+  const message = (error as Error).message?.toLowerCase() || '';
+  return (
+    message.includes('billing') ||
+    message.includes('quota') ||
+    message.includes('429') ||
+    message.includes('limit: 0')
+  );
+}
+
 export async function generatePersonaFromChat(input: GeneratePersonaFromChatInput): Promise<GeneratePersonaFromChatOutput> {
   const { chatContent, personName, userName, userAbout } = input;
   
@@ -177,7 +188,29 @@ Respond ONLY with valid JSON. Make every field rich with specific, authentic det
     },
   };
 
-  const response = await callGeminiApi<any>('gemini-2.5-pro:generateContent', requestBody);
+  let response;
+  try {
+    response = await callGeminiApi<any>('gemini-2.5-pro:generateContent', requestBody);
+  } catch (error) {
+    if (!shouldFallbackToFlash(error)) {
+      throw error;
+    }
+
+    const flashRequestBody = {
+      ...requestBody,
+      generationConfig: {
+        ...requestBody.generationConfig,
+        temperature: 0.45,
+        topP: 0.95,
+        topK: 32,
+        thinkingConfig: {
+          thinkingBudget: 1024,
+        },
+      },
+    };
+
+    response = await callGeminiApi<any>('gemini-2.5-flash:generateContent', flashRequestBody);
+  }
   
   const textContent = response.candidates?.[0]?.content?.parts?.[0]?.text;
   
