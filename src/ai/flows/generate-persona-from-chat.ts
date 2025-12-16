@@ -90,7 +90,7 @@ function shouldFallbackToFlash(error: unknown): boolean {
   const normalizedCode = rawCode.toUpperCase();
   const message = (error.message || '').toLowerCase();
   const isRateLimited = status === 429 || message.includes('429');
-  const isQuotaBlocked = normalizedCode === 'RESOURCE_EXHAUSTED' || normalizedCode.includes('QUOTA') || rawCode.includes('quota') || message.includes('quota');
+  const isQuotaBlocked = normalizedCode === 'RESOURCE_EXHAUSTED' || normalizedCode.includes('QUOTA') || message.includes('quota');
   const isBillingBlocked = message.includes('billing') || message.includes('limit: 0');
   return isRateLimited || isQuotaBlocked || isBillingBlocked;
 }
@@ -101,7 +101,7 @@ function isThinkingConfigUnsupported(error: unknown): boolean {
   const message = (error.message || '').toLowerCase();
   const mentionsThinkingConfig = /thinking[_\s]?config/.test(message);
   const mentionsUnsupportedField = message.includes('unknown field "thinkingconfig"') || message.includes('unknown field "thinking config"') || message.includes('unsupported field "thinkingconfig"');
-  return mentionsThinkingConfig || mentionsUnsupportedField || (code === 'INVALID_ARGUMENT' && mentionsThinkingConfig);
+  return mentionsThinkingConfig || mentionsUnsupportedField || (code === 'INVALID_ARGUMENT' && mentionsUnsupportedField);
 }
 
 export async function generatePersonaFromChat(input: GeneratePersonaFromChatInput): Promise<GeneratePersonaFromChatOutput> {
