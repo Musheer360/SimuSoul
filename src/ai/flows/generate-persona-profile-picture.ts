@@ -48,7 +48,7 @@ ${input.personaBackstory}`;
     contents: [{ parts: [{ text: prompt }] }],
     generationConfig: {
       responseModalities: ['IMAGE'],
-      imageGenerationConfig: {
+      imageConfig: {
         aspectRatio: '3:4',
       },
     },
