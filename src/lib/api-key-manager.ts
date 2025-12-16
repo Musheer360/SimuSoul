@@ -59,7 +59,6 @@ export async function callGeminiApi<T>(
       if (retryCount >= maxRetries) {
         throw new Error('Failed to retrieve API keys from database. Please refresh the page and try again.');
       }
-      // Wait briefly before retrying
       await new Promise(resolve => setTimeout(resolve, 100 * retryCount));
     }
   }
@@ -77,25 +76,43 @@ export async function callGeminiApi<T>(
     const keyToTry = getRoundRobinUserKey(validKeys);
     const url = `${GEMINI_API_URL}${model}?key=${keyToTry}`;
 
-    try {
-      const response = await fetch(url, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(body),
-      });
+    // Retry logic for 503 errors
+    const maxApiRetries = 3;
+    for (let retry = 0; retry < maxApiRetries; retry++) {
+      try {
+        const response = await fetch(url, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(body),
+        });
 
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(`API Error (${response.status}): ${errorData?.error?.message || 'Unknown error'}`);
+        if (!response.ok) {
+          const errorData = await response.json().catch(() => ({}));
+          const errorMsg = `API Error (${response.status}): ${errorData?.error?.message || 'Unknown error'}`;
+          
+          // Retry on 503 (overloaded) with exponential backoff
+          if (response.status === 503 && retry < maxApiRetries - 1) {
+            const delay = Math.pow(2, retry) * 1000; // 1s, 2s, 4s
+            await new Promise(resolve => setTimeout(resolve, delay));
+            continue;
+          }
+          
+          throw new Error(errorMsg);
+        }
+
+        return await response.json();
+      } catch (error: any) {
+        // If it's the last retry or not a 503 error, save and break
+        if (retry === maxApiRetries - 1 || !error.message?.includes('503')) {
+          lastError = error;
+          break;
+        }
       }
-
-      return await response.json();
-    } catch (error: any) {
-      lastError = error;
-      console.warn(`API key ending in ...${keyToTry.slice(-4)} failed. Retrying with next key.`);
     }
+    
+    console.warn(`API key ending in ...${keyToTry.slice(-4)} failed. Retrying with next key.`);
   }
   
   throw new Error(`All provided API keys failed. Last error: ${lastError?.message || 'Unknown error'}`);
