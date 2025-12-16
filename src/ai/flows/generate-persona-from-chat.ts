@@ -89,29 +89,19 @@ function shouldFallbackToFlash(error: unknown): boolean {
   const rawCode = (error.code || '').toString();
   const normalizedCode = rawCode.toUpperCase();
   const message = (error.message || '').toLowerCase();
-  return (
-    status === 429 ||
-    normalizedCode === 'RESOURCE_EXHAUSTED' ||
-    normalizedCode.includes('QUOTA') ||
-    rawCode.includes('quota') ||
-    message.includes('billing') ||
-    message.includes('quota') ||
-    message.includes('429') ||
-    message.includes('limit: 0')
-  );
+  const isRateLimited = status === 429 || message.includes('429');
+  const isQuotaBlocked = normalizedCode === 'RESOURCE_EXHAUSTED' || normalizedCode.includes('QUOTA') || rawCode.includes('quota') || message.includes('quota');
+  const isBillingBlocked = message.includes('billing') || message.includes('limit: 0');
+  return isRateLimited || isQuotaBlocked || isBillingBlocked;
 }
 
 function isThinkingConfigUnsupported(error: unknown): boolean {
   if (!isGeminiApiError(error)) return false;
   const code = (error.code || '').toString().toUpperCase();
   const message = (error.message || '').toLowerCase();
-  return (
-    code === 'INVALID_ARGUMENT' ||
-    message.includes('thinkingconfig') ||
-    message.includes('thinking config') ||
-    message.includes('unknown field') ||
-    message.includes('unsupported')
-  );
+  const mentionsThinkingConfig = /thinking[_\s]?config/.test(message);
+  const mentionsUnsupportedField = message.includes('unknown field "thinkingconfig"') || message.includes('unknown field "thinking config"') || message.includes('unsupported field "thinkingconfig"');
+  return mentionsThinkingConfig || mentionsUnsupportedField || (code === 'INVALID_ARGUMENT' && mentionsThinkingConfig);
 }
 
 export async function generatePersonaFromChat(input: GeneratePersonaFromChatInput): Promise<GeneratePersonaFromChatOutput> {
@@ -252,8 +242,10 @@ Respond ONLY with valid JSON. Make every field rich with specific, authentic det
       response = await callGeminiApi<any>('gemini-2.5-flash:generateContent', flashRequestBody);
     } catch (flashError) {
       if (isThinkingConfigUnsupported(flashError)) {
-        const generationConfig = flashRequestBody.generationConfig || {};
-        const { thinkingConfig, ...restGenerationConfig } = generationConfig;
+        const generationConfig = flashRequestBody.generationConfig && typeof flashRequestBody.generationConfig === 'object'
+          ? flashRequestBody.generationConfig
+          : {};
+        const { thinkingConfig, ...restGenerationConfig } = generationConfig as Record<string, unknown>;
         response = await callGeminiApi<any>('gemini-2.5-flash:generateContent', {
           ...flashRequestBody,
           generationConfig: restGenerationConfig,
