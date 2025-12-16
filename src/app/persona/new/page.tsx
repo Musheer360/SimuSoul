@@ -6,7 +6,12 @@ import { useRouter } from 'next/navigation';
 import { generatePersonaDetails } from '@/ai/flows/generate-persona-details';
 import { generatePersonaFromPrompt, GeneratePersonaFromPromptOutput } from '@/ai/flows/generate-full-persona';
 import { generatePersonaFromChat } from '@/ai/flows/generate-persona-from-chat';
-import { generatePersonaProfilePicture } from '@/ai/flows/generate-persona-profile-picture';
+import { 
+  generatePersonaProfilePicture, 
+  ImageGenerationQuotaError,
+  buildProfilePicturePrompt,
+  generatePlaceholderAvatar 
+} from '@/ai/flows/generate-persona-profile-picture';
 import { moderatePersonaContent } from '@/ai/flows/moderate-persona-content';
 import type { Persona, ChatSession, UserDetails } from '@/lib/types';
 import { Label } from '@/components/ui/label';
@@ -22,54 +27,25 @@ import {
 } from '@/components/ui/card';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Loader2, Sparkles, Wand2, Upload } from 'lucide-react';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import { Loader2, Sparkles, Wand2, Upload, Copy, ImageIcon, User } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { savePersona, getUserDetails } from '@/lib/db';
 import { isTestModeActive } from '@/lib/api-key-manager';
+import { compressImage } from '@/lib/utils';
 
 const GENERIC_MODERATION_ERROR = 'This content does not meet the safety guidelines. Please modify it and try again.';
 const GENERIC_MODERATION_ERROR_PROMPT = 'The generated content does not meet the safety guidelines. Please try a different prompt.';
 const GENERIC_MODERATION_ERROR_DETAILS = 'The generated content does not meet the safety guidelines. Please modify your inputs and try again.';
 
 const emptyStringAsUndefined = (val: string | number | undefined) => (val === '' || val === undefined ? undefined : Number(val));
-
-const compressImage = (dataUri: string, quality = 0.8): Promise<string> => {
-    return new Promise((resolve, reject) => {
-      if (typeof window === 'undefined') {
-        return resolve(dataUri);
-      }
-      const img = new Image();
-      img.onload = () => {
-        const canvas = document.createElement('canvas');
-        const MAX_WIDTH = 1024;
-        const MAX_HEIGHT = 1024;
-        let width = img.width;
-        let height = img.height;
-
-        if (width > height) {
-          if (width > MAX_WIDTH) {
-            height *= MAX_WIDTH / width;
-            width = MAX_WIDTH;
-          }
-        } else {
-          if (height > MAX_HEIGHT) {
-            width *= MAX_HEIGHT / height;
-            height = MAX_HEIGHT;
-          }
-        }
-        canvas.width = width;
-        canvas.height = height;
-        const ctx = canvas.getContext('2d');
-        if (!ctx) {
-          return reject(new Error('Could not get canvas context'));
-        }
-        ctx.drawImage(img, 0, 0, width, height);
-        resolve(canvas.toDataURL('image/jpeg', quality));
-      };
-      img.onerror = (err) => reject(err);
-      img.src = dataUri;
-    });
-};
 
 
 export default function NewPersonaPage() {
@@ -101,6 +77,12 @@ export default function NewPersonaPage() {
   const [isGeneratingDetails, setIsGeneratingDetails] = useState(false);
   const [isCreating, setIsCreating] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Avatar fallback dialog state
+  const [showAvatarFallbackDialog, setShowAvatarFallbackDialog] = useState(false);
+  const [avatarFallbackPrompt, setAvatarFallbackPrompt] = useState('');
+  const [pendingPersonaData, setPendingPersonaData] = useState<any>(null);
+  const avatarUploadRef = useRef<HTMLInputElement>(null);
 
   const [userDetails, setUserDetails] = useState<UserDetails | null>(null);
 
@@ -281,7 +263,7 @@ export default function NewPersonaPage() {
     
     // Basic validation
     for (const [key, value] of Object.entries(dataToValidate)) {
-        if (key !== 'age' && !value) {
+        if (key !== 'age' && key !== 'minWpm' && key !== 'maxWpm' && !value) {
             setError(`${key.charAt(0).toUpperCase() + key.slice(1)} is required.`);
             setIsCreating(false);
             return;
@@ -312,33 +294,18 @@ export default function NewPersonaPage() {
       
       const compressedDataUri = await compressImage(profilePictureResponse.profilePictureDataUri);
 
-      const now = Date.now();
-      const newChat: ChatSession = {
-        id: crypto.randomUUID(),
-        title: 'New Chat',
-        messages: [],
-        createdAt: now,
-        updatedAt: now,
-      };
-
-      const newPersona: Persona = {
-        id: crypto.randomUUID(),
-        ...dataToValidate,
-        profilePictureUrl: compressedDataUri,
-        chats: [newChat],
-        memories: [],
-      };
-
-      await savePersona(newPersona);
-      
-      toast({
-        title: 'Persona Created!',
-        description: 'Your new persona is ready to chat.',
-      });
-      
-      router.push(`/persona/${newPersona.id}?chat=${newChat.id}`);
+      await createPersonaWithAvatar(dataToValidate, compressedDataUri);
 
     } catch (err: any) {
+      // Check if this is a quota error - show fallback dialog
+      if (err instanceof ImageGenerationQuotaError) {
+        setPendingPersonaData(dataToValidate);
+        setAvatarFallbackPrompt(err.prompt);
+        setShowAvatarFallbackDialog(true);
+        setIsCreating(false);
+        return;
+      }
+      
       setError(err.message || 'An unknown error occurred during persona creation.');
       toast({
         variant: 'destructive',
@@ -347,6 +314,122 @@ export default function NewPersonaPage() {
       });
     } finally {
       setIsCreating(false);
+    }
+  };
+
+  // Helper function to create persona with a given avatar
+  const createPersonaWithAvatar = async (dataToValidate: any, avatarDataUri: string) => {
+    const now = Date.now();
+    const newChat: ChatSession = {
+      id: crypto.randomUUID(),
+      title: 'New Chat',
+      messages: [],
+      createdAt: now,
+      updatedAt: now,
+    };
+
+    const newPersona: Persona = {
+      id: crypto.randomUUID(),
+      ...dataToValidate,
+      profilePictureUrl: avatarDataUri,
+      chats: [newChat],
+      memories: [],
+    };
+
+    await savePersona(newPersona);
+    
+    toast({
+      title: 'Persona Created!',
+      description: 'Your new persona is ready to chat.',
+    });
+    
+    router.push(`/persona/${newPersona.id}?chat=${newChat.id}`);
+  };
+
+  // Handle using placeholder avatar from fallback dialog
+  const handleUsePlaceholderAvatar = async () => {
+    if (!pendingPersonaData) return;
+    
+    setIsCreating(true);
+    setShowAvatarFallbackDialog(false);
+    
+    try {
+      const placeholderAvatar = generatePlaceholderAvatar(pendingPersonaData.name);
+      await createPersonaWithAvatar(pendingPersonaData, placeholderAvatar);
+    } catch (err: any) {
+      setError(err.message || 'Failed to create persona.');
+      toast({
+        variant: 'destructive',
+        title: 'Creation Failed',
+        description: err.message || 'An unknown error occurred.',
+      });
+    } finally {
+      setIsCreating(false);
+      setPendingPersonaData(null);
+    }
+  };
+
+  // Handle avatar file upload from fallback dialog
+  const handleAvatarFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !pendingPersonaData) return;
+
+    // Validate file type
+    if (!file.type.startsWith('image/')) {
+      toast({
+        variant: 'destructive',
+        title: 'Invalid File',
+        description: 'Please upload an image file (PNG, JPG, etc.)',
+      });
+      return;
+    }
+
+    setIsCreating(true);
+    setShowAvatarFallbackDialog(false);
+
+    const reader = new FileReader();
+    reader.onload = async (event) => {
+      try {
+        const dataUri = event.target?.result as string;
+        const compressedDataUri = await compressImage(dataUri);
+        await createPersonaWithAvatar(pendingPersonaData, compressedDataUri);
+      } catch (err: any) {
+        setError(err.message || 'Failed to create persona.');
+        toast({
+          variant: 'destructive',
+          title: 'Creation Failed',
+          description: err.message || 'An unknown error occurred.',
+        });
+      } finally {
+        setIsCreating(false);
+        setPendingPersonaData(null);
+      }
+    };
+    reader.onerror = () => {
+      toast({
+        variant: 'destructive',
+        title: 'File Read Error',
+        description: 'Failed to read the uploaded file.',
+      });
+      setIsCreating(false);
+    };
+    reader.readAsDataURL(file);
+  };
+
+  // Copy prompt to clipboard
+  const handleCopyPrompt = async () => {
+    try {
+      await navigator.clipboard.writeText(avatarFallbackPrompt);
+      toast({
+        title: 'Copied!',
+        description: 'The prompt has been copied to your clipboard.',
+      });
+    } catch {
+      toast({
+        variant: 'destructive',
+        title: 'Copy Failed',
+        description: 'Could not copy to clipboard. Please select and copy manually.',
+      });
     }
   };
 
@@ -616,6 +699,103 @@ export default function NewPersonaPage() {
           </CardContent>
           </Card>
       </div>
+
+      {/* Avatar Fallback Dialog - shown when image generation fails due to quota */}
+      <Dialog open={showAvatarFallbackDialog} onOpenChange={setShowAvatarFallbackDialog}>
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="font-headline">Image Generation Unavailable</DialogTitle>
+            <DialogDescription>
+              The AI image generation feature is currently unavailable due to API quota limits. 
+              You can still create your persona using one of these options:
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-4 py-4">
+            {/* Option 1: Upload custom image */}
+            <div className="space-y-2">
+              <Label className="text-sm font-medium">Option 1: Upload Your Own Image</Label>
+              <p className="text-xs text-muted-foreground">
+                Upload a custom avatar image for your persona.
+              </p>
+              <input
+                ref={avatarUploadRef}
+                type="file"
+                accept="image/*"
+                onChange={handleAvatarFileUpload}
+                className="hidden"
+              />
+              <Button 
+                variant="outline" 
+                className="w-full" 
+                onClick={() => avatarUploadRef.current?.click()}
+                disabled={isCreating}
+              >
+                <ImageIcon className="mr-2 h-4 w-4" />
+                Upload Image
+              </Button>
+            </div>
+
+            {/* Option 2: Use placeholder */}
+            <div className="space-y-2">
+              <Label className="text-sm font-medium">Option 2: Use Placeholder Avatar</Label>
+              <p className="text-xs text-muted-foreground">
+                Create the persona with a simple initials-based avatar. You can update it later.
+              </p>
+              <Button 
+                variant="outline" 
+                className="w-full" 
+                onClick={handleUsePlaceholderAvatar}
+                disabled={isCreating}
+              >
+                {isCreating ? (
+                  <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Creating...</>
+                ) : (
+                  <><User className="mr-2 h-4 w-4" /> Use Placeholder Avatar</>
+                )}
+              </Button>
+            </div>
+
+            {/* Option 3: Copy prompt for external generation */}
+            <div className="space-y-2">
+              <Label className="text-sm font-medium">Option 3: Generate Externally</Label>
+              <p className="text-xs text-muted-foreground">
+                Copy this prompt to use with another AI image generator (like DALL-E, Midjourney, or Stable Diffusion), 
+                then upload the result.
+              </p>
+              <div className="relative">
+                <Textarea 
+                  value={avatarFallbackPrompt}
+                  readOnly
+                  rows={4}
+                  className="resize-none text-xs pr-10"
+                />
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  className="absolute right-1 top-1"
+                  onClick={handleCopyPrompt}
+                >
+                  <Copy className="h-4 w-4" />
+                </Button>
+              </div>
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button 
+              variant="ghost" 
+              onClick={() => {
+                setShowAvatarFallbackDialog(false);
+                setPendingPersonaData(null);
+              }}
+            >
+              Cancel
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

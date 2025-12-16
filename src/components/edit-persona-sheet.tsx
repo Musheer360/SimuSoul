@@ -1,10 +1,14 @@
 
 'use client';
 
-import { useState, useEffect, FormEvent } from 'react';
+import { useState, useEffect, FormEvent, useRef } from 'react';
 import type { Persona } from '@/lib/types';
 import { moderatePersonaContent } from '@/ai/flows/moderate-persona-content';
-import { generatePersonaProfilePicture } from '@/ai/flows/generate-persona-profile-picture';
+import { 
+  generatePersonaProfilePicture, 
+  ImageGenerationQuotaError,
+  generatePlaceholderAvatar 
+} from '@/ai/flows/generate-persona-profile-picture';
 import { Button } from '@/components/ui/button';
 import {
   Sheet,
@@ -19,10 +23,11 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { Loader2, Save, RefreshCw } from 'lucide-react';
+import { Loader2, Save, RefreshCw, Upload } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { ScrollArea } from './ui/scroll-area';
 import { isTestModeActive } from '@/lib/api-key-manager';
+import { compressImage } from '@/lib/utils';
 
 const GENERIC_MODERATION_ERROR = 'This content does not meet the safety guidelines. Please modify it and try again.';
 const emptyStringAsUndefined = (val: string | number | undefined | null) => (val === '' || val === undefined || val === null ? undefined : Number(val));
@@ -40,6 +45,7 @@ export function EditPersonaSheet({ persona, open, onOpenChange, onPersonaUpdate 
   const [isSaving, setIsSaving] = useState(false);
   const [isRegeneratingAvatar, setIsRegeneratingAvatar] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const avatarUploadRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     // When a new persona is passed in, reset the form data.
@@ -114,11 +120,67 @@ export function EditPersonaSheet({ persona, open, onOpenChange, onPersonaUpdate 
       
       toast({ title: 'Avatar Regenerated!', description: 'New avatar generated successfully.' });
     } catch (err: any) {
-      setError(err.message || 'Failed to regenerate avatar.');
-      toast({ variant: 'destructive', title: 'Avatar Generation Failed', description: err.message });
+      // Check if this is a quota error - provide helpful message
+      if (err instanceof ImageGenerationQuotaError) {
+        setError('Image generation is unavailable due to API quota limits. Please upload a custom image instead.');
+        toast({ 
+          variant: 'destructive', 
+          title: 'Quota Exceeded', 
+          description: 'Image generation unavailable. Please upload a custom image.' 
+        });
+      } else {
+        setError(err.message || 'Failed to regenerate avatar.');
+        toast({ variant: 'destructive', title: 'Avatar Generation Failed', description: err.message });
+      }
     } finally {
       setIsRegeneratingAvatar(false);
     }
+  };
+
+  // Handle avatar file upload
+  const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Validate file type
+    if (!file.type.startsWith('image/')) {
+      toast({
+        variant: 'destructive',
+        title: 'Invalid File',
+        description: 'Please upload an image file (PNG, JPG, etc.)',
+      });
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = async (event) => {
+      try {
+        const dataUri = event.target?.result as string;
+        const compressedDataUri = await compressImage(dataUri);
+        setFormData(prev => ({
+          ...prev,
+          profilePictureUrl: compressedDataUri
+        }));
+        toast({ title: 'Avatar Updated!', description: 'Your custom avatar has been set.' });
+      } catch (err: any) {
+        toast({
+          variant: 'destructive',
+          title: 'Upload Failed',
+          description: 'Failed to process the uploaded image.',
+        });
+      }
+    };
+    reader.onerror = () => {
+      toast({
+        variant: 'destructive',
+        title: 'File Read Error',
+        description: 'Failed to read the uploaded file.',
+      });
+    };
+    reader.readAsDataURL(file);
+    
+    // Reset the input so the same file can be selected again
+    e.target.value = '';
   };
 
   return (
@@ -141,20 +203,38 @@ export function EditPersonaSheet({ persona, open, onOpenChange, onPersonaUpdate 
                                 alt={formData.name}
                                 className="w-16 h-16 rounded-full object-cover"
                             />
-                            <Button 
-                                type="button"
-                                variant="outline" 
-                                size="sm"
-                                onClick={handleRegenerateAvatar}
-                                disabled={isRegeneratingAvatar}
-                            >
-                                {isRegeneratingAvatar ? (
-                                    <Loader2 className="w-4 h-4 animate-spin mr-2" />
-                                ) : (
-                                    <RefreshCw className="w-4 h-4 mr-2" />
-                                )}
-                                Regenerate
-                            </Button>
+                            <div className="flex gap-2">
+                                <Button 
+                                    type="button"
+                                    variant="outline" 
+                                    size="sm"
+                                    onClick={handleRegenerateAvatar}
+                                    disabled={isRegeneratingAvatar}
+                                >
+                                    {isRegeneratingAvatar ? (
+                                        <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                                    ) : (
+                                        <RefreshCw className="w-4 h-4 mr-2" />
+                                    )}
+                                    Regenerate
+                                </Button>
+                                <input
+                                    ref={avatarUploadRef}
+                                    type="file"
+                                    accept="image/*"
+                                    onChange={handleAvatarUpload}
+                                    className="hidden"
+                                />
+                                <Button 
+                                    type="button"
+                                    variant="outline" 
+                                    size="sm"
+                                    onClick={() => avatarUploadRef.current?.click()}
+                                >
+                                    <Upload className="w-4 h-4 mr-2" />
+                                    Upload
+                                </Button>
+                            </div>
                         </div>
                     </div>
 
