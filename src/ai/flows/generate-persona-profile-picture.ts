@@ -47,12 +47,15 @@ ${input.personaBackstory}`;
   const requestBody = {
     contents: [{ parts: [{ text: prompt }] }],
     generationConfig: {
-      responseModalities: ['TEXT', 'IMAGE'],
+      responseModalities: ['IMAGE'],
+      imageGenerationConfig: {
+        aspectRatio: '3:4',
+      },
     },
   };
 
-  // Use the specified model for image generation, as it's a specialized task.
-  const response = await callGeminiApi<any>('gemini-2.0-flash-preview-image-generation:generateContent', requestBody);
+  // Use Nano Banana (Gemini 2.5 Flash Image) for image generation
+  const response = await callGeminiApi<any>('gemini-2.5-flash-image:generateContent', requestBody);
 
   // The model returns image data in an 'inlineData' part.
   const imagePart = response.candidates?.[0]?.content?.parts?.find(
