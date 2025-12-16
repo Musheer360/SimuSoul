@@ -13,7 +13,7 @@ export type GeneratePersonaFromChatInput = z.infer<typeof GeneratePersonaFromCha
 
 export const GeneratePersonaFromChatOutputSchema = z.object({
   name: z.string(),
-  age: z.number().optional(),
+  age: z.number(),
   relation: z.string(),
   traits: z.string(),
   backstory: z.string(),
@@ -140,8 +140,8 @@ CRITICAL INSTRUCTIONS:
 OUTPUT REQUIREMENTS (JSON format):
 {
   "name": "${personName}",
-  "age": <estimated age based on language/references, or null>,
-  "relation": "<inferred relationship type: friend/family/colleague/partner>",
+  "age": <estimated age based on language/references/life stage - ALWAYS provide a number, use best estimate>,
+  "relation": "<relationship type with confidence level: 'Friend (Established)', 'Best Friend (Established)', 'Partner (Established)', 'Coworker (Presumed)', 'Family Member (Established)', etc. Use (Established) if relationship is explicitly confirmed by both parties in chat, use (Presumed) if inferred from context>",
   "traits": "<5-7 core personality traits with specific examples from messages>",
   "backstory": "<inferred life context: profession, lifestyle, interests, life stage - be specific based on message content>",
   "interests": "<hobbies, passions, topics they frequently discuss - with specific details>",
@@ -162,7 +162,7 @@ Respond ONLY with valid JSON. Make every field rich with specific, authentic det
         type: 'object',
         properties: {
           name: { type: 'string' },
-          age: { type: 'number', nullable: true },
+          age: { type: 'number' },
           relation: { type: 'string' },
           traits: { type: 'string' },
           backstory: { type: 'string' },
@@ -172,7 +172,7 @@ Respond ONLY with valid JSON. Make every field rich with specific, authentic det
           values: { type: 'string' },
           quirks: { type: 'string' },
         },
-        required: ['name', 'relation', 'traits', 'backstory', 'interests', 'communicationStyle', 'emotionalTone', 'values', 'quirks']
+        required: ['name', 'age', 'relation', 'traits', 'backstory', 'interests', 'communicationStyle', 'emotionalTone', 'values', 'quirks']
       }
     },
   };
@@ -189,7 +189,7 @@ Respond ONLY with valid JSON. Make every field rich with specific, authentic det
   
   return {
     name: result.name || personName,
-    age: result.age || undefined,
+    age: result.age,
     relation: result.relation,
     traits: result.traits,
     backstory: result.backstory,

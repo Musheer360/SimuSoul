@@ -188,8 +188,8 @@ export default function NewPersonaPage() {
         backstory: result.backstory,
         goals: result.interests, // Use interests as goals
         responseStyle: `${result.communicationStyle}\n\nEmotional Tone: ${result.emotionalTone}\n\nValues: ${result.values}\n\nQuirks: ${result.quirks}`,
-        minWpm: 0,
-        maxWpm: 0,
+        minWpm: 40,
+        maxWpm: 80,
       });
       
       setFormKey(Date.now());
