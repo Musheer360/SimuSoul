@@ -93,7 +93,10 @@ export async function moderatePersonaContent(input: ModeratePersonaContentInput)
       temperature: 0.0, // Zero temperature for deterministic moderation
       responseMimeType: 'application/json',
       responseSchema: ModeratePersonaContentOutputOpenAPISchema,
-      // No thinking for fast, deterministic moderation decisions
+      // Low thinking for fast moderation decisions
+      thinkingConfig: {
+        thinkingLevel: "low",
+      },
     },
      safetySettings: [
         { category: 'HARM_CATEGORY_HATE_SPEECH', threshold: 'BLOCK_ONLY_HIGH' },
