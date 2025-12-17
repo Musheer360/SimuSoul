@@ -167,7 +167,7 @@ Return your analysis as JSON.`;
   };
 
   try {
-    const response = await callGeminiApi<any>('gemini-3.0-flash:generateContent', requestBody);
+    const response = await callGeminiApi<any>('gemini-2.5-flash:generateContent', requestBody);
     
     if (!response.candidates || !response.candidates[0].content.parts[0].text) {
       return { needsRetrieval: false, searchQueries: [] };
@@ -234,7 +234,7 @@ Return the IDs of the most relevant chats in order of relevance. If no chats are
   };
 
   try {
-    const response = await callGeminiApi<any>('gemini-3.0-flash:generateContent', requestBody);
+    const response = await callGeminiApi<any>('gemini-2.5-flash:generateContent', requestBody);
     
     if (!response.candidates || !response.candidates[0].content.parts[0].text) {
       return [];

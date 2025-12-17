@@ -5,8 +5,8 @@
 - Persona Creation: Create and manage multiple character personas with distinct backstories, traits, and goals.
 - Profile Picture Generation: Automatically generate a profile picture for the persona using AI tools. Input parameters should come from the character traits. This could use services such as stable diffusion or midjourney.
 - User Details Customization: Personalize personas by adding details about the user, such as name and an "about me" section. Allow the use of URLs for the "about me" section.
-- AI-Powered Chat: Utilize Gemini 3.0 Flash to engage in conversations with selected personas, maintaining character consistency. The LLM should reason about when/if it should incorporate various parts of the system prompt or available "tools" in its response.
-- API Key Management: Provide options for users to input their own API keys for the AI model (Gemini 3.0 Flash), for maximum cost savings and customization.
+- AI-Powered Chat: Utilize Gemini 2.5 Flash to engage in conversations with selected personas, maintaining character consistency. The LLM should reason about when/if it should incorporate various parts of the system prompt or available "tools" in its response.
+- API Key Management: Provide options for users to input their own API keys for the AI model (Gemini 2.5 Flash), for maximum cost savings and customization.
 
 ## Style Guidelines:
 
