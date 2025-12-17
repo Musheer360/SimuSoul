@@ -255,13 +255,14 @@ export async function chatWithPersona(
   const requestBody = {
     contents: [{ parts: [{ text: prompt }] }],
     generationConfig: {
-      temperature: 1.0,
+      temperature: 1.0, // High temperature for natural, varied responses
       topK: 40,
       topP: 0.95,
       responseMimeType: 'application/json',
       responseSchema: ChatWithPersonaOutputOpenAPISchema,
+      // Low thinking for fast, natural chat responses
       thinkingConfig: {
-        thinkingBudget: 0,
+        thinkingLevel: "low",
       },
     },
     safetySettings: isTestMode
@@ -279,7 +280,7 @@ export async function chatWithPersona(
     ],
   };
 
-  const response = await callGeminiApi<any>('gemini-2.5-flash:generateContent', requestBody);
+  const response = await callGeminiApi<any>('gemini-3-flash-preview:generateContent', requestBody);
 
   if (!response.candidates || !response.candidates[0].content.parts[0].text) {
     console.warn("AI returned no response text. This could be due to a safety filter or model error. Suppressing output for this turn.");

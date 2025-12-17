@@ -157,17 +157,18 @@ Return your analysis as JSON.`;
   const requestBody = {
     contents: [{ parts: [{ text: prompt }] }],
     generationConfig: {
-      temperature: 0.3,
+      temperature: 0.3, // Low temperature for accurate retrieval decisions
       responseMimeType: 'application/json',
       responseSchema: MemoryRetrievalDecisionOpenAPISchema,
+      // Low thinking for fast memory retrieval decisions
       thinkingConfig: {
-        thinkingBudget: 0,
+        thinkingLevel: "low",
       },
     },
   };
 
   try {
-    const response = await callGeminiApi<any>('gemini-2.5-flash:generateContent', requestBody);
+    const response = await callGeminiApi<any>('gemini-3-flash-preview:generateContent', requestBody);
     
     if (!response.candidates || !response.candidates[0].content.parts[0].text) {
       return { needsRetrieval: false, searchQueries: [] };
@@ -224,17 +225,18 @@ Return the IDs of the most relevant chats in order of relevance. If no chats are
   const requestBody = {
     contents: [{ parts: [{ text: prompt }] }],
     generationConfig: {
-      temperature: 0.2,
+      temperature: 0.2, // Very low temperature for accurate relevance scoring
       responseMimeType: 'application/json',
       responseSchema: ChatRelevanceOpenAPISchema,
+      // Low thinking for fast relevance decisions
       thinkingConfig: {
-        thinkingBudget: 0,
+        thinkingLevel: "low",
       },
     },
   };
 
   try {
-    const response = await callGeminiApi<any>('gemini-2.5-flash:generateContent', requestBody);
+    const response = await callGeminiApi<any>('gemini-3-flash-preview:generateContent', requestBody);
     
     if (!response.candidates || !response.candidates[0].content.parts[0].text) {
       return [];

@@ -49,23 +49,27 @@ export async function moderatePersonaContent(input: ModeratePersonaContentInput)
     return { isSafe: true, reason: 'Test Mode Active' };
   }
   
-  let promptText = `You are an AI content moderator. Your task is to review the following persona details and determine if they violate critical content policies. Be precise and avoid flagging content based on weak inferences.
+  let promptText = `You are an AI content moderator. Your task is to review the following persona details and determine if they violate critical content policies. 
 
-**Content Policies:**
+**IMPORTANT: Be LENIENT and only flag content that CLEARLY and EXPLICITLY violates policies. Do NOT flag innocent, creative, or fictional characters like cowboys, superheroes, fantasy characters, historical figures, etc. When in doubt, approve the content.**
+
+**Content Policies (ONLY flag if EXPLICITLY violated):**
 
 1.  **Strictly Prohibited Topics:**
-    *   **Gender & Sexuality:** Any mention of non-binary/transgender identities, sexual orientation, or LGBTQ+ themes. The persona must be clearly male or female.
-    *   **Harmful Content:** Graphic violence, self-harm, hate speech, harassment, or sexually explicit material.
-    *   **Religion:** Depictions of religious figures or direct engagement with religious themes.
+    *   **Gender & Sexuality:** ONLY flag if there is explicit mention of non-binary/transgender identities, sexual orientation, or LGBTQ+ themes. Do NOT flag characters just because gender isn't explicitly stated - assume they are male or female.
+    *   **Harmful Content:** ONLY flag graphic violence, self-harm instructions, hate speech, harassment, or sexually explicit material. Action/adventure themes, weapons (guns, lassos, swords), fighting, or conflict are ALLOWED for fictional characters.
+    *   **Religion:** ONLY flag direct depictions of religious deities or prophets. General spiritual themes or characters with moral values are ALLOWED.
 
 2.  **Minor Safety Policy:**
-    *   The persona MUST NOT be a minor (under 18). The provided age, if any, MUST be 18 or greater.
-    *   **Your Guideline:** Do not flag content as minor-related unless the text *explicitly* states the character is under 18, describes them in a context that is unambiguously related to childhood (e.g., "attends middle school"), or their provided age is less than 18. Ambiguous or youthful-sounding traits in an adult character are NOT a violation. If age is not specified, assume the character is an adult unless there is clear evidence to the contrary.
+    *   The persona MUST NOT be a minor (under 18). 
+    *   ONLY flag if the age is explicitly stated as under 18, OR if the character is explicitly described as a child/teen in school.
+    *   If age is not specified, ASSUME the character is an adult.
+
+**CRITICAL: Characters like cowboys, pirates, knights, warriors, detectives, adventurers, and other action-oriented personas are ALLOWED. Themes involving guns, horses, the Wild West, combat, or adventure are NOT violations.**
 
 **Your Task:**
-Analyze all fields below.
-- If ANY policy is violated, set \`isSafe\` to \`false\` and provide a brief, internal reason.
-- If the content adheres to ALL rules, set \`isSafe\` to \`true\`.
+- Set \`isSafe\` to \`true\` unless there is a CLEAR, EXPLICIT violation.
+- Only set \`isSafe\` to \`false\` if content is genuinely harmful or inappropriate.
 
 **Persona Content to Review:**
 - Name: ${input.name}
@@ -86,11 +90,12 @@ Analyze all fields below.
   const requestBody = {
     contents: [{ parts: [{ text: promptText }] }],
     generationConfig: {
-      temperature: 0.0,
+      temperature: 0.0, // Zero temperature for deterministic moderation
       responseMimeType: 'application/json',
       responseSchema: ModeratePersonaContentOutputOpenAPISchema,
+      // Low thinking for fast moderation decisions
       thinkingConfig: {
-        thinkingBudget: 0,
+        thinkingLevel: "low",
       },
     },
      safetySettings: [
@@ -102,7 +107,7 @@ Analyze all fields below.
   };
 
   try {
-    const response = await callGeminiApi<any>('gemini-2.5-flash:generateContent', requestBody);
+    const response = await callGeminiApi<any>('gemini-3-flash-preview:generateContent', requestBody);
     
     if (!response.candidates || !response.candidates[0].content.parts[0].text) {
       // Fail closed - if moderation doesn't respond, assume it's unsafe.

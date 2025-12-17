@@ -245,11 +245,14 @@ Execute with maximum creativity, psychological insight, and cultural awareness.`
   const requestBody = {
     contents: [{ parts: [{ text: promptText }] }],
     generationConfig: {
-      temperature: 0.9,
+      temperature: 0.85, // High creativity for persona generation
+      topP: 0.95,
+      topK: 40,
       responseMimeType: 'application/json',
       responseSchema: GeneratePersonaFromPromptOutputOpenAPISchema,
+      // Medium thinking for creative persona generation
       thinkingConfig: {
-        thinkingBudget: 0,
+        thinkingLevel: "medium",
       },
     },
     safetySettings: isTestMode
@@ -267,7 +270,7 @@ Execute with maximum creativity, psychological insight, and cultural awareness.`
     ],
   };
 
-  const response = await callGeminiApi<any>('gemini-2.5-flash:generateContent', requestBody);
+  const response = await callGeminiApi<any>('gemini-3-flash-preview:generateContent', requestBody);
   
   if (!response.candidates || !response.candidates[0].content.parts[0].text) {
     throw new Error('Invalid response from AI model for persona generation.');

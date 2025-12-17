@@ -193,11 +193,14 @@ Execute with maximum creativity and psychological insight.`;
   const requestBody = {
     contents: [{ parts: [{ text: promptText }] }],
     generationConfig: {
-      temperature: 0.9,
+      temperature: 0.85, // High creativity for detail generation
+      topP: 0.95,
+      topK: 40,
       responseMimeType: 'application/json',
       responseSchema: GeneratePersonaDetailsOutputOpenAPISchema,
+      // Medium thinking for detail generation
       thinkingConfig: {
-        thinkingBudget: 0,
+        thinkingLevel: "medium",
       },
     },
     safetySettings: isTestMode
@@ -215,7 +218,7 @@ Execute with maximum creativity and psychological insight.`;
     ],
   };
 
-  const response = await callGeminiApi<any>('gemini-2.5-flash:generateContent', requestBody);
+  const response = await callGeminiApi<any>('gemini-3-flash-preview:generateContent', requestBody);
   
   if (!response.candidates || !response.candidates[0].content.parts[0].text) {
     throw new Error('Invalid response from AI model for detail generation.');
