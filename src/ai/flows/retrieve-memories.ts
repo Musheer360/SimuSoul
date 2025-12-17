@@ -119,18 +119,27 @@ ANALYZE:
 1. Is the user asking about something from a past conversation? (e.g., "remember when we talked about...", "what did I tell you about...", "last time...", "when did we...")
 2. Is the user referencing a specific topic that might have been discussed before?
 3. Are they asking about timing of past conversations?
+4. Are they asking what was discussed previously? (e.g., "what were we talking about?", "what did we discuss?")
 
-If the user is asking about past conversations or referencing something from before, you MUST set needsRetrieval to true and provide search queries.
+**CRITICAL:** If the user asks ANY of these, you MUST set needsRetrieval to true:
+- "When did we last talk?" / "When was our last conversation?"
+- "What were we talking about?" / "What did we discuss?"
+- "What did I tell you about...?"
+- "Remember when...?" / "Do you remember...?"
+- "Last time..." / "Previously..." / "Before..."
+- Any question about past conversations or previous discussions
 
 **IMPORTANT FOR SEARCH QUERIES:**
 - Generate **semantic** search queries that include synonyms and related concepts
 - For "job" also include: work, career, office, gig, employment
 - For "relationship" also include: partner, dating, boyfriend, girlfriend, spouse
 - For "health" also include: fitness, exercise, doctor, sick, wellness
+- For questions about "what we talked about", use broad queries like: "recent topics", "discussion", "conversation"
 - Think about what words the user might have used in past conversations
 
 Examples that NEED retrieval:
-- "When did we last talk?" → needsRetrieval: true, searchQueries: ["conversation date", "last chat", "recent talk"]
+- "When did we last talk?" → needsRetrieval: true, searchQueries: ["recent conversation", "last chat", "previous discussion"], timeFrameHint: "most recent"
+- "What were we talking about?" → needsRetrieval: true, searchQueries: ["recent topics", "discussion", "conversation content"]
 - "What did I tell you about my job?" → needsRetrieval: true, searchQueries: ["job", "work", "career", "office"]
 - "How's the gig going?" (about work) → needsRetrieval: true, searchQueries: ["job", "work", "gig", "career"]
 - "Remember our conversation about movies?" → needsRetrieval: true, searchQueries: ["movies", "film", "watching", "cinema"]
@@ -291,6 +300,25 @@ function extractRelevantMessages(
 }
 
 /**
+ * Generates a quick summary from messages when no summary exists.
+ * This is a fallback for chats that haven't been summarized yet.
+ */
+function generateQuickSummary(messages: ChatMessage[]): string {
+  // Take the first few user messages to create a basic summary
+  const userMessages = messages
+    .filter(m => m.role === 'user')
+    .slice(0, 5)
+    .map(m => m.content.substring(0, 100))
+    .join('; ');
+  
+  if (userMessages.length === 0) {
+    return 'General conversation';
+  }
+  
+  return `Topics discussed: ${userMessages}`;
+}
+
+/**
  * Main function to retrieve relevant memories for the current conversation.
  * This is the agentic memory retrieval system entry point.
  */
@@ -303,17 +331,20 @@ export async function retrieveRelevantMemories(
   // Filter out current chat and chats without messages
   const pastChats = allChats.filter(c => c.id !== currentChatId && c.messages.length > 0);
   
+  console.log(`[Memory Retrieval] Past chats available: ${pastChats.length}`);
+  
   if (pastChats.length === 0) {
+    console.log('[Memory Retrieval] No past chats found');
     return [];
   }
   
   // Generate chat metadata for the AI to search
+  // Include ALL chats with messages, using quick summaries for unsummarized chats
   const chatMetadata: ChatMetadata[] = pastChats
-    .filter(c => c.summary?.trim()) // Only include chats with non-empty summaries
     .map(c => ({
       id: c.id,
       title: c.title,
-      summary: c.summary || '',
+      summary: c.summary?.trim() || generateQuickSummary(c.messages),
       date: new Date(c.updatedAt || c.createdAt).toLocaleDateString('en-US', {
         year: 'numeric',
         month: 'long',
@@ -321,6 +352,9 @@ export async function retrieveRelevantMemories(
       }),
       messageCount: c.messages.length,
     }));
+    
+  console.log(`[Memory Retrieval] Chat metadata generated for ${chatMetadata.length} chats:`, 
+    chatMetadata.map(c => ({ id: c.id.substring(0, 8), title: c.title, hasSummary: !!c.summary })));
   
   // Also include recent summaries for decision making
   const recentSummaries = chatMetadata
@@ -331,7 +365,14 @@ export async function retrieveRelevantMemories(
   // Step 1: Decide if we need to retrieve memories
   const decision = await decideMemoryRetrieval(userMessages, existingMemories, recentSummaries);
   
+  console.log(`[Memory Retrieval] Decision:`, {
+    needsRetrieval: decision.needsRetrieval,
+    searchQueries: decision.searchQueries,
+    timeFrameHint: decision.timeFrameHint
+  });
+  
   if (!decision.needsRetrieval || decision.searchQueries.length === 0) {
+    console.log('[Memory Retrieval] No retrieval needed or no search queries');
     return [];
   }
   
@@ -342,7 +383,10 @@ export async function retrieveRelevantMemories(
     decision.timeFrameHint
   );
   
+  console.log(`[Memory Retrieval] Relevant chat IDs found:`, relevantChatIds);
+  
   if (relevantChatIds.length === 0) {
+    console.log('[Memory Retrieval] No relevant chats found');
     return [];
   }
   
