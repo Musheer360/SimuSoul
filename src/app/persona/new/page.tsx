@@ -176,9 +176,10 @@ export default function NewPersonaPage() {
       
       setFormKey(Date.now());
       setActiveTab('manual');
+      const modelInfo = result.modelUsed ? `Using ${result.modelUsed}${result.modelReason ? ` – ${result.modelReason}` : ''}.` : '';
       toast({
         title: 'Persona Cloned!',
-        description: `Successfully analyzed ${personNameForClone}'s chat. Review and create.`,
+        description: `Successfully analyzed ${personNameForClone}'s chat. Review and create. ${modelInfo}`,
       });
     } catch (err: any) {
       setError(err.message || 'Failed to analyze chat.');

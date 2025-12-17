@@ -22,6 +22,8 @@ export const GeneratePersonaFromChatOutputSchema = z.object({
   emotionalTone: z.string(),
   values: z.string(),
   quirks: z.string(),
+  modelUsed: z.string().optional(),
+  modelReason: z.string().optional(),
 });
 export type GeneratePersonaFromChatOutput = z.infer<typeof GeneratePersonaFromChatOutputSchema>;
 
@@ -63,6 +65,61 @@ function parseWhatsAppChat(chatContent: string, personName: string): string[] {
   }
   
   return personMessages;
+}
+
+type GeminiApiError = { status?: number; code?: string; message?: string };
+
+type PersonaGenerationConfig = {
+  temperature?: number;
+  responseMimeType?: string;
+  responseSchema?: unknown;
+  topP?: number;
+  topK?: number;
+  thinkingConfig?: { thinkingBudget?: number };
+  [key: string]: unknown;
+};
+
+// Tuned fallback config for the free-tier Gemini Flash model to balance quality and quota-free availability.
+const FLASH_FALLBACK_TEMPERATURE = 0.45;
+const FLASH_FALLBACK_TOP_P = 0.95;
+const FLASH_FALLBACK_TOP_K = 32;
+const FLASH_FALLBACK_THINKING_BUDGET = 1024;
+
+function isGeminiApiError(error: unknown): error is GeminiApiError {
+  if (!error || typeof error !== 'object') return false;
+  const candidate = error as Partial<GeminiApiError>;
+  return (
+    typeof candidate.message === 'string' ||
+    typeof candidate.status === 'number' ||
+    typeof candidate.code === 'string'
+  );
+}
+
+function getGeminiErrorDetails(error: GeminiApiError) {
+  const rawCode = (error.code || '').toString();
+  return {
+    status: error.status,
+    rawCode,
+    normalizedCode: rawCode.toUpperCase(),
+    message: (error.message || '').toLowerCase(),
+  };
+}
+
+function shouldFallbackToFlash(error: unknown): boolean {
+  if (!isGeminiApiError(error)) return false;
+  const { status, normalizedCode, message } = getGeminiErrorDetails(error);
+  const isRateLimited = status === 429 || message.includes('429');
+  const isQuotaBlocked = normalizedCode === 'RESOURCE_EXHAUSTED' || normalizedCode.includes('QUOTA') || message.includes('quota');
+  const isBillingBlocked = message.includes('billing') || message.includes('limit: 0');
+  return isRateLimited || isQuotaBlocked || isBillingBlocked;
+}
+
+function isThinkingConfigUnsupported(error: unknown): boolean {
+  if (!isGeminiApiError(error)) return false;
+  const { normalizedCode, message } = getGeminiErrorDetails(error);
+  const mentionsThinkingConfig = /thinking[_\s]?config/.test(message);
+  const mentionsUnsupportedField = message.includes('unknown field "thinkingconfig"') || message.includes('unknown field "thinking config"') || message.includes('unsupported field "thinkingconfig"');
+  return mentionsThinkingConfig || mentionsUnsupportedField;
 }
 
 export async function generatePersonaFromChat(input: GeneratePersonaFromChatInput): Promise<GeneratePersonaFromChatOutput> {
@@ -177,7 +234,51 @@ Respond ONLY with valid JSON. Make every field rich with specific, authentic det
     },
   };
 
-  const response = await callGeminiApi<any>('gemini-2.5-pro:generateContent', requestBody);
+  let response;
+  let modelUsed = 'gemini-2.5-pro';
+  let modelReason: string | undefined;
+  try {
+    response = await callGeminiApi<any>('gemini-2.5-pro:generateContent', requestBody);
+  } catch (error) {
+    if (!shouldFallbackToFlash(error)) {
+      throw error;
+    }
+
+    modelUsed = 'gemini-2.5-flash';
+    modelReason = 'Pro unavailable (quota/billing), using free fallback';
+
+    // Fall back to the best free-tier option with a small thinking budget to preserve quality without billing.
+    const flashRequestBody = {
+      ...requestBody,
+      generationConfig: {
+        ...requestBody.generationConfig,
+        temperature: FLASH_FALLBACK_TEMPERATURE,
+        topP: FLASH_FALLBACK_TOP_P,
+        topK: FLASH_FALLBACK_TOP_K,
+        thinkingConfig: {
+          thinkingBudget: FLASH_FALLBACK_THINKING_BUDGET,
+        },
+      },
+    };
+
+    try {
+      response = await callGeminiApi<any>('gemini-2.5-flash:generateContent', flashRequestBody);
+    } catch (flashError) {
+      if (isThinkingConfigUnsupported(flashError)) {
+        modelReason = 'Flash fallback without thinking mode (unsupported by API)';
+        const generationConfig: PersonaGenerationConfig = flashRequestBody.generationConfig && typeof flashRequestBody.generationConfig === 'object'
+          ? flashRequestBody.generationConfig
+          : {};
+        const { thinkingConfig, ...restGenerationConfig } = generationConfig;
+        response = await callGeminiApi<any>('gemini-2.5-flash:generateContent', {
+          ...flashRequestBody,
+          generationConfig: restGenerationConfig,
+        });
+      } else {
+        throw flashError;
+      }
+    }
+  }
   
   const textContent = response.candidates?.[0]?.content?.parts?.[0]?.text;
   
@@ -198,5 +299,7 @@ Respond ONLY with valid JSON. Make every field rich with specific, authentic det
     emotionalTone: result.emotionalTone,
     values: result.values,
     quirks: result.quirks,
+    modelUsed,
+    modelReason,
   };
 }

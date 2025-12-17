@@ -99,7 +99,10 @@ export async function callGeminiApi<T>(
             continue;
           }
           
-          throw new Error(errorMsg);
+          const enrichedError = new Error(errorMsg) as Error & { status?: number; code?: string };
+          enrichedError.status = response.status;
+          enrichedError.code = errorData?.error?.status || errorData?.error?.code;
+          throw enrichedError;
         }
 
         return await response.json();
