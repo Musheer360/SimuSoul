@@ -3,11 +3,13 @@
 
 /**
  * @fileOverview This file defines a client-side function for chatting with a persona.
+ * Enhanced with agentic memory retrieval system for better long-term memory recall.
  */
 
 import { callGeminiApi } from '@/lib/api-key-manager';
 import type { ChatMessage, Persona, UserDetails, ChatSession } from '@/lib/types';
 import { generateTimeAwarenessPrompt } from '@/lib/time-awareness';
+import { retrieveRelevantMemories, formatRetrievedMemoriesForPrompt } from './retrieve-memories';
 import { z } from 'zod';
 
 const ChatMessageSchema = z.object({
@@ -40,6 +42,7 @@ const ChatWithPersonaInputSchema = z.object({
     chatId: z.string().optional(),
   }).optional().describe("The persona's current state regarding ignoring the user."),
   isTestMode: z.boolean(),
+  retrievedMemories: z.string().optional().describe('Formatted retrieved memories from past conversations, if any were found relevant.'),
 });
 export type ChatWithPersonaInput = z.infer<typeof ChatWithPersonaInputSchema>;
 
@@ -141,8 +144,9 @@ input.existingMemories.map(mem => `- ${mem}`).join('\n') :
 '- Still getting to know them'}
 
 ${input.chatSummaries && input.chatSummaries.length > 0 ? `
-PAST CONVERSATIONS:
+PAST CONVERSATION SUMMARIES:
 ${input.chatSummaries.map(summary => `${summary.date}: ${summary.summary}`).join('\n')}` : ''}
+${input.retrievedMemories ? input.retrievedMemories : ''}
 
 ${input.chatHistory && input.chatHistory.length > 0 ? `
 TODAY'S CHAT SO FAR:
@@ -165,6 +169,7 @@ HOW TO RESPOND:
 - If something you knew changed, update your memory
 - Vary your message style - sometimes short, sometimes long, based on mood
 - Don't be repetitive or formulaic
+- If the user asks about past conversations, use the retrieved memories section to provide accurate, specific answers
 
 JSON FORMAT:
 {
@@ -194,6 +199,26 @@ export async function chatWithPersona(
   const { persona, userDetails, chatHistory, userMessages, currentDateTime, currentDateForMemory, allChats, activeChatId, isTestMode } = payload;
   
   const personaDescription = `Backstory: ${persona.backstory}\nTraits: ${persona.traits}\nGoals: ${persona.goals}`;
+  const userIdentifier = userDetails.name?.split(' ')[0] || 'the user';
+
+  // Step 1: Use agentic memory retrieval to find relevant past conversations
+  let retrievedMemoriesPrompt = '';
+  try {
+    const retrievedMemories = await retrieveRelevantMemories(
+      userMessages,
+      persona.memories,
+      allChats,
+      activeChatId
+    );
+    
+    if (retrievedMemories.length > 0) {
+      retrievedMemoriesPrompt = formatRetrievedMemoriesForPrompt(retrievedMemories, userIdentifier);
+      console.log(`[Memory Retrieval] Found ${retrievedMemories.length} relevant past conversation(s)`);
+    }
+  } catch (error) {
+    console.error('[Memory Retrieval] Failed to retrieve memories:', error);
+    // Continue without retrieved memories - the system should still work
+  }
 
   const chatSummaries = allChats
     .filter(c => c.summary)
@@ -222,6 +247,7 @@ export async function chatWithPersona(
     chatSummaries,
     ignoredState: persona.ignoredState || { isIgnored: false },
     isTestMode: isTestMode,
+    retrievedMemories: retrievedMemoriesPrompt,
   };
 
   const prompt = buildChatPrompt(input, persona);
