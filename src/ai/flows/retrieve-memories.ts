@@ -122,10 +122,18 @@ ANALYZE:
 
 If the user is asking about past conversations or referencing something from before, you MUST set needsRetrieval to true and provide search queries.
 
+**IMPORTANT FOR SEARCH QUERIES:**
+- Generate **semantic** search queries that include synonyms and related concepts
+- For "job" also include: work, career, office, gig, employment
+- For "relationship" also include: partner, dating, boyfriend, girlfriend, spouse
+- For "health" also include: fitness, exercise, doctor, sick, wellness
+- Think about what words the user might have used in past conversations
+
 Examples that NEED retrieval:
-- "When did we last talk?" → needsRetrieval: true, searchQueries: ["conversation date", "last chat"]
-- "What did I tell you about my job?" → needsRetrieval: true, searchQueries: ["job", "work", "career"]
-- "Remember our conversation about movies?" → needsRetrieval: true, searchQueries: ["movies", "film", "watching"]
+- "When did we last talk?" → needsRetrieval: true, searchQueries: ["conversation date", "last chat", "recent talk"]
+- "What did I tell you about my job?" → needsRetrieval: true, searchQueries: ["job", "work", "career", "office"]
+- "How's the gig going?" (about work) → needsRetrieval: true, searchQueries: ["job", "work", "gig", "career"]
+- "Remember our conversation about movies?" → needsRetrieval: true, searchQueries: ["movies", "film", "watching", "cinema"]
 - "What were we talking about yesterday?" → needsRetrieval: true, searchQueries: ["yesterday conversation"], timeFrameHint: "yesterday"
 - "Did I mention my sister?" → needsRetrieval: true, searchQueries: ["sister", "family", "sibling"]
 
@@ -176,6 +184,11 @@ async function findRelevantChats(
     return [];
   }
 
+  // Sort chats by date (most recent first) before presenting to AI
+  const sortedMetadata = [...chatMetadata].sort((a, b) => 
+    new Date(b.date).getTime() - new Date(a.date).getTime()
+  );
+
   const prompt = `You are a chat search engine. Find the most relevant past conversations based on the search queries.
 
 SEARCH QUERIES:
@@ -183,8 +196,8 @@ ${searchQueries.map(q => `- "${q}"`).join('\n')}
 
 ${timeFrameHint ? `TIME FRAME HINT: "${timeFrameHint}"` : ''}
 
-AVAILABLE PAST CONVERSATIONS:
-${chatMetadata.map(c => `ID: ${c.id}
+AVAILABLE PAST CONVERSATIONS (listed from most recent to oldest):
+${sortedMetadata.map(c => `ID: ${c.id}
 Title: ${c.title}
 Date: ${c.date}
 Summary: ${c.summary}
@@ -192,9 +205,10 @@ Messages: ${c.messageCount}
 ---`).join('\n')}
 
 Find up to 3 chats that are most relevant to the search queries. Consider:
-1. Topic match with the search queries
-2. Time frame if mentioned
-3. Relevance of the summary content
+1. **Semantic relevance** - Match concepts, not just keywords (e.g., "job", "work", "gig", "office", "career" are related)
+2. **Recency priority** - When multiple chats match equally, prefer more recent ones. If user mentions "new" or "recent", strongly prioritize newer chats
+3. **Time frame hints** - If a time frame is specified, prioritize chats from that period
+4. **Summary content** - Look for conceptual matches in the summary, not just exact words
 
 Return the IDs of the most relevant chats in order of relevance. If no chats are relevant, return an empty array.`;
 
