@@ -319,6 +319,52 @@ function generateQuickSummary(messages: ChatMessage[]): string {
 }
 
 /**
+ * Generates a supplementary summary from recent messages to catch content
+ * that may have been added after the original summary was generated.
+ */
+function generateRecentMessagesSummary(messages: ChatMessage[]): string {
+  // Take the LAST few user messages to catch recent topics
+  const recentUserMessages = messages
+    .filter(m => m.role === 'user')
+    .slice(-5) // Last 5 user messages
+    .map(m => m.content.substring(0, 100))
+    .join('; ');
+  
+  if (recentUserMessages.length === 0) {
+    return '';
+  }
+  
+  return `Recent topics: ${recentUserMessages}`;
+}
+
+/**
+ * Gets the best available summary for a chat, combining existing summary
+ * with recent messages to avoid stale data.
+ */
+function getEnhancedSummary(chat: ChatSession): string {
+  const existingSummary = chat.summary?.trim();
+  const quickSummary = generateQuickSummary(chat.messages);
+  const recentSummary = generateRecentMessagesSummary(chat.messages);
+  
+  // If no existing summary, use quick summary (covers beginning of chat)
+  if (!existingSummary) {
+    // If chat is long, also add recent messages
+    if (chat.messages.length > 10 && recentSummary) {
+      return `${quickSummary}. ${recentSummary}`;
+    }
+    return quickSummary;
+  }
+  
+  // If existing summary exists, supplement it with recent messages
+  // This catches content added after the summary was generated
+  if (recentSummary && chat.messages.length > 10) {
+    return `${existingSummary}. ${recentSummary}`;
+  }
+  
+  return existingSummary;
+}
+
+/**
  * Main function to retrieve relevant memories for the current conversation.
  * This is the agentic memory retrieval system entry point.
  */
@@ -339,12 +385,13 @@ export async function retrieveRelevantMemories(
   }
   
   // Generate chat metadata for the AI to search
-  // Include ALL chats with messages, using quick summaries for unsummarized chats
+  // Use enhanced summaries that combine existing summary with recent messages
+  // This prevents stale summaries from missing newer content
   const chatMetadata: ChatMetadata[] = pastChats
     .map(c => ({
       id: c.id,
       title: c.title,
-      summary: c.summary?.trim() || generateQuickSummary(c.messages),
+      summary: getEnhancedSummary(c),
       date: new Date(c.updatedAt || c.createdAt).toLocaleDateString('en-US', {
         year: 'numeric',
         month: 'long',
@@ -354,7 +401,7 @@ export async function retrieveRelevantMemories(
     }));
     
   console.log(`[Memory Retrieval] Chat metadata generated for ${chatMetadata.length} chats:`, 
-    chatMetadata.map(c => ({ id: c.id.substring(0, 8), title: c.title, hasSummary: !!c.summary })));
+    chatMetadata.map(c => ({ id: c.id.substring(0, 8), title: c.title, summary: c.summary.substring(0, 100) + '...' })));
   
   // Also include recent summaries for decision making
   const recentSummaries = chatMetadata
