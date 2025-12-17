@@ -157,11 +157,12 @@ Return your analysis as JSON.`;
   const requestBody = {
     contents: [{ parts: [{ text: prompt }] }],
     generationConfig: {
-      temperature: 0.3,
+      temperature: 0.3, // Low temperature for accurate retrieval decisions
       responseMimeType: 'application/json',
       responseSchema: MemoryRetrievalDecisionOpenAPISchema,
+      // Low thinking for fast memory retrieval decisions
       thinkingConfig: {
-        thinkingBudget: 0,
+        thinkingLevel: "low",
       },
     },
   };
@@ -224,11 +225,12 @@ Return the IDs of the most relevant chats in order of relevance. If no chats are
   const requestBody = {
     contents: [{ parts: [{ text: prompt }] }],
     generationConfig: {
-      temperature: 0.2,
+      temperature: 0.2, // Very low temperature for accurate relevance scoring
       responseMimeType: 'application/json',
       responseSchema: ChatRelevanceOpenAPISchema,
+      // Low thinking for fast relevance decisions
       thinkingConfig: {
-        thinkingBudget: 0,
+        thinkingLevel: "low",
       },
     },
   };

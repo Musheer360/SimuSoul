@@ -45,11 +45,12 @@ Now, generate the title.`;
   const requestBody = {
     contents: [{ parts: [{ text: prompt }] }],
     generationConfig: {
-      temperature: 0.7,
+      temperature: 0.7, // Moderate temperature for creative but relevant titles
       responseMimeType: 'application/json',
       responseSchema: GenerateChatTitleOutputOpenAPISchema,
+      // Low thinking for fast title generation
       thinkingConfig: {
-        thinkingBudget: 0,
+        thinkingLevel: "low",
       },
     },
   };

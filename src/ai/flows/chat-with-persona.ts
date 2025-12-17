@@ -255,13 +255,14 @@ export async function chatWithPersona(
   const requestBody = {
     contents: [{ parts: [{ text: prompt }] }],
     generationConfig: {
-      temperature: 1.0,
+      temperature: 1.0, // High temperature for natural, varied responses
       topK: 40,
       topP: 0.95,
       responseMimeType: 'application/json',
       responseSchema: ChatWithPersonaOutputOpenAPISchema,
+      // Low thinking for fast, natural chat responses
       thinkingConfig: {
-        thinkingBudget: 0,
+        thinkingLevel: "low",
       },
     },
     safetySettings: isTestMode

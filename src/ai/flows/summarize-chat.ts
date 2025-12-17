@@ -52,11 +52,12 @@ Generate the summary now.
   const requestBody = {
     contents: [{ parts: [{ text: prompt }] }],
     generationConfig: {
-      temperature: 0.5,
+      temperature: 0.5, // Moderate temperature for balanced summarization
       responseMimeType: 'application/json',
       responseSchema: SummarizeChatOutputOpenAPISchema,
+      // Low thinking for fast summarization
       thinkingConfig: {
-        thinkingBudget: 0,
+        thinkingLevel: "low",
       },
     },
   };

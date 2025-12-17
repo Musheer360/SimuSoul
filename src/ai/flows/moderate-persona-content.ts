@@ -90,9 +90,10 @@ export async function moderatePersonaContent(input: ModeratePersonaContentInput)
   const requestBody = {
     contents: [{ parts: [{ text: promptText }] }],
     generationConfig: {
-      temperature: 0.0,
+      temperature: 0.0, // Zero temperature for deterministic moderation
       responseMimeType: 'application/json',
       responseSchema: ModeratePersonaContentOutputOpenAPISchema,
+      // No thinking for fast, deterministic moderation decisions
     },
      safetySettings: [
         { category: 'HARM_CATEGORY_HATE_SPEECH', threshold: 'BLOCK_ONLY_HIGH' },

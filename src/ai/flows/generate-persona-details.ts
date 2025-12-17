@@ -193,11 +193,14 @@ Execute with maximum creativity and psychological insight.`;
   const requestBody = {
     contents: [{ parts: [{ text: promptText }] }],
     generationConfig: {
-      temperature: 0.9,
+      temperature: 0.85, // High creativity for detail generation
+      topP: 0.95,
+      topK: 40,
       responseMimeType: 'application/json',
       responseSchema: GeneratePersonaDetailsOutputOpenAPISchema,
+      // Medium thinking for detail generation
       thinkingConfig: {
-        thinkingBudget: 0,
+        thinkingLevel: "medium",
       },
     },
     safetySettings: isTestMode

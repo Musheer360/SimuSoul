@@ -245,11 +245,14 @@ Execute with maximum creativity, psychological insight, and cultural awareness.`
   const requestBody = {
     contents: [{ parts: [{ text: promptText }] }],
     generationConfig: {
-      temperature: 0.9,
+      temperature: 0.85, // High creativity for persona generation
+      topP: 0.95,
+      topK: 40,
       responseMimeType: 'application/json',
       responseSchema: GeneratePersonaFromPromptOutputOpenAPISchema,
+      // Medium thinking for creative persona generation
       thinkingConfig: {
-        thinkingBudget: 0,
+        thinkingLevel: "medium",
       },
     },
     safetySettings: isTestMode
