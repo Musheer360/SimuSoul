@@ -54,7 +54,7 @@ Now, generate the title.`;
     },
   };
 
-  const response = await callGeminiApi<any>('gemini-2.5-flash:generateContent', requestBody);
+  const response = await callGeminiApi<any>('gemini-3-flash-preview:generateContent', requestBody);
   
   if (!response.candidates || !response.candidates[0].content.parts[0].text) {
     throw new Error('Invalid response from AI model for title generation.');

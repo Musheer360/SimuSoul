@@ -244,7 +244,7 @@ Respond ONLY with valid JSON. Make every field rich with specific, authentic det
       throw error;
     }
 
-    modelUsed = 'gemini-2.5-flash';
+    modelUsed = 'gemini-3-flash-preview';
     modelReason = 'Pro unavailable (quota/billing), using free fallback';
 
     // Fall back to the best free-tier option with a small thinking budget to preserve quality without billing.
@@ -262,7 +262,7 @@ Respond ONLY with valid JSON. Make every field rich with specific, authentic det
     };
 
     try {
-      response = await callGeminiApi<any>('gemini-2.5-flash:generateContent', flashRequestBody);
+      response = await callGeminiApi<any>('gemini-3-flash-preview:generateContent', flashRequestBody);
     } catch (flashError) {
       if (isThinkingConfigUnsupported(flashError)) {
         modelReason = 'Flash fallback without thinking mode (unsupported by API)';
@@ -270,7 +270,7 @@ Respond ONLY with valid JSON. Make every field rich with specific, authentic det
           ? flashRequestBody.generationConfig
           : {};
         const { thinkingConfig, ...restGenerationConfig } = generationConfig;
-        response = await callGeminiApi<any>('gemini-2.5-flash:generateContent', {
+        response = await callGeminiApi<any>('gemini-3-flash-preview:generateContent', {
           ...flashRequestBody,
           generationConfig: restGenerationConfig,
         });
