@@ -22,6 +22,8 @@ export const GeneratePersonaFromChatOutputSchema = z.object({
   emotionalTone: z.string(),
   values: z.string(),
   quirks: z.string(),
+  modelUsed: z.string().optional(),
+  modelReason: z.string().optional(),
 });
 export type GeneratePersonaFromChatOutput = z.infer<typeof GeneratePersonaFromChatOutputSchema>;
 
@@ -233,12 +235,17 @@ Respond ONLY with valid JSON. Make every field rich with specific, authentic det
   };
 
   let response;
+  let modelUsed = 'gemini-2.5-pro';
+  let modelReason: string | undefined;
   try {
     response = await callGeminiApi<any>('gemini-2.5-pro:generateContent', requestBody);
   } catch (error) {
     if (!shouldFallbackToFlash(error)) {
       throw error;
     }
+
+    modelUsed = 'gemini-2.5-flash';
+    modelReason = 'Pro unavailable (quota/billing), using free fallback';
 
     // Fall back to the best free-tier option with a small thinking budget to preserve quality without billing.
     const flashRequestBody = {
@@ -258,6 +265,7 @@ Respond ONLY with valid JSON. Make every field rich with specific, authentic det
       response = await callGeminiApi<any>('gemini-2.5-flash:generateContent', flashRequestBody);
     } catch (flashError) {
       if (isThinkingConfigUnsupported(flashError)) {
+        modelReason = 'Flash fallback without thinking mode (unsupported by API)';
         const generationConfig: PersonaGenerationConfig = flashRequestBody.generationConfig && typeof flashRequestBody.generationConfig === 'object'
           ? flashRequestBody.generationConfig
           : {};
@@ -291,5 +299,7 @@ Respond ONLY with valid JSON. Make every field rich with specific, authentic det
     emotionalTone: result.emotionalTone,
     values: result.values,
     quirks: result.quirks,
+    modelUsed,
+    modelReason,
   };
 }
