@@ -60,6 +60,17 @@ const ChatRelevanceOpenAPISchema = {
   required: ['relevantChatIds'],
 };
 
+/** Maximum number of message excerpts to include per retrieved chat */
+const MAX_MESSAGES_PER_CHAT = 8;
+
+/**
+ * Metadata for a chat session used in memory retrieval.
+ * @property id - Unique identifier for the chat session
+ * @property title - Title of the chat session
+ * @property summary - AI-generated summary of the conversation
+ * @property date - Human-readable date string (e.g., "December 17, 2024")
+ * @property messageCount - Total number of messages in the chat
+ */
 export interface ChatMetadata {
   id: string;
   title: string;
@@ -68,6 +79,14 @@ export interface ChatMetadata {
   messageCount: number;
 }
 
+/**
+ * A retrieved memory containing relevant past conversation data.
+ * @property chatId - Unique identifier of the source chat
+ * @property title - Title of the chat session
+ * @property date - Human-readable date of the conversation
+ * @property summary - AI-generated summary of the conversation
+ * @property relevantMessages - Extracted messages most relevant to the user's query
+ */
 export interface RetrievedMemory {
   chatId: string;
   title: string;
@@ -276,7 +295,7 @@ export async function retrieveRelevantMemories(
   
   // Generate chat metadata for the AI to search
   const chatMetadata: ChatMetadata[] = pastChats
-    .filter(c => c.summary) // Only include chats with summaries
+    .filter(c => c.summary?.trim()) // Only include chats with non-empty summaries
     .map(c => ({
       id: c.id,
       title: c.title,
@@ -348,7 +367,7 @@ export function formatRetrievedMemoriesForPrompt(
   
   const formattedMemories = memories.map(memory => {
     const messageExcerpts = memory.relevantMessages
-      .slice(0, 8) // Limit to 8 messages per retrieved chat
+      .slice(0, MAX_MESSAGES_PER_CHAT)
       .map(msg => `  ${msg.role === 'user' ? userIdentifier : 'You'}: ${msg.content}`)
       .join('\n');
     
