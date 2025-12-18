@@ -2,6 +2,10 @@ export interface ChatMessage {
   role: 'user' | 'assistant';
   content: string;
   isIgnored?: boolean;
+  /** Optional image URL (base64 data URL) attached to the message */
+  imageUrl?: string;
+  /** Index of the message being replied to (if this is a reply) */
+  replyToIndex?: number;
 }
 
 export interface ChatSession {

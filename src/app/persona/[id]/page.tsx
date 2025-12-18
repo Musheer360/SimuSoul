@@ -13,7 +13,7 @@ import type { Persona, UserDetails, ChatMessage, ChatSession } from '@/lib/types
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
-import { Send, Loader2, Bot, Trash2, MessageSquarePlus, ArrowLeft, PanelLeft, Pencil, Brain } from 'lucide-react';
+import { Send, Loader2, Bot, Trash2, MessageSquarePlus, ArrowLeft, PanelLeft, Pencil, Brain, Reply, X, ImagePlus } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import {
   AlertDialog,
@@ -74,6 +74,10 @@ const ChatMessageItem = memo(function ChatMessageItem({
   messageIndex,
   onMessageClick,
   showIgnoredStatus,
+  onReply,
+  replyToMessage,
+  allMessages,
+  isMobile,
 }: {
   message: ChatMessage;
   isFirstInSequence: boolean;
@@ -83,65 +87,188 @@ const ChatMessageItem = memo(function ChatMessageItem({
   messageIndex: number;
   onMessageClick: (index: number) => void;
   showIgnoredStatus: boolean;
+  onReply: (index: number) => void;
+  replyToMessage?: ChatMessage;
+  allMessages: ChatMessage[];
+  isMobile: boolean;
 }) {
+  const [swipeX, setSwipeX] = useState(0);
+  const [isSwiping, setIsSwiping] = useState(false);
+  const touchStartRef = useRef<{ x: number; y: number } | null>(null);
+  const swipeThreshold = 60; // pixels to trigger reply
+
+  const handleTouchStart = useCallback((e: React.TouchEvent) => {
+    if (!isMobile) return;
+    const touch = e.touches[0];
+    touchStartRef.current = { x: touch.clientX, y: touch.clientY };
+    setIsSwiping(false);
+  }, [isMobile]);
+
+  const handleTouchMove = useCallback((e: React.TouchEvent) => {
+    if (!isMobile || !touchStartRef.current) return;
+    const touch = e.touches[0];
+    const deltaX = touch.clientX - touchStartRef.current.x;
+    const deltaY = Math.abs(touch.clientY - touchStartRef.current.y);
+    
+    // Only allow right swipe (positive deltaX) and ensure it's mostly horizontal
+    if (deltaX > 10 && deltaX > deltaY) {
+      setIsSwiping(true);
+      // Limit the swipe distance with resistance
+      const limitedSwipe = Math.min(deltaX * 0.6, 80);
+      setSwipeX(limitedSwipe);
+    }
+  }, [isMobile]);
+
+  const handleTouchEnd = useCallback(() => {
+    if (!isMobile) return;
+    if (swipeX >= swipeThreshold) {
+      onReply(messageIndex);
+    }
+    setSwipeX(0);
+    setIsSwiping(false);
+    touchStartRef.current = null;
+  }, [isMobile, swipeX, swipeThreshold, onReply, messageIndex]);
+
+  // Get the replied-to message content preview
+  const repliedMessage = message.replyToIndex !== undefined ? allMessages[message.replyToIndex] : undefined;
+
   return (
     <div
       className={cn(
-        "flex flex-col",
+        "flex flex-col relative",
         message.role === 'user' ? 'items-end' : 'items-start',
         isFirstInSequence ? 'mt-4' : 'mt-1'
       )}
+      onTouchStart={handleTouchStart}
+      onTouchMove={handleTouchMove}
+      onTouchEnd={handleTouchEnd}
+      style={{
+        transform: isSwiping ? `translateX(${swipeX}px)` : 'translateX(0)',
+        transition: isSwiping ? 'none' : 'transform 0.2s ease-out',
+      }}
     >
-      <div 
-        className={cn(
-          "max-w-[85%] rounded-lg px-4 py-2.5 min-w-0 flex items-center",
-          message.role === 'user'
-            ? 'bg-primary text-primary-foreground'
-            : 'bg-secondary',
-          glowing && 'animate-shine-once',
-          message.role === 'user' && !isLatestUserMessage && 'cursor-pointer',
-          message.role === 'assistant' && cn(
-            isFirstInSequence && !isLastInSequence && "rounded-tl-none rounded-bl-none",
-            isFirstInSequence && isLastInSequence && "rounded-tl-none",
-            !isFirstInSequence && !isLastInSequence && "rounded-tl-none rounded-bl-none",
-            !isFirstInSequence && isLastInSequence && "rounded-tl-none rounded-bl-lg",
-          ),
-          message.role === 'user' && cn(
-            isFirstInSequence && !isLastInSequence && "rounded-tr-none rounded-br-none",
-            isFirstInSequence && isLastInSequence && "rounded-tr-none",
-            !isFirstInSequence && !isLastInSequence && "rounded-tr-none rounded-br-none",
-            !isFirstInSequence && isLastInSequence && "rounded-tr-none rounded-br-lg",
-          ),
-        )}
-        onClick={(e) => {
-          if (message.role === 'user' && !isLatestUserMessage) {
-            e.stopPropagation();
-            onMessageClick(messageIndex);
-          }
-        }}
-        style={{
-          // Ensure all child elements are clickable for user messages that aren't latest
-          ...(message.role === 'user' && !isLatestUserMessage && {
-            pointerEvents: 'auto'
-          })
-        }}
-      >
+      {/* Reply indicator on swipe */}
+      {isMobile && swipeX > 20 && (
         <div 
+          className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-8 text-muted-foreground"
+          style={{ opacity: Math.min(swipeX / swipeThreshold, 1) }}
+        >
+          <Reply className="h-5 w-5" />
+        </div>
+      )}
+      
+      {/* Reply preview above the message */}
+      {repliedMessage && (
+        <div 
+          className={cn(
+            "flex items-center gap-1.5 mb-1 px-2 py-1 rounded text-xs max-w-[80%] truncate",
+            message.role === 'user' 
+              ? "bg-primary/20 text-primary-foreground/70" 
+              : "bg-secondary/70 text-muted-foreground"
+          )}
+        >
+          <Reply className="h-3 w-3 flex-shrink-0 rotate-180" />
+          <span className="truncate">
+            {repliedMessage.imageUrl && !repliedMessage.content ? '📷 Image' : repliedMessage.content.slice(0, 50)}
+            {repliedMessage.content.length > 50 ? '...' : ''}
+          </span>
+        </div>
+      )}
+      
+      {/* Message bubble with reply button on desktop hover */}
+      <div className="relative group flex items-center gap-2">
+        {/* Desktop reply button - appears on left for assistant messages */}
+        {!isMobile && message.role === 'assistant' && (
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0"
+            onClick={() => onReply(messageIndex)}
+            aria-label="Reply to this message"
+          >
+            <Reply className="h-4 w-4" />
+          </Button>
+        )}
+        
+        <div 
+          className={cn(
+            "max-w-[85%] rounded-lg px-4 py-2.5 min-w-0 flex flex-col",
+            message.role === 'user'
+              ? 'bg-primary text-primary-foreground'
+              : 'bg-secondary',
+            glowing && 'animate-shine-once',
+            message.role === 'user' && !isLatestUserMessage && 'cursor-pointer',
+            message.role === 'assistant' && cn(
+              isFirstInSequence && !isLastInSequence && "rounded-tl-none rounded-bl-none",
+              isFirstInSequence && isLastInSequence && "rounded-tl-none",
+              !isFirstInSequence && !isLastInSequence && "rounded-tl-none rounded-bl-none",
+              !isFirstInSequence && isLastInSequence && "rounded-tl-none rounded-bl-lg",
+            ),
+            message.role === 'user' && cn(
+              isFirstInSequence && !isLastInSequence && "rounded-tr-none rounded-br-none",
+              isFirstInSequence && isLastInSequence && "rounded-tr-none",
+              !isFirstInSequence && !isLastInSequence && "rounded-tr-none rounded-br-none",
+              !isFirstInSequence && isLastInSequence && "rounded-tr-none rounded-br-lg",
+            ),
+          )}
+          onClick={(e) => {
+            if (message.role === 'user' && !isLatestUserMessage) {
+              e.stopPropagation();
+              onMessageClick(messageIndex);
+            }
+          }}
           style={{
-            // Make the content area clickable but prevent text selection interference
+            // Ensure all child elements are clickable for user messages that aren't latest
             ...(message.role === 'user' && !isLatestUserMessage && {
-              pointerEvents: 'none'
+              pointerEvents: 'auto'
             })
           }}
         >
-          <FormattedMessage content={message.content} />
-        </div>
-      </div>
-       {message.role === 'user' && message.isIgnored && showIgnoredStatus && (
-          <div className="px-2 pt-1 text-xs text-red-500 dark:text-red-400 flex items-center gap-1">
-             Ignored
+          {/* Image display */}
+          {message.imageUrl && (
+            <div className="mb-2 -mx-2 -mt-1">
+              <img 
+                src={message.imageUrl} 
+                alt="Attached image" 
+                className="rounded-md max-w-full max-h-64 object-contain cursor-pointer"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  window.open(message.imageUrl, '_blank');
+                }}
+              />
+            </div>
+          )}
+          <div 
+            style={{
+              // Make the content area clickable but prevent text selection interference
+              ...(message.role === 'user' && !isLatestUserMessage && {
+                pointerEvents: 'none'
+              })
+            }}
+          >
+            <FormattedMessage content={message.content} />
           </div>
+        </div>
+        
+        {/* Desktop reply button - appears on right for user messages */}
+        {!isMobile && message.role === 'user' && (
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0"
+            onClick={() => onReply(messageIndex)}
+            aria-label="Reply to this message"
+          >
+            <Reply className="h-4 w-4" />
+          </Button>
         )}
+      </div>
+      
+      {message.role === 'user' && message.isIgnored && showIgnoredStatus && (
+        <div className="px-2 pt-1 text-xs text-red-500 dark:text-red-400 flex items-center gap-1">
+           Ignored
+        </div>
+      )}
     </div>
   );
 });
@@ -287,6 +414,13 @@ export default function PersonaChatPage() {
   const [isMemoryButtonGlowing, setIsMemoryButtonGlowing] = useState(false);
   const [clickedMessageIndex, setClickedMessageIndex] = useState<number | null>(null);
 
+  // Reply-to-message state
+  const [replyToIndex, setReplyToIndex] = useState<number | null>(null);
+  
+  // Image upload state
+  const [selectedImage, setSelectedImage] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
   const [touchStartX, setTouchStartX] = useState<number | null>(null);
   const [touchMoveX, setTouchMoveX] = useState<number | null>(null);
   const [touchStartY, setTouchStartY] = useState<number | null>(null);
@@ -379,6 +513,20 @@ export default function PersonaChatPage() {
     const chatHistoryForAI = currentChat.messages.slice(0, historyEndIndex);
     const userMessageContents = messagesForTurn.map(m => m.content);
     const isNewChat = chatHistoryForAI.length === 0;
+
+    // Get image and reply context from the last user message
+    const lastUserMessage = messagesForTurn[messagesForTurn.length - 1];
+    const imageDataUrl = lastUserMessage?.imageUrl;
+    let replyContext: string | undefined;
+    
+    if (lastUserMessage?.replyToIndex !== undefined) {
+      const replyToMessage = currentChat.messages[lastUserMessage.replyToIndex];
+      if (replyToMessage) {
+        replyContext = replyToMessage.imageUrl && !replyToMessage.content 
+          ? '[An image]'
+          : replyToMessage.content.slice(0, 100) + (replyToMessage.content.length > 100 ? '...' : '');
+      }
+    }
   
     const now = new Date();
     const currentDateTime = now.toLocaleString('en-US', {
@@ -391,7 +539,17 @@ export default function PersonaChatPage() {
       const testMode = await isTestModeActive();
   
       const res = await chatWithPersona({
-        persona: personaNow, userDetails: userDetailsRef.current, chatHistory: chatHistoryForAI, userMessages: userMessageContents, currentDateTime, currentDateForMemory, allChats: allChatsForContext, activeChatId: chatIdNow, isTestMode: testMode,
+        persona: personaNow, 
+        userDetails: userDetailsRef.current, 
+        chatHistory: chatHistoryForAI, 
+        userMessages: userMessageContents, 
+        currentDateTime, 
+        currentDateForMemory, 
+        allChats: allChatsForContext, 
+        activeChatId: chatIdNow, 
+        isTestMode: testMode,
+        imageDataUrl,
+        replyContext,
       });
       
       // Handle ignore logic first
@@ -566,9 +724,16 @@ export default function PersonaChatPage() {
     e.preventDefault();
     e.stopPropagation();
     
-    if (!input.trim() || !persona || !activeChatId) return;
+    // Allow submit if there's text OR an image
+    if ((!input.trim() && !selectedImage) || !persona || !activeChatId) return;
   
-    const userMessage: ChatMessage = { role: 'user', content: input, isIgnored: false };
+    const userMessage: ChatMessage = { 
+      role: 'user', 
+      content: input, 
+      isIgnored: false,
+      ...(selectedImage && { imageUrl: selectedImage }),
+      ...(replyToIndex !== null && { replyToIndex }),
+    };
   
     const updatedPersona = {
       ...persona,
@@ -582,8 +747,10 @@ export default function PersonaChatPage() {
     
     setPersona(updatedPersona);
     
-    // Clear input immediately to prevent any UI lag
+    // Clear input, reply, and image immediately to prevent any UI lag
     setInput('');
+    setReplyToIndex(null);
+    setSelectedImage(null);
     
     // On mobile, maintain focus aggressively
     if (isMobile && textareaRef.current) {
@@ -1016,6 +1183,58 @@ export default function PersonaChatPage() {
 
   const handleMessageClick = useCallback((messageIndex: number) => {
     setClickedMessageIndex(prev => prev === messageIndex ? null : messageIndex);
+  }, []);
+
+  // Reply handler
+  const handleReply = useCallback((messageIndex: number) => {
+    setReplyToIndex(messageIndex);
+    // Focus the textarea when replying
+    textareaRef.current?.focus();
+  }, []);
+
+  // Cancel reply handler
+  const handleCancelReply = useCallback(() => {
+    setReplyToIndex(null);
+  }, []);
+
+  // Image selection handler
+  const handleImageSelect = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      // Validate file type
+      if (!file.type.startsWith('image/')) {
+        toast({
+          variant: 'destructive',
+          title: 'Invalid file type',
+          description: 'Please select an image file (JPG, PNG, GIF, etc.)',
+        });
+        return;
+      }
+      
+      // Validate file size (max 5MB)
+      if (file.size > 5 * 1024 * 1024) {
+        toast({
+          variant: 'destructive',
+          title: 'File too large',
+          description: 'Please select an image smaller than 5MB.',
+        });
+        return;
+      }
+      
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        const result = event.target?.result as string;
+        setSelectedImage(result);
+      };
+      reader.readAsDataURL(file);
+    }
+    // Reset file input so the same file can be selected again
+    e.target.value = '';
+  }, [toast]);
+
+  // Cancel image handler
+  const handleCancelImage = useCallback(() => {
+    setSelectedImage(null);
   }, []);
 
   const handleOutsideClick = useCallback((e: MouseEvent) => {
@@ -1553,6 +1772,9 @@ export default function PersonaChatPage() {
                                  messageIndex={index}
                                  onMessageClick={handleMessageClick}
                                  showIgnoredStatus={showIgnoredStatus}
+                                 onReply={handleReply}
+                                 allMessages={messagesToDisplay}
+                                 isMobile={isMobile}
                                />
                              </div>
                            );
@@ -1575,11 +1797,79 @@ export default function PersonaChatPage() {
                     </ScrollArea>
                     <div className="border-t bg-background/50">
                         <div className="max-w-3xl mx-auto p-4">
+                            {/* Reply preview banner */}
+                            {replyToIndex !== null && messagesToDisplay[replyToIndex] && (
+                              <div className="flex items-center gap-2 mb-2 px-3 py-2 bg-secondary/70 rounded-lg text-sm">
+                                <Reply className="h-4 w-4 flex-shrink-0 text-muted-foreground rotate-180" />
+                                <div className="flex-1 min-w-0">
+                                  <div className="text-xs text-muted-foreground">
+                                    Replying to {messagesToDisplay[replyToIndex].role === 'user' ? 'yourself' : persona.name}
+                                  </div>
+                                  <div className="truncate text-foreground/80">
+                                    {messagesToDisplay[replyToIndex].imageUrl && !messagesToDisplay[replyToIndex].content 
+                                      ? '📷 Image' 
+                                      : messagesToDisplay[replyToIndex].content.slice(0, 60)}
+                                    {messagesToDisplay[replyToIndex].content.length > 60 ? '...' : ''}
+                                  </div>
+                                </div>
+                                <Button
+                                  type="button"
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-6 w-6 flex-shrink-0"
+                                  onClick={handleCancelReply}
+                                >
+                                  <X className="h-4 w-4" />
+                                </Button>
+                              </div>
+                            )}
+                            
+                            {/* Selected image preview */}
+                            {selectedImage && (
+                              <div className="relative mb-2 inline-block">
+                                <img 
+                                  src={selectedImage} 
+                                  alt="Selected" 
+                                  className="max-h-32 rounded-lg object-contain"
+                                />
+                                <Button
+                                  type="button"
+                                  variant="destructive"
+                                  size="icon"
+                                  className="absolute -top-2 -right-2 h-6 w-6 rounded-full"
+                                  onClick={handleCancelImage}
+                                >
+                                  <X className="h-3 w-3" />
+                                </Button>
+                              </div>
+                            )}
+                            
                             <form
                             ref={formRef}
                             onSubmit={handleSubmit}
                             className="flex w-full items-end gap-2 rounded-lg border bg-secondary/50 p-2"
                             >
+                            {/* Hidden file input */}
+                            <input
+                              ref={fileInputRef}
+                              type="file"
+                              accept="image/*"
+                              className="hidden"
+                              onChange={handleImageSelect}
+                            />
+                            
+                            {/* Image upload button */}
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="icon"
+                              className="h-10 w-10 rounded-md flex-shrink-0 text-muted-foreground hover:text-foreground"
+                              onClick={() => fileInputRef.current?.click()}
+                              aria-label="Attach image"
+                            >
+                              <ImagePlus className="h-5 w-5" />
+                            </Button>
+                            
                             <Textarea
                                 ref={textareaRef}
                                 value={input}
@@ -1593,7 +1883,7 @@ export default function PersonaChatPage() {
                             <Button
                                 type="submit"
                                 size="icon"
-                                disabled={!input.trim()}
+                                disabled={!input.trim() && !selectedImage}
                                 className="h-10 w-10 rounded-md flex-shrink-0"
                             >
                                 <Send className="h-5 w-5" />

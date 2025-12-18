@@ -43,6 +43,8 @@ const ChatWithPersonaInputSchema = z.object({
   }).optional().describe("The persona's current state regarding ignoring the user."),
   isTestMode: z.boolean(),
   retrievedMemories: z.string().optional().describe('Formatted retrieved memories from past conversations, if any were found relevant.'),
+  replyContext: z.string().optional().describe('Context about the message being replied to, if any.'),
+  hasImage: z.boolean().optional().describe('Whether the user attached an image to their message.'),
 });
 export type ChatWithPersonaInput = z.infer<typeof ChatWithPersonaInputSchema>;
 
@@ -169,6 +171,8 @@ ${wasIgnoringInPreviousChat ? 'This is a new chat - you may respond but should a
 <new_message>
 ${userIdentifier} just said:
 ${input.userMessages.map(msg => `"${msg}"`).join('\n')}
+${input.replyContext ? `\n(This message is a reply to: "${input.replyContext}")` : ''}
+${input.hasImage ? `\n(${userIdentifier} also attached an image to this message. You can see and describe it.)` : ''}
 </new_message>
 
 ${contentRestrictions}
@@ -233,9 +237,13 @@ export async function chatWithPersona(
     allChats: ChatSession[];
     activeChatId: string;
     isTestMode: boolean;
+    /** Base64 image data URL if user attached an image */
+    imageDataUrl?: string;
+    /** Context about reply, if any */
+    replyContext?: string;
   }
 ): Promise<ChatWithPersonaOutput> {
-  const { persona, userDetails, chatHistory, userMessages, currentDateTime, currentDateForMemory, allChats, activeChatId, isTestMode } = payload;
+  const { persona, userDetails, chatHistory, userMessages, currentDateTime, currentDateForMemory, allChats, activeChatId, isTestMode, imageDataUrl, replyContext } = payload;
   
   const personaDescription = `Backstory: ${persona.backstory}\nTraits: ${persona.traits}\nGoals: ${persona.goals}`;
   const userIdentifier = userDetails.name?.split(' ')[0] || 'the user';
@@ -288,12 +296,35 @@ export async function chatWithPersona(
     ignoredState: persona.ignoredState || { isIgnored: false },
     isTestMode: isTestMode,
     retrievedMemories: retrievedMemoriesPrompt,
+    replyContext: replyContext,
+    hasImage: !!imageDataUrl,
   };
 
   const prompt = buildChatPrompt(input, persona);
 
+  // Build content parts - text first, then image if present
+  const contentParts: Array<{ text?: string; inlineData?: { mimeType: string; data: string } }> = [
+    { text: prompt }
+  ];
+
+  // If there's an image, add it to the content parts
+  if (imageDataUrl) {
+    // Extract mime type and base64 data from data URL
+    const matches = imageDataUrl.match(/^data:([^;]+);base64,(.+)$/);
+    if (matches) {
+      const mimeType = matches[1];
+      const base64Data = matches[2];
+      contentParts.push({
+        inlineData: {
+          mimeType,
+          data: base64Data,
+        }
+      });
+    }
+  }
+
   const requestBody = {
-    contents: [{ parts: [{ text: prompt }] }],
+    contents: [{ parts: contentParts }],
     generationConfig: {
       temperature: 1.0, // High temperature for natural, varied responses
       topK: 40,
