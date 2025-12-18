@@ -40,28 +40,34 @@ export class ImageGenerationQuotaError extends Error {
  * Exported so it can be displayed to users for manual image generation.
  */
 export function buildProfilePicturePrompt(input: GeneratePersonaProfilePictureInput): string {
-  return `You are an expert art director specializing in character portraits for social media. Your task is to generate a profile picture that is authentic and believable, but in a semi-realistic, digitally painted art style. It should not look like a photograph.
+  return `<system>
+You are an expert art director specializing in character portraits for social media.
+</system>
 
-The style of the portrait should be directly inspired by the character's personality and backstory.
-- For a professional or serious persona, create a clean, well-composed, painted headshot.
-- For a casual, artistic, or adventurous persona, create a more dynamic painted portrait, perhaps with a more expressive pose or interesting lighting that reflects their hobby or environment.
+<style_requirements>
+• Art Style: Semi-realistic, digitally painted portrait (modern concept art aesthetic)
+• AVOID: Photorealism - image must look like a digital painting
+• Authenticity: Unique and real-feeling despite being illustrated
+• Lighting: Natural or dramatic, complementing character mood
+• Background: Simple, painterly, or contextually relevant
+</style_requirements>
 
-**Style Instructions (CRITICAL):**
-- **Art Style:** Generate a high-quality, semi-realistic, digitally painted portrait. Think modern concept art or a high-end graphic novel. It should have a clear artistic touch.
-- **AVOID PHOTOREALISM:** Do not generate a photograph. The image must look like a digital painting.
-- **Authenticity over Perfection:** Avoid overly airbrushed or generic "anime" looks. The character should feel unique and real, despite being illustrated.
-- **Lighting:** Use natural or dramatic lighting that complements the character's mood and setting.
-- **Background:** Keep the background simple, painterly, or contextually relevant to the character.
+<style_guidance>
+• Professional/serious persona → Clean, well-composed painted headshot
+• Casual/artistic/adventurous → Dynamic portrait with expressive pose or interesting lighting
+</style_guidance>
 
-Use the following details to bring the character to life in their profile picture:
+<character_details>
+Name: ${input.personaName}
 
-**Character Name:** ${input.personaName}
-
-**Character Vibe & Traits:**
+Traits and Vibe:
 ${input.personaTraits}
 
-**Backstory Context:**
-${input.personaBackstory}`;
+Backstory Context:
+${input.personaBackstory}
+</character_details>
+
+Generate a high-quality profile picture portrait that captures this character's essence.`;
 }
 
 /**

@@ -117,76 +117,83 @@ export async function generatePersonaFromChat(input: GeneratePersonaFromChatInpu
   // Sample messages for analysis (use up to 200 messages to stay within token limits)
   const messageSample = personMessages.slice(0, 200).join('\n---\n');
   
-  const prompt = `You are an elite psychological profiler and communication analyst specializing in creating hyper-realistic digital personas. Your task is to analyze WhatsApp messages and create an EXTRAORDINARILY accurate persona clone.
+  const prompt = `<system>
+You are an elite psychological profiler specializing in creating hyper-realistic digital personas from chat analysis.
+</system>
 
-ANALYSIS FRAMEWORK:
+<task>
+Analyze WhatsApp messages to create an extraordinarily accurate persona clone.
+</task>
 
-1. MICRO-LINGUISTIC PATTERNS:
-   - Specific phrases, catchphrases, verbal tics
-   - Emoji usage patterns and combinations
-   - Punctuation habits (ellipsis, exclamation marks, capitalization)
-   - Typo patterns and autocorrect tendencies
-   - Message length preferences and rhythm
+<analysis_framework>
+MICRO-LINGUISTIC PATTERNS:
+• Specific phrases, catchphrases, verbal tics
+• Emoji usage patterns and combinations
+• Punctuation habits (ellipsis, exclamation, capitalization)
+• Typo patterns and autocorrect tendencies
+• Message length preferences
 
-2. EMOTIONAL INTELLIGENCE MAPPING:
-   - Emotional range and expression patterns
-   - How they handle different emotions (joy, frustration, sadness, excitement)
-   - Empathy levels and emotional support style
-   - Vulnerability patterns and boundaries
+EMOTIONAL INTELLIGENCE:
+• Emotional range and expression patterns
+• How they handle joy, frustration, sadness, excitement
+• Empathy levels and emotional support style
+• Vulnerability patterns and boundaries
 
-3. PERSONALITY DEPTH ANALYSIS:
-   - Core values and beliefs (inferred from topics and reactions)
-   - Humor style (sarcasm, puns, dark humor, wholesome)
-   - Decision-making patterns
-   - Conflict resolution approach
-   - Optimism vs realism spectrum
+PERSONALITY DEPTH:
+• Core values and beliefs (inferred from topics/reactions)
+• Humor style (sarcasm, puns, dark, wholesome)
+• Decision-making patterns
+• Conflict resolution approach
 
-4. CONVERSATIONAL DYNAMICS:
-   - Response timing patterns (quick replies vs thoughtful pauses)
-   - Topic initiation vs response patterns
-   - Question-asking frequency and style
-   - How they change tone based on context
-   - Level of formality vs casualness
+CONVERSATIONAL DYNAMICS:
+• Response timing patterns
+• Topic initiation vs response patterns
+• Question-asking style
+• Tone shifts based on context
 
-5. UNIQUE IDENTITY MARKERS:
-   - Distinctive quirks and idiosyncrasies
-   - Inside jokes or references
-   - Cultural or regional language patterns
-   - Professional or hobby-specific terminology
-   - Personal storytelling style
+UNIQUE MARKERS:
+• Distinctive quirks and idiosyncrasies
+• Inside jokes or references
+• Cultural/regional language patterns
+• Professional/hobby terminology
+</analysis_framework>
 
-MESSAGES FROM ${personName.toUpperCase()}:
+<messages person="${personName.toUpperCase()}">
 ${messageSample}
+</messages>
 
-TOTAL MESSAGES ANALYZED: ${personMessages.length}${userContext}
+<metadata>
+Total messages analyzed: ${personMessages.length}
+${userContext}
+</metadata>
 
-CRITICAL INSTRUCTIONS:
-- Be EXTREMELY specific about communication patterns
-- Capture the ESSENCE of their personality, not generic traits
-- Include actual phrases they use frequently
-- Note subtle patterns others might miss
-- Make the persona feel ALIVE and AUTHENTIC
+<requirements>
+• Be EXTREMELY specific about communication patterns
+• Capture the ESSENCE of their personality
+• Include actual phrases they use frequently
+• Note subtle patterns others might miss
+• Make the persona feel ALIVE and AUTHENTIC
+</requirements>
 
-OUTPUT REQUIREMENTS (JSON format):
+<output_format>
 {
   "name": "${personName}",
-  "age": <estimated age based on language/references/life stage - ALWAYS provide a number, use best estimate>,
-  "relation": "<relationship type with confidence level: 'Friend (Established)', 'Best Friend (Established)', 'Partner (Established)', 'Coworker (Presumed)', 'Family Member (Established)', etc. Use (Established) if relationship is explicitly confirmed by both parties in chat, use (Presumed) if inferred from context>",
-  "traits": "<5-7 core personality traits with specific examples from messages>",
-  "backstory": "<inferred life context: profession, lifestyle, interests, life stage - be specific based on message content>",
-  "interests": "<hobbies, passions, topics they frequently discuss - with specific details>",
-  "communicationStyle": "<DETAILED description: message length, emoji use, punctuation, formality, humor style, response patterns, specific phrases they use>",
-  "emotionalTone": "<emotional range, how they express feelings, empathy level, vulnerability patterns - with examples>",
-  "values": "<core values and beliefs inferred from conversations, what matters to them>",
-  "quirks": "<unique characteristics: typos, autocorrect patterns, specific emoji combos, verbal tics, inside jokes>"
+  "age": <estimated age - ALWAYS provide a number based on language/references>,
+  "relation": "<relationship type: 'Friend (Established)', 'Best Friend (Established)', 'Partner (Established)', 'Coworker (Presumed)', 'Family Member (Established)' - use (Established) if confirmed, (Presumed) if inferred>",
+  "traits": "<5-7 core traits with specific examples from messages>",
+  "backstory": "<inferred life context: profession, lifestyle, interests, life stage>",
+  "interests": "<hobbies, passions, frequently discussed topics with details>",
+  "communicationStyle": "<DETAILED: message length, emoji use, punctuation, formality, humor, specific phrases>",
+  "emotionalTone": "<emotional range, expression patterns, empathy level with examples>",
+  "values": "<core values and beliefs inferred from conversations>",
+  "quirks": "<unique characteristics: typos, autocorrect, specific emoji combos, verbal tics>"
 }
-
-Respond ONLY with valid JSON. Make every field rich with specific, authentic details.`;
+</output_format>`;
 
   const requestBody = {
     contents: [{ parts: [{ text: prompt }] }],
     generationConfig: {
-      temperature: 0.4, // Lower temperature for more accurate analysis
+      temperature: 0.4,
       topP: 0.95,
       topK: 40,
       responseMimeType: 'application/json',
@@ -206,7 +213,6 @@ Respond ONLY with valid JSON. Make every field rich with specific, authentic det
         },
         required: ['name', 'age', 'relation', 'traits', 'backstory', 'interests', 'communicationStyle', 'emotionalTone', 'values', 'quirks']
       },
-      // High thinking for complex persona cloning - needs deep analysis
       thinkingConfig: {
         thinkingLevel: "high",
       },
