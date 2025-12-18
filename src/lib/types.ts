@@ -32,8 +32,11 @@ export interface Persona {
   maxWpm: number;
   chats: ChatSession[];
   /** 
-   * Facts that the persona knows about the user.
+   * MAJOR life events about the user that the persona remembers permanently.
+   * Should ONLY contain highly significant, life-changing information like:
+   * new job, new pet, moving cities, marriage, babies, major health events, etc.
    * Each memory should be a complete, self-contained sentence with a date prefix (YYYY-MM-DD: fact).
+   * Mundane conversation topics should NOT be stored here - use chat summaries for that.
    */
   memories: string[];
   lastChatTime?: number; // Timestamp of last chat interaction

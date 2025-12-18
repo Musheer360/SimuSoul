@@ -1630,7 +1630,7 @@ export default function PersonaChatPage() {
                 <DialogHeader>
                     <DialogTitle>Memories for {persona.name}</DialogTitle>
                     <DialogDescription>
-                       These are the memories this persona has about you. They are updated automatically during conversation.
+                       These are major life events this persona remembers about you. Only significant changes (new job, new pet, moving, etc.) are stored here. Conversation details are handled by chat summaries.
                     </DialogDescription>
                 </DialogHeader>
                 <div className="flex-1 space-y-4 py-4 min-h-0">
