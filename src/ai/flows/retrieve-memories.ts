@@ -227,7 +227,7 @@ Find up to 3 most relevant chats. Consider:
 {
   "relevantChatIds": ["id1", "id2", "id3"]
 }
-Return empty array if no chats are relevant.
+Note: Return empty array [] if no chats are relevant.
 </output_format>`;
 
   const requestBody = {

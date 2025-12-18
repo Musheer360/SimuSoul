@@ -216,8 +216,7 @@ Respond with valid JSON:
   "shouldIgnore": false,
   "ignoreReason": ""
 }
-
-If ignoring user: response must be empty array [], shouldIgnore: true
+Note: If ignoring user, response must be empty array [] and shouldIgnore: true
 </output_format>
 
 Now respond as ${input.personaName}. Be genuine and natural.`;
