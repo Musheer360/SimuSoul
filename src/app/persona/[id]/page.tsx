@@ -1153,10 +1153,10 @@ export default function PersonaChatPage() {
     setIsSwitchingMode(true);
     
     try {
-      const newMode = persona.chatUiMode === 'messaging' ? 'traditional' : 'messaging';
+      const newMode: 'traditional' | 'messaging' = persona.chatUiMode === 'messaging' ? 'traditional' : 'messaging';
       
       // Clear all chats and memories when switching modes
-      const updatedPersona = {
+      const updatedPersona: Persona = {
         ...persona,
         chatUiMode: newMode,
         chats: [],
@@ -1627,7 +1627,7 @@ export default function PersonaChatPage() {
                 </div>
                 
                 <div className="flex-1 min-h-0 px-4 pb-4">
-                <ScrollArea className="h-full" type="never">
+                <ScrollArea className="h-full">
                   <div className="space-y-1">
                     {sortedChats.length > 0 ? (
                       sortedChats.map(chat => (
