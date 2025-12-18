@@ -28,6 +28,7 @@ export interface Persona {
   chats: ChatSession[];
   memories: string[];
   lastChatTime?: number; // Timestamp of last chat interaction
+  chatUiMode?: 'traditional' | 'messaging'; // UI mode for chat display
   ignoredState?: {
     isIgnored: boolean;
     reason?: string;
