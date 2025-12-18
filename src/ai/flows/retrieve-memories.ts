@@ -66,6 +66,12 @@ const MAX_MESSAGES_PER_CHAT = 8;
 /** Maximum number of past chats to pass as context to prevent performance issues */
 const MAX_CHAT_CONTEXTS = 50;
 
+/** Estimated message count when a typical summary is created (used for staleness detection) */
+const TYPICAL_SUMMARY_MESSAGE_COUNT = 10;
+
+/** Minimum new messages required before supplementing an existing summary */
+const MIN_NEW_MESSAGES_FOR_SUPPLEMENT = 5;
+
 /**
  * Metadata for a chat session used in memory retrieval.
  * @property id - Unique identifier for the chat session
@@ -324,9 +330,9 @@ function generateQuickSummary(messages: ChatMessage[]): string {
  * that may have been added after the original summary was generated.
  * Only generates if there's significant new content since last summary.
  */
-function generateRecentMessagesSummary(messages: ChatMessage[], lastSummaryMessageCount: number = 0): string {
-  // Only supplement if there are at least 5 new messages since summary
-  if (messages.length - lastSummaryMessageCount < 5) {
+function generateRecentMessagesSummary(messages: ChatMessage[], lastSummaryMessageCount: number = TYPICAL_SUMMARY_MESSAGE_COUNT): string {
+  // Only supplement if there are at least MIN_NEW_MESSAGES_FOR_SUPPLEMENT new messages since summary
+  if (messages.length - lastSummaryMessageCount < MIN_NEW_MESSAGES_FOR_SUPPLEMENT) {
     return '';
   }
   
@@ -358,10 +364,11 @@ function getEnhancedSummary(chat: ChatSession): string {
     return generateQuickSummary(chat.messages);
   }
   
-  // If existing summary exists and chat has grown significantly (>15 messages total),
-  // supplement it with recent messages. Assume summary was created when chat had ~10 messages.
-  if (chat.messages.length > 15) {
-    const recentSummary = generateRecentMessagesSummary(chat.messages, 10);
+  // If existing summary exists and chat has grown significantly,
+  // supplement it with recent messages. Assume summary was created at ~TYPICAL_SUMMARY_MESSAGE_COUNT messages.
+  const significantGrowthThreshold = TYPICAL_SUMMARY_MESSAGE_COUNT + MIN_NEW_MESSAGES_FOR_SUPPLEMENT;
+  if (chat.messages.length > significantGrowthThreshold) {
+    const recentSummary = generateRecentMessagesSummary(chat.messages, TYPICAL_SUMMARY_MESSAGE_COUNT);
     if (recentSummary) {
       return `${existingSummary}. ${recentSummary}`;
     }

@@ -22,7 +22,7 @@ export type SummarizeChatInput = z.infer<typeof SummarizeChatInputSchema>;
 export const SummarizeChatOutputSchema = z.object({
   summary: z.string()
     .max(500, 'Summary must be concise (max 500 characters)')
-    .describe('A concise summary of the conversation in 3-5 bullet points.'),
+    .describe('A concise summary of the conversation in 3-5 bullet points. Each bullet should be brief and factual.'),
 });
 export type SummarizeChatOutput = z.infer<typeof SummarizeChatOutputSchema>;
 
@@ -51,7 +51,7 @@ export async function summarizeChat(input: SummarizeChatInput): Promise<Summariz
 
 **CRITICAL RULES:** 
 1. The summary MUST be between 3-5 bullet points.
-2. Each bullet point should be concise (max 100 characters).
+2. Keep the total summary under 500 characters.
 3. Focus on factual information, decisions, and important context.
 
 ---

@@ -48,6 +48,11 @@ import { getPersona, savePersona, deletePersona, getUserDetails } from '@/lib/db
 import { isTestModeActive } from '@/lib/api-key-manager';
 import { MemoryItem } from '@/components/memory-item';
 
+// Constants for chat summarization
+const MIN_MESSAGES_FOR_SUMMARY = 7; // Minimum messages before creating a summary
+const TYPICAL_SUMMARY_MESSAGE_COUNT = 10; // Estimated message count when summary is typically created
+const SUMMARY_STALENESS_THRESHOLD = 15; // Messages count indicating summary may be stale
+
 // Helper to find the last index of an element in an array.
 const findLastIndex = <T,>(
   array: T[],
@@ -325,11 +330,11 @@ export default function PersonaChatPage() {
     if (!chatToSummarize) return;
     
     // Check if chat needs summarization:
-    // 1. Has enough messages (>6 for meaningful summary)
-    // 2. Either has no summary OR summary is stale (chat has grown by 50% since last summary)
-    const needsSummary = chatToSummarize.messages.length > 6 && (
+    // 1. Has enough messages for meaningful summary
+    // 2. Either has no summary OR summary is stale (chat has grown beyond staleness threshold)
+    const needsSummary = chatToSummarize.messages.length >= MIN_MESSAGES_FOR_SUMMARY && (
       !chatToSummarize.summary || 
-      (chatToSummarize.summary && chatToSummarize.messages.length > 15) // Assume summary was at ~10 messages
+      (chatToSummarize.summary && chatToSummarize.messages.length >= SUMMARY_STALENESS_THRESHOLD)
     );
     
     if (needsSummary) {
@@ -415,7 +420,10 @@ export default function PersonaChatPage() {
       setPersona(current => {
         if (!current) return null;
         
-        const lastUserMessageIndex = findLastIndex(current.chats.find(c => c.id === chatIdNow)?.messages || [], msg => msg.role === 'user');
+        const currentChat = current.chats.find(c => c.id === chatIdNow);
+        if (!currentChat) return current; // Safety check - chat should exist
+        
+        const lastUserMessageIndex = findLastIndex(currentChat.messages || [], msg => msg.role === 'user');
         let finalMemories = current.memories || [];
         const memoryWasUpdated = (res.newMemories?.length || 0) > 0 || (res.removedMemories?.length || 0) > 0;
   
@@ -425,7 +433,7 @@ export default function PersonaChatPage() {
           const memoriesToAdd = res.newMemories || [];
           finalMemories = [...finalMemories, ...memoriesToAdd];
   
-          setGlowingMessageIndex(current.chats.find(c => c.id === chatIdNow)!.messages.length - 1);
+          setGlowingMessageIndex(currentChat.messages.length - 1);
           setTimeout(() => setGlowingMessageIndex(null), 1500);
   
           if (!isMobile) {
