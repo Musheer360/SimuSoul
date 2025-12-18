@@ -579,11 +579,14 @@ export default function PersonaChatPage() {
         
         // Check if enough time has passed to create a new session (1 hour = 60 minutes)
         if (shouldCreateNewSession(lastMessageTime, now, 60)) {
-          // Create a new backend chat session
+          // Get last 5 messages from current chat for context continuity
+          const contextMessages = currentChat.messages.slice(-5);
+          
+          // Create a new backend chat session with context carryover
           const newChatSession: ChatSession = {
             id: crypto.randomUUID(),
             title: 'Messages',
-            messages: [userMessage],
+            messages: [...contextMessages, userMessage], // Include previous context + new message
             createdAt: now,
             updatedAt: now,
           };
@@ -592,7 +595,7 @@ export default function PersonaChatPage() {
           updatedChats = [...updatedChats, newChatSession];
           finalActiveChatId = newChatSession.id;
           
-          console.log('Created new backend session due to time gap in messaging mode');
+          console.log('Created new backend session with last 5 messages for context continuity');
         } else {
           // Add to existing chat
           updatedChats = persona.chats.map(c =>
