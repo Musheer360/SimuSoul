@@ -322,9 +322,19 @@ export default function PersonaChatPage() {
 
     const chatToSummarize = currentPersona.chats.find(c => c.id === chatId);
 
-    if (chatToSummarize && chatToSummarize.messages.length > 4 && !chatToSummarize.summary) {
+    if (!chatToSummarize) return;
+    
+    // Check if chat needs summarization:
+    // 1. Has enough messages (>6 for meaningful summary)
+    // 2. Either has no summary OR summary is stale (chat has grown by 50% since last summary)
+    const needsSummary = chatToSummarize.messages.length > 6 && (
+      !chatToSummarize.summary || 
+      (chatToSummarize.summary && chatToSummarize.messages.length > 15) // Assume summary was at ~10 messages
+    );
+    
+    if (needsSummary) {
         try {
-            console.log(`Summarizing chat: ${chatToSummarize.title}`);
+            console.log(`Summarizing chat: ${chatToSummarize.title} (${chatToSummarize.messages.length} messages)`);
             const result = await summarizeChat({ chatHistory: chatToSummarize.messages });
             const updatedPersona = {
                 ...currentPersona,
@@ -334,7 +344,7 @@ export default function PersonaChatPage() {
             };
             setPersona(updatedPersona);
             await savePersona(updatedPersona);
-            console.log(`Summary saved for chat: ${chatToSummarize.title}`);
+            console.log(`Summary ${chatToSummarize.summary ? 'updated' : 'saved'} for chat: ${chatToSummarize.title}`);
         } catch (e) {
             console.error("Failed to summarize chat:", e);
         }
@@ -676,20 +686,14 @@ export default function PersonaChatPage() {
 
   useEffect(() => {
     // Function to clean up empty "New Chat" sessions when navigating away
-    const handleCleanup = (chatIdToClean: string | null | undefined, isComponentUnmounting: boolean = false) => {
+    const handleCleanup = (chatIdToClean: string | null | undefined) => {
         if (!chatIdToClean) return;
 
         const personaNow = personaRef.current;
-        if (personaNow?.chats) {
+        if (personaNow?.chats && personaNow.chats.length > 1) {
             const chat = personaNow.chats.find(c => c.id === chatIdToClean);
-            // Only clean up empty "New Chat" sessions when actually switching chats,
-            // not when the component is unmounting (page reload)
-            // Also, be more conservative - only cleanup if there are other chats available
-            if (chat && 
-                chat.title === 'New Chat' && 
-                chat.messages.length === 0 && 
-                !isComponentUnmounting &&
-                personaNow.chats.length > 1) {
+            // Only clean up empty "New Chat" sessions with no messages when other chats exist
+            if (chat && chat.title === 'New Chat' && chat.messages.length === 0) {
                 const updatedPersona = {
                     ...personaNow,
                     chats: personaNow.chats.filter(c => c.id !== chatIdToClean),
@@ -706,7 +710,7 @@ export default function PersonaChatPage() {
         handleSummarizeChat(previousChatId);
         messagesSinceLastResponseRef.current = [];
         if (responseTimerRef.current) clearTimeout(responseTimerRef.current);
-        handleCleanup(previousChatId, false); // Not unmounting, safe to cleanup
+        handleCleanup(previousChatId);
         // Reset clicked message state when switching chats
         setClickedMessageIndex(null);
     }
@@ -719,7 +723,6 @@ export default function PersonaChatPage() {
       
       const lastActiveChat = prevActiveChatIdRef.current;
       if (lastActiveChat) {
-          // Don't cleanup on unmount to preserve chats on page reload
           handleSummarizeChat(lastActiveChat);
       }
       if (responseTimerRef.current) clearTimeout(responseTimerRef.current);
@@ -1626,7 +1629,7 @@ export default function PersonaChatPage() {
                     <ScrollArea className="h-full rounded-md border scroll-contain">
                         <div className="space-y-2 p-4">
                             {(persona.memories || []).length > 0 ? (
-                                [...persona.memories].sort().map((memory) => (
+                                [...persona.memories].sort((a, b) => a.localeCompare(b)).map((memory) => (
                                     <MemoryItem
                                         key={memory}
                                         memory={memory}

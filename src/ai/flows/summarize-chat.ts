@@ -20,9 +20,14 @@ export const SummarizeChatInputSchema = z.object({
 export type SummarizeChatInput = z.infer<typeof SummarizeChatInputSchema>;
 
 export const SummarizeChatOutputSchema = z.object({
-  summary: z.string().describe('A concise summary of the conversation in 3-5 bullet points.'),
+  summary: z.string()
+    .max(500, 'Summary must be concise (max 500 characters)')
+    .describe('A concise summary of the conversation in 3-5 bullet points.'),
 });
 export type SummarizeChatOutput = z.infer<typeof SummarizeChatOutputSchema>;
+
+// Minimum number of messages required before summarization
+const MIN_MESSAGES_FOR_SUMMARY = 6;
 
 // Manually define the OpenAPI schema for the Gemini API
 const SummarizeChatOutputOpenAPISchema = {
@@ -37,9 +42,17 @@ const SummarizeChatOutputOpenAPISchema = {
 };
 
 export async function summarizeChat(input: SummarizeChatInput): Promise<SummarizeChatOutput> {
+  // Validate minimum message count
+  if (input.chatHistory.length < MIN_MESSAGES_FOR_SUMMARY) {
+    throw new Error(`Cannot summarize chat with less than ${MIN_MESSAGES_FOR_SUMMARY} messages. Current count: ${input.chatHistory.length}`);
+  }
+  
   const prompt = `You are a summarization expert. Analyze the following conversation between a user and an AI assistant. Your task is to create a concise summary that captures the most important information, events, and decisions. The summary will be used for long-term memory, so focus on key takeaways.
 
-**CRITICAL RULE:** The summary MUST be a maximum of 5 bullet points.
+**CRITICAL RULES:** 
+1. The summary MUST be between 3-5 bullet points.
+2. Each bullet point should be concise (max 100 characters).
+3. Focus on factual information, decisions, and important context.
 
 ---
 **Conversation History to Summarize:**

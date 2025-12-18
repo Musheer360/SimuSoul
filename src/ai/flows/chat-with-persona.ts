@@ -220,10 +220,11 @@ export async function chatWithPersona(
     // Continue without retrieved memories - the system should still work
   }
 
+  // Prepare chat summaries, excluding current chat and limiting to most recent
   const chatSummaries = allChats
-    .filter(c => c.summary)
+    .filter(c => c.id !== activeChatId && c.summary) // Exclude current chat and chats without summaries
     .sort((a, b) => (b.updatedAt || b.createdAt) - (a.updatedAt || a.createdAt))
-    .slice(0, 5)
+    .slice(0, 5) // Limit to 5 most recent summarized chats
     .map(c => ({
         date: new Date(c.updatedAt || c.createdAt).toLocaleDateString(),
         summary: c.summary!,
