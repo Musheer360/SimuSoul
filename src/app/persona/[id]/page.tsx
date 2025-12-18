@@ -13,7 +13,7 @@ import type { Persona, UserDetails, ChatMessage, ChatSession } from '@/lib/types
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
-import { Send, Loader2, Bot, Trash2, MessageSquarePlus, ArrowLeft, PanelLeft, Pencil, Brain } from 'lucide-react';
+import { Send, Loader2, Bot, Trash2, MessageSquarePlus, ArrowLeft, PanelLeft, Pencil, Brain, MessageCircle } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import {
   AlertDialog,
@@ -47,6 +47,8 @@ import { AnimatedChatTitle } from '@/components/animated-chat-title';
 import { getPersona, savePersona, deletePersona, getUserDetails } from '@/lib/db';
 import { isTestModeActive } from '@/lib/api-key-manager';
 import { MemoryItem } from '@/components/memory-item';
+import { DateSeparator } from '@/components/date-separator';
+import { shouldShowDateSeparator, formatMessageTime, shouldCreateNewSession } from '@/lib/date-utils';
 
 // Helper to find the last index of an element in an array.
 const findLastIndex = <T,>(
@@ -273,10 +275,12 @@ export default function PersonaChatPage() {
   const [isManagementDialogOpen, setIsManagementDialogOpen] = useState(false);
   const [isMemoryDialogOpen, setIsMemoryDialogOpen] = useState(false);
   const [isClearAllDialogOpen, setIsClearAllDialogOpen] = useState(false);
+  const [isChatModeDialogOpen, setIsChatModeDialogOpen] = useState(false);
   const [chatToDelete, setChatToDelete] = useState<ChatSession | null>(null);
   const [isEditSheetOpen, setIsEditSheetOpen] = useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [isSwitchingMode, setIsSwitchingMode] = useState(false);
 
   const [glowingMessageIndex, setGlowingMessageIndex] = useState<number | null>(null);
   const [isMemoryButtonGlowing, setIsMemoryButtonGlowing] = useState(false);
@@ -753,39 +757,73 @@ export default function PersonaChatPage() {
     if (!persona) return;
     
     const chatIdFromQuery = searchParams.get('chat');
+    const currentMode = persona.chatUiMode || 'traditional';
     
     // Only run this logic when there's no chat ID in URL
     if (!chatIdFromQuery) {
-        // Check if we already have an empty "New Chat"
-        const existingEmptyNewChat = persona.chats.find(c => 
-            c.title === 'New Chat' && c.messages.length === 0
-        );
-        
-        if (existingEmptyNewChat) {
-            // Use existing empty new chat
-            if (activeChatId !== existingEmptyNewChat.id) {
-                setActiveChatId(existingEmptyNewChat.id);
-                router.replace(`/persona/${persona.id}?chat=${existingEmptyNewChat.id}`, { scroll: false });
-            }
-        } else {
-            // Create a new chat
+        if (currentMode === 'messaging') {
+          // In messaging mode, find or create a single continuous chat
+          let messagingChat = persona.chats.find(c => c.title === 'Messages');
+          
+          if (!messagingChat) {
+            // Create the messaging chat
             const now = Date.now();
             const newChatSession: ChatSession = {
                 id: crypto.randomUUID(),
-                title: 'New Chat',
+                title: 'Messages',
                 messages: [],
                 createdAt: now,
                 updatedAt: now,
             };
             const updatedPersona = {
                 ...persona,
-                chats: [newChatSession, ...(persona.chats || [])],
+                chats: [newChatSession],
             };
             setPersona(updatedPersona);
             savePersona(updatedPersona).then(() => {
                 setActiveChatId(newChatSession.id);
                 router.replace(`/persona/${persona.id}?chat=${newChatSession.id}`, { scroll: false });
             });
+          } else {
+            // Use existing messaging chat
+            if (activeChatId !== messagingChat.id) {
+                setActiveChatId(messagingChat.id);
+                router.replace(`/persona/${persona.id}?chat=${messagingChat.id}`, { scroll: false });
+            }
+          }
+        } else {
+          // Traditional mode - existing logic
+          // Check if we already have an empty "New Chat"
+          const existingEmptyNewChat = persona.chats.find(c => 
+              c.title === 'New Chat' && c.messages.length === 0
+          );
+          
+          if (existingEmptyNewChat) {
+              // Use existing empty new chat
+              if (activeChatId !== existingEmptyNewChat.id) {
+                  setActiveChatId(existingEmptyNewChat.id);
+                  router.replace(`/persona/${persona.id}?chat=${existingEmptyNewChat.id}`, { scroll: false });
+              }
+          } else {
+              // Create a new chat
+              const now = Date.now();
+              const newChatSession: ChatSession = {
+                  id: crypto.randomUUID(),
+                  title: 'New Chat',
+                  messages: [],
+                  createdAt: now,
+                  updatedAt: now,
+              };
+              const updatedPersona = {
+                  ...persona,
+                  chats: [newChatSession, ...(persona.chats || [])],
+              };
+              setPersona(updatedPersona);
+              savePersona(updatedPersona).then(() => {
+                  setActiveChatId(newChatSession.id);
+                  router.replace(`/persona/${persona.id}?chat=${newChatSession.id}`, { scroll: false });
+              });
+          }
         }
     }
   }, [persona?.id, searchParams, router]); // Only depend on persona.id, not the full persona object
@@ -821,6 +859,10 @@ export default function PersonaChatPage() {
     return persona?.chats.find(c => c.id === activeChatId);
   }, [persona, activeChatId]);
 
+  // Determine chat mode (default to traditional if not set)
+  const chatMode = persona?.chatUiMode || 'traditional';
+  const isMessagingMode = chatMode === 'messaging';
+
   // Auto-focus input on new chats
   useEffect(() => {
     if (activeChat && activeChat.messages.length === 0 && textareaRef.current) {
@@ -828,11 +870,44 @@ export default function PersonaChatPage() {
     }
   }, [activeChat?.id]);
 
+  // For messaging mode, combine all messages from all chats with their timestamps
+  const allMessagesWithTimestamps = useMemo(() => {
+    if (!isMessagingMode || !persona) return [];
+    
+    const messagesWithMetadata: Array<{
+      message: ChatMessage;
+      timestamp: number;
+      chatId: string;
+    }> = [];
+    
+    // Collect all messages from all chats with their timestamps
+    persona.chats.forEach(chat => {
+      chat.messages.forEach((msg, idx) => {
+        // Estimate timestamp based on chat createdAt/updatedAt and message position
+        // For more accuracy, we'd need to store timestamps per message, but this is a reasonable approximation
+        const chatDuration = chat.updatedAt - chat.createdAt;
+        const messageTimestamp = chat.createdAt + (chatDuration * idx / Math.max(1, chat.messages.length - 1));
+        
+        messagesWithMetadata.push({
+          message: msg,
+          timestamp: messageTimestamp || chat.createdAt,
+          chatId: chat.id,
+        });
+      });
+    });
+    
+    // Sort by timestamp
+    return messagesWithMetadata.sort((a, b) => a.timestamp - b.timestamp);
+  }, [isMessagingMode, persona]);
+
   const messagesToDisplay = useMemo(() => {
+      if (isMessagingMode) {
+        return allMessagesWithTimestamps.map(m => m.message);
+      }
       const messages = activeChat?.messages || [];
       console.log('Messages to display:', messages.length, 'for chat:', activeChatId);
       return messages;
-  }, [activeChat]);
+  }, [isMessagingMode, allMessagesWithTimestamps, activeChat, activeChatId]);
 
   // Performance optimization: Memoize latest user message index calculation
   const latestUserMessageIndex = useMemo(() => {
@@ -1002,6 +1077,52 @@ export default function PersonaChatPage() {
       }
       setIsMemoryDialogOpen(open);
   }, []);
+
+  const handleSwitchChatMode = useCallback(async () => {
+    if (!persona) return;
+
+    setIsSwitchingMode(true);
+    
+    try {
+      const newMode = persona.chatUiMode === 'messaging' ? 'traditional' : 'messaging';
+      
+      // Clear all chats and memories when switching modes
+      const updatedPersona = {
+        ...persona,
+        chatUiMode: newMode,
+        chats: [],
+        memories: [],
+        ignoredState: {
+          isIgnored: false,
+          reason: undefined,
+          chatId: undefined,
+        }
+      };
+      
+      setPersona(updatedPersona);
+      await savePersona(updatedPersona);
+      
+      setIsChatModeDialogOpen(false);
+      
+      toast({
+        title: 'Chat Mode Changed',
+        description: `Switched to ${newMode === 'messaging' ? 'Messaging App' : 'Traditional'} style. All chats and memories have been cleared.`,
+      });
+      
+      // Navigate to the persona page without a chat ID
+      router.replace(`/persona/${persona.id}`);
+      
+    } catch (error) {
+      console.error('Failed to switch chat mode:', error);
+      toast({
+        variant: 'destructive',
+        title: 'Mode Switch Failed',
+        description: 'Could not switch chat mode. Please try again.',
+      });
+    } finally {
+      setIsSwitchingMode(false);
+    }
+  }, [persona, router, toast]);
 
   const handleMessageClick = useCallback((messageIndex: number) => {
     setClickedMessageIndex(prev => prev === messageIndex ? null : messageIndex);
@@ -1351,6 +1472,16 @@ export default function PersonaChatPage() {
                                 <p className="text-xs text-muted-foreground">See what this persona remembers about you.</p>
                             </div>
                         </Button>
+
+                        <Button variant="outline" className="h-auto justify-start p-4 text-left" onClick={() => { setIsChatModeDialogOpen(true); setIsManagementDialogOpen(false); }}>
+                            <MessageCircle className="mr-4 h-5 w-5 flex-shrink-0" />
+                            <div>
+                                <p className="font-semibold">Switch Chat Mode</p>
+                                <p className="text-xs text-muted-foreground">
+                                  Currently: {persona.chatUiMode === 'messaging' ? 'Messaging App' : 'Traditional'} Style
+                                </p>
+                            </div>
+                        </Button>
                         
                         <AlertDialog>
                             <AlertDialogTrigger asChild>
@@ -1392,39 +1523,41 @@ export default function PersonaChatPage() {
                 </DialogContent>
             </Dialog>
             
-            <div className="px-4 pb-2 pt-3 flex-shrink-0">
-                <div className="flex gap-2">
-                    <AlertDialog open={isClearAllDialogOpen} onOpenChange={setIsClearAllDialogOpen}>
-                        <AlertDialogTrigger asChild>
-                            <Button variant="outline" className="flex-1 h-10">
-                                <Trash2 className="mr-2 h-4 w-4" /> Clear All
-                            </Button>
-                        </AlertDialogTrigger>
-                        <AlertDialogContent>
-                            <AlertDialogHeader>
-                            <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
-                            <AlertDialogDescription>
-                                This will permanently delete all chat history for {persona.name}. This action cannot be undone.
-                            </AlertDialogDescription>
-                            </AlertDialogHeader>
-                            <AlertDialogFooter>
-                            <AlertDialogCancel>Cancel</AlertDialogCancel>
-                            <AlertDialogAction
-                                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                                onClick={handleClearAllChats}
-                            >
-                                Delete All
-                            </AlertDialogAction>
-                            </AlertDialogFooter>
-                        </AlertDialogContent>
-                    </AlertDialog>
-                    <Button variant="outline" className="flex-1 h-10" onClick={handleNewChat}>
-                        <MessageSquarePlus className="mr-2 h-4 w-4" /> New Chat
-                    </Button>
+            {!isMessagingMode && (
+              <>
+                <div className="px-4 pb-2 pt-3 flex-shrink-0">
+                    <div className="flex gap-2">
+                        <AlertDialog open={isClearAllDialogOpen} onOpenChange={setIsClearAllDialogOpen}>
+                            <AlertDialogTrigger asChild>
+                                <Button variant="outline" className="flex-1 h-10">
+                                    <Trash2 className="mr-2 h-4 w-4" /> Clear All
+                                </Button>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent>
+                                <AlertDialogHeader>
+                                <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+                                <AlertDialogDescription>
+                                    This will permanently delete all chat history for {persona.name}. This action cannot be undone.
+                                </AlertDialogDescription>
+                                </AlertDialogHeader>
+                                <AlertDialogFooter>
+                                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                <AlertDialogAction
+                                    className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                                    onClick={handleClearAllChats}
+                                >
+                                    Delete All
+                                </AlertDialogAction>
+                                </AlertDialogFooter>
+                            </AlertDialogContent>
+                        </AlertDialog>
+                        <Button variant="outline" className="flex-1 h-10" onClick={handleNewChat}>
+                            <MessageSquarePlus className="mr-2 h-4 w-4" /> New Chat
+                        </Button>
+                    </div>
                 </div>
-            </div>
-            
-            <div className="flex-1 min-h-0 px-4 pb-4">
+                
+                <div className="flex-1 min-h-0 px-4 pb-4">
                 <ScrollArea className="h-full" type="never">
                   <div className="space-y-1">
                     {sortedChats.length > 0 ? (
@@ -1466,6 +1599,8 @@ export default function PersonaChatPage() {
                   </div>
                 </ScrollArea>
             </div>
+              </>
+            )}
             </div> {/* Close padding wrapper */}
           </div>
           
@@ -1511,6 +1646,21 @@ export default function PersonaChatPage() {
                            const isLastInSequence = !messagesToDisplay[index + 1] || messagesToDisplay[index + 1].role !== message.role;
                            const isLastVisibleAssistantMessage = message.role === 'assistant' && index === messagesToDisplay.length - 1;
 
+                           // Get timestamp for messaging mode
+                           let messageTimestamp = 0;
+                           if (isMessagingMode && allMessagesWithTimestamps[index]) {
+                             messageTimestamp = allMessagesWithTimestamps[index].timestamp;
+                           }
+
+                           // Check if we should show date separator in messaging mode
+                           let dateSeparatorInfo = { show: false, label: '' };
+                           if (isMessagingMode) {
+                             const prevTimestamp = index > 0 && allMessagesWithTimestamps[index - 1] 
+                               ? allMessagesWithTimestamps[index - 1].timestamp 
+                               : undefined;
+                             dateSeparatorInfo = shouldShowDateSeparator(messageTimestamp, prevTimestamp);
+                           }
+
                            // Performance optimization: Only calculate for user messages
                            let isLatestUserMessage = false;
                            let showIgnoredStatus = false;
@@ -1533,6 +1683,7 @@ export default function PersonaChatPage() {
 
                            return (
                              <div key={index} data-message-bubble>
+                               {dateSeparatorInfo.show && <DateSeparator label={dateSeparatorInfo.label} />}
                                <ChatMessageItem
                                  message={message}
                                  isFirstInSequence={isFirstInSequence}
@@ -1543,6 +1694,14 @@ export default function PersonaChatPage() {
                                  onMessageClick={handleMessageClick}
                                  showIgnoredStatus={showIgnoredStatus}
                                />
+                               {isMessagingMode && isLastInSequence && (
+                                 <div className={cn(
+                                   "text-xs text-muted-foreground px-2 pb-1",
+                                   message.role === 'user' ? 'text-right' : 'text-left'
+                                 )}>
+                                   {formatMessageTime(messageTimestamp)}
+                                 </div>
+                               )}
                              </div>
                            );
                         })}
@@ -1644,6 +1803,42 @@ export default function PersonaChatPage() {
                 </DialogFooter>
             </DialogContent>
         </Dialog>
+      )}
+
+      {persona && (
+        <AlertDialog open={isChatModeDialogOpen} onOpenChange={setIsChatModeDialogOpen}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Switch Chat Mode?</AlertDialogTitle>
+              <AlertDialogDescription>
+                You are about to switch from <strong>{persona.chatUiMode === 'messaging' ? 'Messaging App' : 'Traditional'}</strong> style to <strong>{persona.chatUiMode === 'messaging' ? 'Traditional' : 'Messaging App'}</strong> style.
+                <br /><br />
+                <strong>This will permanently delete:</strong>
+                <ul className="list-disc pl-5 mt-2 space-y-1">
+                  <li>All chat history with {persona.name}</li>
+                  <li>All memories stored about you</li>
+                  <li>Ignored state (if any)</li>
+                </ul>
+                <br />
+                The persona's profile (name, traits, backstory) will remain unchanged. This action cannot be undone.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel disabled={isSwitchingMode}>Cancel</AlertDialogCancel>
+              <AlertDialogAction
+                className="bg-primary text-primary-foreground hover:bg-primary/90"
+                onClick={handleSwitchChatMode}
+                disabled={isSwitchingMode}
+              >
+                {isSwitchingMode ? (
+                  <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Switching...</>
+                ) : (
+                  'Switch Mode'
+                )}
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       )}
 
       <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
