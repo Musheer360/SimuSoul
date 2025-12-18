@@ -197,11 +197,7 @@ async function findRelevantChats(
     return [];
   }
 
-  // Sort chats by date (most recent first) before presenting to AI
-  const sortedMetadata = [...chatMetadata].sort((a, b) => 
-    new Date(b.date).getTime() - new Date(a.date).getTime()
-  );
-
+  // chatMetadata is already sorted by recency (most recent first) from the caller
   const prompt = `You are a chat search engine. Find the most relevant past conversations based on the search queries.
 
 SEARCH QUERIES:
@@ -210,7 +206,7 @@ ${searchQueries.map(q => `- "${q}"`).join('\n')}
 ${timeFrameHint ? `TIME FRAME HINT: "${timeFrameHint}"` : ''}
 
 AVAILABLE PAST CONVERSATIONS (listed from most recent to oldest):
-${sortedMetadata.map(c => `ID: ${c.id}
+${chatMetadata.map(c => `ID: ${c.id}
 Title: ${c.title}
 Date: ${c.date}
 Summary: ${c.summary}
@@ -401,6 +397,7 @@ export async function retrieveRelevantMemories(
   // Generate chat metadata for the AI to search
   // Use enhanced summaries that combine existing summary with recent messages only when needed
   // This prevents stale summaries from missing newer content while avoiding unnecessary processing
+  // Metadata is already sorted by recency (most recent first) from the pastChats filter
   const chatMetadata: ChatMetadata[] = pastChats
     .map(c => ({
       id: c.id,
@@ -417,9 +414,8 @@ export async function retrieveRelevantMemories(
   console.log(`[Memory Retrieval] Chat metadata generated for ${chatMetadata.length} chats:`, 
     chatMetadata.map(c => ({ id: c.id.substring(0, 8), title: c.title, summary: c.summary.substring(0, 100) + '...' })));
   
-  // Also include recent summaries for decision making
+  // Also include recent summaries for decision making (already sorted by recency)
   const recentSummaries = chatMetadata
-    .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
     .slice(0, 5)
     .map(c => ({ date: c.date, summary: c.summary }));
   
