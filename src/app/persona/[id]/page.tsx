@@ -580,6 +580,8 @@ export default function PersonaChatPage() {
         // Check if enough time has passed to create a new session (1 hour = 60 minutes)
         if (shouldCreateNewSession(lastMessageTime, now, 60)) {
           // Get last 5 messages from current chat for context continuity
+          // These messages are copied once to the new session to provide context
+          // They won't be copied again in future sessions
           const contextMessages = currentChat.messages.slice(-5);
           
           // Create a new backend chat session with context carryover
@@ -594,8 +596,6 @@ export default function PersonaChatPage() {
           // Add the new session and keep the old ones
           updatedChats = [...updatedChats, newChatSession];
           finalActiveChatId = newChatSession.id;
-          
-          console.log('Created new backend session with last 5 messages for context continuity');
         } else {
           // Add to existing chat
           updatedChats = persona.chats.map(c =>
@@ -956,8 +956,14 @@ export default function PersonaChatPage() {
           messageTimestamp = msg.timestamp;
         } else {
           // Estimate timestamp based on chat createdAt/updatedAt and message position
-          const chatDuration = chat.updatedAt - chat.createdAt;
-          messageTimestamp = chat.createdAt + (chatDuration * idx / Math.max(1, chat.messages.length - 1));
+          if (chat.messages.length === 1) {
+            // Single message - use chat createdAt
+            messageTimestamp = chat.createdAt;
+          } else {
+            // Multiple messages - interpolate between createdAt and updatedAt
+            const chatDuration = chat.updatedAt - chat.createdAt;
+            messageTimestamp = chat.createdAt + (chatDuration * idx / (chat.messages.length - 1));
+          }
         }
         
         messagesWithMetadata.push({
@@ -1718,7 +1724,7 @@ export default function PersonaChatPage() {
                            const isLastInSequence = !messagesToDisplay[index + 1] || messagesToDisplay[index + 1].role !== message.role;
                            const isLastVisibleAssistantMessage = message.role === 'assistant' && index === messagesToDisplay.length - 1;
 
-                           // Get timestamp for messaging mode
+                           // Get timestamp for messaging mode with bounds checking
                            let messageTimestamp = 0;
                            if (isMessagingMode && allMessagesWithTimestamps[index]) {
                              messageTimestamp = allMessagesWithTimestamps[index].timestamp;
@@ -1726,7 +1732,7 @@ export default function PersonaChatPage() {
 
                            // Check if we should show date separator in messaging mode
                            let dateSeparatorInfo = { show: false, label: '' };
-                           if (isMessagingMode) {
+                           if (isMessagingMode && messageTimestamp > 0) {
                              const prevTimestamp = index > 0 && allMessagesWithTimestamps[index - 1] 
                                ? allMessagesWithTimestamps[index - 1].timestamp 
                                : undefined;

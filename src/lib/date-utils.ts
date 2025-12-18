@@ -2,6 +2,11 @@
  * Utility functions for date formatting in messaging app style
  */
 
+// Time constants for better readability
+const MS_PER_MINUTE = 1000 * 60;
+const MS_PER_HOUR = MS_PER_MINUTE * 60;
+const MS_PER_DAY = MS_PER_HOUR * 24;
+
 export interface DateSeparatorInfo {
   show: boolean;
   label: string;
@@ -108,7 +113,7 @@ export function shouldCreateNewSession(
   }
   
   const timeDiff = currentTime - lastMessageTime;
-  const minutesDiff = timeDiff / (1000 * 60);
+  const minutesDiff = timeDiff / MS_PER_MINUTE;
   
   return minutesDiff >= thresholdMinutes;
 }
