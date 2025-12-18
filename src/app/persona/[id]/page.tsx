@@ -504,7 +504,11 @@ export default function PersonaChatPage() {
             const chat = current.chats.find(c => c.id === chatIdNow);
             if (!chat) return current;
             
-            const newAssistantMessage: ChatMessage = { role: 'assistant', content: messageContent };
+            const newAssistantMessage: ChatMessage = { 
+              role: 'assistant', 
+              content: messageContent,
+              timestamp: Date.now() // Add timestamp for messaging mode
+            };
             const updatedPersona = {
               ...current,
               chats: current.chats.map(c =>
@@ -554,17 +558,77 @@ export default function PersonaChatPage() {
     
     if (!input.trim() || !persona || !activeChatId) return;
   
-    const userMessage: ChatMessage = { role: 'user', content: input, isIgnored: false };
+    const now = Date.now();
+    const userMessage: ChatMessage = { 
+      role: 'user', 
+      content: input, 
+      isIgnored: false,
+      timestamp: now // Add timestamp for messaging mode
+    };
+    const currentMode = persona.chatUiMode || 'traditional';
+    
+    let finalActiveChatId = activeChatId;
+    let updatedChats = [...persona.chats];
+    
+    // In messaging mode, check if we need to create a new backend session due to time gap
+    if (currentMode === 'messaging') {
+      const currentChat = persona.chats.find(c => c.id === activeChatId);
+      if (currentChat && currentChat.messages.length > 0) {
+        // Get the timestamp of the last message
+        const lastMessageTime = currentChat.updatedAt;
+        
+        // Check if enough time has passed to create a new session (1 hour = 60 minutes)
+        if (shouldCreateNewSession(lastMessageTime, now, 60)) {
+          // Create a new backend chat session
+          const newChatSession: ChatSession = {
+            id: crypto.randomUUID(),
+            title: 'Messages',
+            messages: [userMessage],
+            createdAt: now,
+            updatedAt: now,
+          };
+          
+          // Add the new session and keep the old ones
+          updatedChats = [...updatedChats, newChatSession];
+          finalActiveChatId = newChatSession.id;
+          
+          console.log('Created new backend session due to time gap in messaging mode');
+        } else {
+          // Add to existing chat
+          updatedChats = persona.chats.map(c =>
+            c.id === activeChatId
+              ? { ...c, messages: [...c.messages, userMessage], updatedAt: now }
+              : c
+          );
+        }
+      } else {
+        // First message or empty chat, just add to current
+        updatedChats = persona.chats.map(c =>
+          c.id === activeChatId
+            ? { ...c, messages: [...c.messages, userMessage], updatedAt: now }
+            : c
+        );
+      }
+    } else {
+      // Traditional mode - just add to current chat
+      updatedChats = persona.chats.map(c =>
+        c.id === activeChatId
+          ? { ...c, messages: [...c.messages, userMessage], updatedAt: now }
+          : c
+      );
+    }
   
     const updatedPersona = {
       ...persona,
-      lastChatTime: Date.now(), // Track when user last interacted
-      chats: persona.chats.map(c =>
-        c.id === activeChatId
-          ? { ...c, messages: [...c.messages, userMessage], updatedAt: Date.now() }
-          : c
-      ),
+      lastChatTime: now, // Track when user last interacted
+      chats: updatedChats,
     };
+    
+    // Update active chat ID if we created a new session
+    if (finalActiveChatId !== activeChatId) {
+      setActiveChatId(finalActiveChatId);
+      router.replace(`/persona/${persona.id}?chat=${finalActiveChatId}`, { scroll: false });
+    }
     
     setPersona(updatedPersona);
     
@@ -883,10 +947,15 @@ export default function PersonaChatPage() {
     // Collect all messages from all chats with their timestamps
     persona.chats.forEach(chat => {
       chat.messages.forEach((msg, idx) => {
-        // Estimate timestamp based on chat createdAt/updatedAt and message position
-        // For more accuracy, we'd need to store timestamps per message, but this is a reasonable approximation
-        const chatDuration = chat.updatedAt - chat.createdAt;
-        const messageTimestamp = chat.createdAt + (chatDuration * idx / Math.max(1, chat.messages.length - 1));
+        // Use message timestamp if available, otherwise estimate
+        let messageTimestamp: number;
+        if (msg.timestamp) {
+          messageTimestamp = msg.timestamp;
+        } else {
+          // Estimate timestamp based on chat createdAt/updatedAt and message position
+          const chatDuration = chat.updatedAt - chat.createdAt;
+          messageTimestamp = chat.createdAt + (chatDuration * idx / Math.max(1, chat.messages.length - 1));
+        }
         
         messagesWithMetadata.push({
           message: msg,

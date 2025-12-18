@@ -2,6 +2,7 @@ export interface ChatMessage {
   role: 'user' | 'assistant';
   content: string;
   isIgnored?: boolean;
+  timestamp?: number; // Optional timestamp for messaging mode
 }
 
 export interface ChatSession {
