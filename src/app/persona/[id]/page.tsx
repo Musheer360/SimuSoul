@@ -169,8 +169,9 @@ const ChatMessageItem = memo(function ChatMessageItem({
         >
           <Reply className="h-3 w-3 flex-shrink-0 rotate-180" />
           <span className="truncate">
-            {repliedMessage.imageUrl && !repliedMessage.content ? '📷 Image' : repliedMessage.content.slice(0, 50)}
-            {repliedMessage.content.length > 50 ? '...' : ''}
+            {repliedMessage.imageUrl && '📷 '}
+            {repliedMessage.content ? repliedMessage.content.slice(0, 50) : (repliedMessage.imageUrl ? 'Image' : '')}
+            {repliedMessage.content && repliedMessage.content.length > 50 ? '...' : ''}
           </span>
         </div>
       )}
@@ -233,7 +234,10 @@ const ChatMessageItem = memo(function ChatMessageItem({
                 className="rounded-md max-w-full max-h-64 object-contain cursor-pointer"
                 onClick={(e) => {
                   e.stopPropagation();
-                  window.open(message.imageUrl, '_blank');
+                  // Only allow opening data URLs that are images (validated on upload)
+                  if (message.imageUrl?.startsWith('data:image/')) {
+                    window.open(message.imageUrl, '_blank', 'noopener,noreferrer');
+                  }
                 }}
               />
             </div>
@@ -1223,8 +1227,10 @@ export default function PersonaChatPage() {
       
       const reader = new FileReader();
       reader.onload = (event) => {
-        const result = event.target?.result as string;
-        setSelectedImage(result);
+        const result = event.target?.result;
+        if (typeof result === 'string') {
+          setSelectedImage(result);
+        }
       };
       reader.readAsDataURL(file);
     }
@@ -1806,10 +1812,11 @@ export default function PersonaChatPage() {
                                     Replying to {messagesToDisplay[replyToIndex].role === 'user' ? 'yourself' : persona.name}
                                   </div>
                                   <div className="truncate text-foreground/80">
-                                    {messagesToDisplay[replyToIndex].imageUrl && !messagesToDisplay[replyToIndex].content 
-                                      ? '📷 Image' 
-                                      : messagesToDisplay[replyToIndex].content.slice(0, 60)}
-                                    {messagesToDisplay[replyToIndex].content.length > 60 ? '...' : ''}
+                                    {messagesToDisplay[replyToIndex].imageUrl && '📷 '}
+                                    {messagesToDisplay[replyToIndex].content 
+                                      ? messagesToDisplay[replyToIndex].content.slice(0, 60) 
+                                      : (messagesToDisplay[replyToIndex].imageUrl ? 'Image' : '')}
+                                    {messagesToDisplay[replyToIndex].content && messagesToDisplay[replyToIndex].content.length > 60 ? '...' : ''}
                                   </div>
                                 </div>
                                 <Button

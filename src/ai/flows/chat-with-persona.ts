@@ -320,6 +320,8 @@ export async function chatWithPersona(
           data: base64Data,
         }
       });
+    } else {
+      console.warn('[Chat] Invalid image data URL format, skipping image attachment');
     }
   }
 
