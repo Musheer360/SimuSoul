@@ -48,6 +48,11 @@ import { getPersona, savePersona, deletePersona, getUserDetails } from '@/lib/db
 import { isTestModeActive } from '@/lib/api-key-manager';
 import { MemoryItem } from '@/components/memory-item';
 
+// Constants for chat summarization
+const MIN_MESSAGES_FOR_SUMMARY = 7; // Minimum messages before creating a summary
+const TYPICAL_SUMMARY_MESSAGE_COUNT = 10; // Estimated message count when summary is typically created
+const SUMMARY_STALENESS_THRESHOLD = 15; // Messages count indicating summary may be stale
+
 // Helper to find the last index of an element in an array.
 const findLastIndex = <T,>(
   array: T[],
@@ -322,9 +327,19 @@ export default function PersonaChatPage() {
 
     const chatToSummarize = currentPersona.chats.find(c => c.id === chatId);
 
-    if (chatToSummarize && chatToSummarize.messages.length > 4 && !chatToSummarize.summary) {
+    if (!chatToSummarize) return;
+    
+    // Check if chat needs summarization:
+    // 1. Has enough messages for meaningful summary
+    // 2. Either has no summary OR summary is stale (chat has grown beyond staleness threshold)
+    const needsSummary = chatToSummarize.messages.length >= MIN_MESSAGES_FOR_SUMMARY && (
+      !chatToSummarize.summary || 
+      (chatToSummarize.summary && chatToSummarize.messages.length >= SUMMARY_STALENESS_THRESHOLD)
+    );
+    
+    if (needsSummary) {
         try {
-            console.log(`Summarizing chat: ${chatToSummarize.title}`);
+            console.log(`Summarizing chat: ${chatToSummarize.title} (${chatToSummarize.messages.length} messages)`);
             const result = await summarizeChat({ chatHistory: chatToSummarize.messages });
             const updatedPersona = {
                 ...currentPersona,
@@ -334,7 +349,7 @@ export default function PersonaChatPage() {
             };
             setPersona(updatedPersona);
             await savePersona(updatedPersona);
-            console.log(`Summary saved for chat: ${chatToSummarize.title}`);
+            console.log(`Summary ${chatToSummarize.summary ? 'updated' : 'saved'} for chat: ${chatToSummarize.title}`);
         } catch (e) {
             console.error("Failed to summarize chat:", e);
         }
@@ -405,7 +420,10 @@ export default function PersonaChatPage() {
       setPersona(current => {
         if (!current) return null;
         
-        const lastUserMessageIndex = findLastIndex(current.chats.find(c => c.id === chatIdNow)?.messages || [], msg => msg.role === 'user');
+        const currentChat = current.chats.find(c => c.id === chatIdNow);
+        if (!currentChat) return current; // Safety check - chat should exist
+        
+        const lastUserMessageIndex = findLastIndex(currentChat.messages || [], msg => msg.role === 'user');
         let finalMemories = current.memories || [];
         const memoryWasUpdated = (res.newMemories?.length || 0) > 0 || (res.removedMemories?.length || 0) > 0;
   
@@ -415,7 +433,7 @@ export default function PersonaChatPage() {
           const memoriesToAdd = res.newMemories || [];
           finalMemories = [...finalMemories, ...memoriesToAdd];
   
-          setGlowingMessageIndex(current.chats.find(c => c.id === chatIdNow)!.messages.length - 1);
+          setGlowingMessageIndex(currentChat.messages.length - 1);
           setTimeout(() => setGlowingMessageIndex(null), 1500);
   
           if (!isMobile) {
@@ -676,20 +694,14 @@ export default function PersonaChatPage() {
 
   useEffect(() => {
     // Function to clean up empty "New Chat" sessions when navigating away
-    const handleCleanup = (chatIdToClean: string | null | undefined, isComponentUnmounting: boolean = false) => {
+    const handleCleanup = (chatIdToClean: string | null | undefined) => {
         if (!chatIdToClean) return;
 
         const personaNow = personaRef.current;
-        if (personaNow?.chats) {
+        if (personaNow?.chats && personaNow.chats.length > 1) {
             const chat = personaNow.chats.find(c => c.id === chatIdToClean);
-            // Only clean up empty "New Chat" sessions when actually switching chats,
-            // not when the component is unmounting (page reload)
-            // Also, be more conservative - only cleanup if there are other chats available
-            if (chat && 
-                chat.title === 'New Chat' && 
-                chat.messages.length === 0 && 
-                !isComponentUnmounting &&
-                personaNow.chats.length > 1) {
+            // Only clean up empty "New Chat" sessions with no messages when other chats exist
+            if (chat && chat.title === 'New Chat' && chat.messages.length === 0) {
                 const updatedPersona = {
                     ...personaNow,
                     chats: personaNow.chats.filter(c => c.id !== chatIdToClean),
@@ -706,7 +718,7 @@ export default function PersonaChatPage() {
         handleSummarizeChat(previousChatId);
         messagesSinceLastResponseRef.current = [];
         if (responseTimerRef.current) clearTimeout(responseTimerRef.current);
-        handleCleanup(previousChatId, false); // Not unmounting, safe to cleanup
+        handleCleanup(previousChatId);
         // Reset clicked message state when switching chats
         setClickedMessageIndex(null);
     }
@@ -719,7 +731,6 @@ export default function PersonaChatPage() {
       
       const lastActiveChat = prevActiveChatIdRef.current;
       if (lastActiveChat) {
-          // Don't cleanup on unmount to preserve chats on page reload
           handleSummarizeChat(lastActiveChat);
       }
       if (responseTimerRef.current) clearTimeout(responseTimerRef.current);
@@ -1626,7 +1637,7 @@ export default function PersonaChatPage() {
                     <ScrollArea className="h-full rounded-md border scroll-contain">
                         <div className="space-y-2 p-4">
                             {(persona.memories || []).length > 0 ? (
-                                [...persona.memories].sort().map((memory) => (
+                                [...persona.memories].sort((a, b) => a.localeCompare(b)).map((memory) => (
                                     <MemoryItem
                                         key={memory}
                                         memory={memory}

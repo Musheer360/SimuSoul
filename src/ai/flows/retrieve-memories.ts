@@ -63,6 +63,15 @@ const ChatRelevanceOpenAPISchema = {
 /** Maximum number of message excerpts to include per retrieved chat */
 const MAX_MESSAGES_PER_CHAT = 8;
 
+/** Maximum number of past chats to pass as context to prevent performance issues */
+const MAX_CHAT_CONTEXTS = 50;
+
+/** Estimated message count when a typical summary is created (used for staleness detection) */
+const TYPICAL_SUMMARY_MESSAGE_COUNT = 10;
+
+/** Minimum new messages required before supplementing an existing summary */
+const MIN_NEW_MESSAGES_FOR_SUPPLEMENT = 5;
+
 /**
  * Metadata for a chat session used in memory retrieval.
  * @property id - Unique identifier for the chat session
@@ -194,11 +203,7 @@ async function findRelevantChats(
     return [];
   }
 
-  // Sort chats by date (most recent first) before presenting to AI
-  const sortedMetadata = [...chatMetadata].sort((a, b) => 
-    new Date(b.date).getTime() - new Date(a.date).getTime()
-  );
-
+  // chatMetadata is already sorted by recency (most recent first) from the caller
   const prompt = `You are a chat search engine. Find the most relevant past conversations based on the search queries.
 
 SEARCH QUERIES:
@@ -207,7 +212,7 @@ ${searchQueries.map(q => `- "${q}"`).join('\n')}
 ${timeFrameHint ? `TIME FRAME HINT: "${timeFrameHint}"` : ''}
 
 AVAILABLE PAST CONVERSATIONS (listed from most recent to oldest):
-${sortedMetadata.map(c => `ID: ${c.id}
+${chatMetadata.map(c => `ID: ${c.id}
 Title: ${c.title}
 Date: ${c.date}
 Summary: ${c.summary}
@@ -257,7 +262,7 @@ Return the IDs of the most relevant chats in order of relevance. If no chats are
 function extractRelevantMessages(
   chat: ChatSession,
   searchQueries: string[],
-  maxMessages: number = 10
+  maxMessages: number = MAX_MESSAGES_PER_CHAT
 ): ChatMessage[] {
   const messages = chat.messages;
   
@@ -323,12 +328,19 @@ function generateQuickSummary(messages: ChatMessage[]): string {
 /**
  * Generates a supplementary summary from recent messages to catch content
  * that may have been added after the original summary was generated.
+ * Only generates if there's significant new content since last summary.
  */
-function generateRecentMessagesSummary(messages: ChatMessage[]): string {
-  // Take the LAST few user messages to catch recent topics
-  const recentUserMessages = messages
+function generateRecentMessagesSummary(messages: ChatMessage[], lastSummaryMessageCount: number = TYPICAL_SUMMARY_MESSAGE_COUNT): string {
+  // Only supplement if there are at least MIN_NEW_MESSAGES_FOR_SUPPLEMENT new messages since summary
+  if (messages.length - lastSummaryMessageCount < MIN_NEW_MESSAGES_FOR_SUPPLEMENT) {
+    return '';
+  }
+  
+  // Take messages added after the summary was created
+  const newMessages = messages.slice(lastSummaryMessageCount);
+  const recentUserMessages = newMessages
     .filter(m => m.role === 'user')
-    .slice(-5) // Last 5 user messages
+    .slice(-5) // Last 5 user messages from new content
     .map(m => m.content.substring(0, 100))
     .join('; ');
   
@@ -341,26 +353,25 @@ function generateRecentMessagesSummary(messages: ChatMessage[]): string {
 
 /**
  * Gets the best available summary for a chat, combining existing summary
- * with recent messages to avoid stale data.
+ * with recent messages only when there's significant new content.
+ * Optimized to avoid unnecessary processing.
  */
 function getEnhancedSummary(chat: ChatSession): string {
   const existingSummary = chat.summary?.trim();
-  const quickSummary = generateQuickSummary(chat.messages);
-  const recentSummary = generateRecentMessagesSummary(chat.messages);
   
-  // If no existing summary, use quick summary (covers beginning of chat)
+  // If no existing summary, generate quick summary from beginning of chat
   if (!existingSummary) {
-    // If chat is long, also add recent messages
-    if (chat.messages.length > 10 && recentSummary) {
-      return `${quickSummary}. ${recentSummary}`;
-    }
-    return quickSummary;
+    return generateQuickSummary(chat.messages);
   }
   
-  // If existing summary exists, supplement it with recent messages
-  // This catches content added after the summary was generated
-  if (recentSummary && chat.messages.length > 10) {
-    return `${existingSummary}. ${recentSummary}`;
+  // If existing summary exists and chat has grown significantly,
+  // supplement it with recent messages. Assume summary was created at ~TYPICAL_SUMMARY_MESSAGE_COUNT messages.
+  const significantGrowthThreshold = TYPICAL_SUMMARY_MESSAGE_COUNT + MIN_NEW_MESSAGES_FOR_SUPPLEMENT;
+  if (chat.messages.length > significantGrowthThreshold) {
+    const recentSummary = generateRecentMessagesSummary(chat.messages, TYPICAL_SUMMARY_MESSAGE_COUNT);
+    if (recentSummary) {
+      return `${existingSummary}. ${recentSummary}`;
+    }
   }
   
   return existingSummary;
@@ -377,9 +388,13 @@ export async function retrieveRelevantMemories(
   currentChatId: string
 ): Promise<RetrievedMemory[]> {
   // Filter out current chat and chats without messages
-  const pastChats = allChats.filter(c => c.id !== currentChatId && c.messages.length > 0);
+  // Limit to most recent chats to prevent performance degradation with large chat histories
+  const pastChats = allChats
+    .filter(c => c.id !== currentChatId && c.messages.length > 0)
+    .sort((a, b) => (b.updatedAt || b.createdAt) - (a.updatedAt || a.createdAt))
+    .slice(0, MAX_CHAT_CONTEXTS);
   
-  console.log(`[Memory Retrieval] Past chats available: ${pastChats.length}`);
+  console.log(`[Memory Retrieval] Past chats available: ${pastChats.length} (limited from ${allChats.length} total)`);
   
   if (pastChats.length === 0) {
     console.log('[Memory Retrieval] No past chats found');
@@ -387,8 +402,9 @@ export async function retrieveRelevantMemories(
   }
   
   // Generate chat metadata for the AI to search
-  // Use enhanced summaries that combine existing summary with recent messages
-  // This prevents stale summaries from missing newer content
+  // Use enhanced summaries that combine existing summary with recent messages only when needed
+  // This prevents stale summaries from missing newer content while avoiding unnecessary processing
+  // Metadata is already sorted by recency (most recent first) from the pastChats filter
   const chatMetadata: ChatMetadata[] = pastChats
     .map(c => ({
       id: c.id,
@@ -405,9 +421,8 @@ export async function retrieveRelevantMemories(
   console.log(`[Memory Retrieval] Chat metadata generated for ${chatMetadata.length} chats:`, 
     chatMetadata.map(c => ({ id: c.id.substring(0, 8), title: c.title, summary: c.summary.substring(0, 100) + '...' })));
   
-  // Also include recent summaries for decision making
+  // Also include recent summaries for decision making (already sorted by recency)
   const recentSummaries = chatMetadata
-    .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
     .slice(0, 5)
     .map(c => ({ date: c.date, summary: c.summary }));
   
@@ -473,8 +488,8 @@ export function formatRetrievedMemoriesForPrompt(
   }
   
   const formattedMemories = memories.map(memory => {
+    // relevantMessages is already limited by extractRelevantMessages, no need to slice again
     const messageExcerpts = memory.relevantMessages
-      .slice(0, MAX_MESSAGES_PER_CHAT)
       .map(msg => `  ${msg.role === 'user' ? userIdentifier : 'You'}: ${msg.content}`)
       .join('\n');
     
