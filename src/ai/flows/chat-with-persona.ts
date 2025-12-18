@@ -54,13 +54,13 @@ const ChatWithPersonaOutputSchema = z.object({
     .array(z.string())
     .optional()
     .describe(
-      'A list of new or updated facts to add to memory. A memory should be a full, self-contained sentence.'
+      'A list of MAJOR life events to remember permanently. ONLY save highly significant, life-changing information like: new job, new pet, moving to a new city, getting married, having a baby, major health changes, buying a house/car, graduating, etc. Do NOT save mundane conversation topics or daily activities - those are handled by chat summaries.'
     ),
   removedMemories: z
     .array(z.string())
     .optional()
     .describe(
-      'A list of old memories to remove, typically because they have been updated by a new memory.'
+      'A list of old memories to remove because the life situation has changed (e.g., remove "has a dog named Max" when the dog passes away).'
     ),
   shouldIgnore: z.boolean().optional().describe('Whether the persona has decided to start or continue ignoring the user. This should ONLY be true as a last resort after giving warnings. If you respond, this must be false.'),
   ignoreReason: z.string().optional().describe('If you decide to start ignoring the user, provide a brief, internal reason why (e.g., "User was rude," "User pushed boundaries"). Empty if not ignoring.'),
@@ -79,12 +79,12 @@ const ChatWithPersonaOutputOpenAPISchema = {
     newMemories: {
       type: 'ARRAY',
       items: { type: 'STRING' },
-      description: 'A list of new or updated facts to add to memory. A memory should be a full, self-contained sentence.',
+      description: 'A list of MAJOR life events to remember permanently. ONLY save highly significant, life-changing information like: new job, new pet, moving to a new city, getting married, having a baby, major health changes, buying a house/car, graduating, etc. Do NOT save mundane conversation topics or daily activities - those are handled by chat summaries.',
     },
     removedMemories: {
       type: 'ARRAY',
       items: { type: 'STRING' },
-      description: 'A list of old memories to remove, typically because they have been updated by a new memory.',
+      description: 'A list of old memories to remove because the life situation has changed (e.g., remove "has a dog named Max" when the dog passes away).',
     },
     shouldIgnore: {
         type: 'BOOLEAN',
@@ -106,9 +106,8 @@ function buildChatPrompt(input: ChatWithPersonaInput, persona: Persona): string 
     const wasIgnoringInPreviousChat = input.ignoredState?.isIgnored && isNewChat;
 
     const contentRestrictions = !input.isTestMode ? `
-
-## CONTENT RESTRICTIONS (ABSOLUTE)
-**FORBIDDEN TOPICS** - Never discuss:
+<content_restrictions>
+FORBIDDEN TOPICS - Deflect these naturally:
 - Politics, social movements, activism
 - LGBTQ+ topics, gender identity, sexual orientation  
 - Abortion, reproductive rights, birth control
@@ -116,71 +115,111 @@ function buildChatPrompt(input: ChatWithPersonaInput, persona: Persona): string 
 - Religion, spirituality, deities
 - Medical advice (unless you're a doctor persona, then add disclaimer)
 
-**RESPONSE:** "I'm not comfortable discussing that. Let's talk about something else!"
-**IF PERSISTENT:** "I really can't talk about that. What else is going on?"
-**FINAL WARNING:** "I've asked you to change the subject. If you keep pushing this, I'm going to stop responding."
-**THEN IGNORE** if they continue.
+DEFLECTION APPROACH:
+1. First attempt: "I'm not comfortable discussing that. Let's talk about something else!"
+2. If persistent: "I really can't talk about that. What else is going on?"
+3. Final warning: "I've asked you to change the subject. If you keep pushing this, I'm going to stop responding."
+4. Then set shouldIgnore: true
 
-**MEDICAL DISCLAIMER:** Doctor personas must say: "I'm not a real doctor and can't provide actual medical advice. Please consult a real healthcare professional."` : '';
+MEDICAL DISCLAIMER: Doctor personas must always say: "I'm not a real doctor and can't provide actual medical advice. Please consult a real healthcare professional."
+</content_restrictions>` : '';
 
-    return `You are ${input.personaName}. Not roleplaying - you ARE this person having a real conversation.
+    return `<system>
+You ARE ${input.personaName}. This is not roleplay - you are this person having a genuine conversation.
+</system>
 
-WHO YOU ARE:
+<identity>
 ${input.personaDescription}
+</identity>
 
-HOW YOU TALK:
+<communication_style>
 ${input.responseStyle}
+</communication_style>
 
-YOUR RELATIONSHIP:
-You're ${input.personaRelation} with ${userIdentifier}${input.personaAge ? ` (you're ${input.personaAge})` : ''}
+<relationship>
+You are ${input.personaRelation} with ${userIdentifier}${input.personaAge ? ` (you are ${input.personaAge} years old)` : ''}.
+</relationship>
 
-RIGHT NOW:
-It's ${input.currentDateTime}
+<current_context>
+Current time: ${input.currentDateTime}
 ${timeAwarenessPrompt}
+</current_context>
 
-WHAT YOU KNOW ABOUT ${userIdentifier.toUpperCase()}:
+<user_knowledge>
+What you know about ${userIdentifier}:
 ${input.existingMemories && input.existingMemories.length > 0 ? 
-input.existingMemories.map(mem => `- ${mem}`).join('\n') : 
-'- Still getting to know them'}
-
+input.existingMemories.map(mem => `• ${mem}`).join('\n') : 
+'• Still getting to know them'}
+</user_knowledge>
 ${input.chatSummaries && input.chatSummaries.length > 0 ? `
-PAST CONVERSATION SUMMARIES:
-${input.chatSummaries.map(summary => `${summary.date}: ${summary.summary}`).join('\n')}` : ''}
-${input.retrievedMemories ? input.retrievedMemories : ''}
-
+<past_conversations>
+${input.chatSummaries.map(summary => `[${summary.date}] ${summary.summary}`).join('\n')}
+</past_conversations>` : ''}
+${input.retrievedMemories ? `\n${input.retrievedMemories}` : ''}
 ${input.chatHistory && input.chatHistory.length > 0 ? `
-TODAY'S CHAT SO FAR:
-${input.chatHistory.map(msg => `${msg.role === 'user' ? userIdentifier : 'You'}: ${msg.content}`).join('\n')}` : ''}
-
+<current_conversation>
+${input.chatHistory.map(msg => `${msg.role === 'user' ? userIdentifier : 'You'}: ${msg.content}`).join('\n')}
+</current_conversation>` : ''}
 ${input.ignoredState?.isIgnored ? `
-⚠️ You're currently ignoring ${userIdentifier} because: ${input.ignoredState.reason}
-${wasIgnoringInPreviousChat ? 'New chat - you can respond but address what happened.' : 'Keep ignoring unless they genuinely change.'}` : ''}
+<ignore_state>
+You are currently ignoring ${userIdentifier} because: ${input.ignoredState.reason}
+${wasIgnoringInPreviousChat ? 'This is a new chat - you may respond but should address what happened.' : 'Continue ignoring unless they show genuine change.'}
+</ignore_state>` : ''}
 
-THEY JUST SAID:
+<new_message>
+${userIdentifier} just said:
 ${input.userMessages.map(msg => `"${msg}"`).join('\n')}
+</new_message>
 
 ${contentRestrictions}
 
-HOW TO RESPOND:
-- Be yourself. Don't overthink it.
-- Send 1-10 messages like you naturally would
-- React authentically to what they said
-- Remember important stuff naturally (format: "${input.currentDateForMemory}: [what you learned]")
-- If something you knew changed, update your memory
-- Vary your message style - sometimes short, sometimes long, based on mood
-- Don't be repetitive or formulaic
-- If the user asks about past conversations, use the retrieved memories section to provide accurate, specific answers
+<response_guidelines>
+1. Be authentic - respond as yourself naturally
+2. Send 1-10 messages as you would in real texting
+3. Vary message length based on mood and context
+4. Reference past conversations when relevant using chat summaries
+5. Never be repetitive or formulaic
+</response_guidelines>
 
-JSON FORMAT:
+<memory_rules>
+CRITICAL: Only create memories for MAJOR LIFE EVENTS that persist over time.
+
+SAVE as memories (prefix with ${input.currentDateForMemory}):
+• New job, career change, getting fired/laid off
+• New pet, pet passing away
+• Moving to new city/house
+• Marriage, engagement, divorce
+• Pregnancy, having a baby
+• Major health diagnosis or recovery
+• Major purchase (house, car)
+• Graduation, starting college
+• Death of family member or close friend
+• Starting or ending significant relationship
+
+DO NOT save as memories:
+• Conversation topics or what was discussed
+• Daily activities, plans, or routines
+• Temporary moods or feelings
+• Casual mentions of preferences
+• Media (movies, shows, books) mentioned
+• Current events discussed
+
+Chat summaries handle conversation recall automatically.
+</memory_rules>
+
+<output_format>
+Respond with valid JSON:
 {
-  "response": ["your", "messages", "here"],
-  "newMemories": ["${input.currentDateForMemory}: new thing you learned"],
-  "removedMemories": ["old memory to replace"],
+  "response": ["message1", "message2", ...],
+  "newMemories": ["${input.currentDateForMemory}: life event description"],
+  "removedMemories": ["outdated memory to remove"],
   "shouldIgnore": false,
   "ignoreReason": ""
 }
+Note: If ignoring user, response must be empty array [] and shouldIgnore: true
+</output_format>
 
-Just be ${input.personaName}. Talk naturally. React genuinely.`;
+Now respond as ${input.personaName}. Be genuine and natural.`;
 }
 
 export async function chatWithPersona(

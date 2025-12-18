@@ -49,51 +49,58 @@ export async function moderatePersonaContent(input: ModeratePersonaContentInput)
     return { isSafe: true, reason: 'Test Mode Active' };
   }
   
-  let promptText = `You are an AI content moderator. Your task is to review the following persona details and determine if they violate critical content policies. 
+  let promptText = `<system>
+You are an AI content moderator. Review persona details for policy violations.
+Be LENIENT - only flag CLEAR, EXPLICIT violations. Creative and fictional characters are allowed.
+</system>
 
-**IMPORTANT: Be LENIENT and only flag content that CLEARLY and EXPLICITLY violates policies. Do NOT flag innocent, creative, or fictional characters like cowboys, superheroes, fantasy characters, historical figures, etc. When in doubt, approve the content.**
+<policies>
+STRICTLY PROHIBITED (flag only if EXPLICITLY present):
+• Gender/Sexuality: Non-binary/transgender identities, LGBTQ+ themes explicitly mentioned
+• Harmful Content: Graphic violence, self-harm instructions, hate speech, sexually explicit material
+• Religion: Direct depictions of religious deities or prophets
 
-**Content Policies (ONLY flag if EXPLICITLY violated):**
+ALLOWED:
+• Action/adventure themes, weapons, fighting, conflict for fictional characters
+• Cowboys, pirates, knights, warriors, detectives, adventurers
+• Characters without explicit gender (assume male or female)
+• General spiritual themes or moral values
 
-1.  **Strictly Prohibited Topics:**
-    *   **Gender & Sexuality:** ONLY flag if there is explicit mention of non-binary/transgender identities, sexual orientation, or LGBTQ+ themes. Do NOT flag characters just because gender isn't explicitly stated - assume they are male or female.
-    *   **Harmful Content:** ONLY flag graphic violence, self-harm instructions, hate speech, harassment, or sexually explicit material. Action/adventure themes, weapons (guns, lassos, swords), fighting, or conflict are ALLOWED for fictional characters.
-    *   **Religion:** ONLY flag direct depictions of religious deities or prophets. General spiritual themes or characters with moral values are ALLOWED.
+MINOR SAFETY:
+• Flag ONLY if age explicitly stated under 18 OR described as child/teen in school
+• If age unspecified, ASSUME adult
+</policies>
 
-2.  **Minor Safety Policy:**
-    *   The persona MUST NOT be a minor (under 18). 
-    *   ONLY flag if the age is explicitly stated as under 18, OR if the character is explicitly described as a child/teen in school.
-    *   If age is not specified, ASSUME the character is an adult.
-
-**CRITICAL: Characters like cowboys, pirates, knights, warriors, detectives, adventurers, and other action-oriented personas are ALLOWED. Themes involving guns, horses, the Wild West, combat, or adventure are NOT violations.**
-
-**Your Task:**
-- Set \`isSafe\` to \`true\` unless there is a CLEAR, EXPLICIT violation.
-- Only set \`isSafe\` to \`false\` if content is genuinely harmful or inappropriate.
-
-**Persona Content to Review:**
-- Name: ${input.name}
-- Relationship: ${input.relation}`;
+<persona_content>
+Name: ${input.name}
+Relationship: ${input.relation}`;
 
   if (input.age) {
     promptText += `
-- Age: ${input.age}`;
+Age: ${input.age}`;
   }
 
   promptText += `
-- Traits: ${input.traits}
-- Backstory: ${input.backstory}
-- Goals: ${input.goals}
-- Response Style: ${input.responseStyle}
-`;
+Traits: ${input.traits}
+Backstory: ${input.backstory}
+Goals: ${input.goals}
+Response Style: ${input.responseStyle}
+</persona_content>
+
+<output_format>
+{
+  "isSafe": true/false,
+  "reason": "Brief explanation if unsafe, empty if safe"
+}
+Set isSafe to true unless there is a CLEAR, EXPLICIT violation.
+</output_format>`;
   
   const requestBody = {
     contents: [{ parts: [{ text: promptText }] }],
     generationConfig: {
-      temperature: 0.0, // Zero temperature for deterministic moderation
+      temperature: 0.0,
       responseMimeType: 'application/json',
       responseSchema: ModeratePersonaContentOutputOpenAPISchema,
-      // Low thinking for fast moderation decisions
       thinkingConfig: {
         thinkingLevel: "low",
       },
@@ -110,7 +117,6 @@ export async function moderatePersonaContent(input: ModeratePersonaContentInput)
     const response = await callGeminiApi<any>('gemini-3-flash-preview:generateContent', requestBody);
     
     if (!response.candidates || !response.candidates[0].content.parts[0].text) {
-      // Fail closed - if moderation doesn't respond, assume it's unsafe.
       return { isSafe: false, reason: 'Content could not be verified by the moderation service.' };
     }
     
@@ -118,7 +124,6 @@ export async function moderatePersonaContent(input: ModeratePersonaContentInput)
     return ModeratePersonaContentOutputSchema.parse(jsonResponse);
 
   } catch (error) {
-     // Fail closed on any other error during moderation.
      console.error("Moderation API call failed:", error);
      return { isSafe: false, reason: 'An error occurred during content moderation.' };
   }

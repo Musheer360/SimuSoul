@@ -104,72 +104,65 @@ export interface RetrievedMemory {
   relevantMessages: ChatMessage[];
 }
 
-/**
- * Determines if the user's message requires looking up past conversations
- * and generates search queries for finding relevant chats.
- */
 async function decideMemoryRetrieval(
   userMessages: string[],
   existingMemories: string[],
   recentSummaries: { date: string; summary: string }[]
 ): Promise<MemoryRetrievalDecision> {
-  const prompt = `You are an intelligent memory retrieval system. Analyze the user's message(s) to determine if they are asking about or referencing past conversations.
+  const prompt = `<system>
+You are an intelligent memory retrieval system. Your task is to analyze user messages and determine if they reference past conversations.
+</system>
 
-USER'S MESSAGE(S):
+<input>
+User message(s):
 ${userMessages.map(m => `"${m}"`).join('\n')}
 
-CURRENT MEMORIES ABOUT USER:
-${existingMemories.length > 0 ? existingMemories.map(m => `- ${m}`).join('\n') : 'No memories yet'}
+Current memories about user:
+${existingMemories.length > 0 ? existingMemories.map(m => `• ${m}`).join('\n') : 'No memories yet'}
 
-RECENT CONVERSATION SUMMARIES:
-${recentSummaries.length > 0 ? recentSummaries.map(s => `${s.date}: ${s.summary}`).join('\n') : 'No recent conversations'}
+Recent conversation summaries:
+${recentSummaries.length > 0 ? recentSummaries.map(s => `[${s.date}] ${s.summary}`).join('\n') : 'No recent conversations'}
+</input>
 
-ANALYZE:
-1. Is the user asking about something from a past conversation? (e.g., "remember when we talked about...", "what did I tell you about...", "last time...", "when did we...")
-2. Is the user referencing a specific topic that might have been discussed before?
-3. Are they asking about timing of past conversations?
-4. Are they asking what was discussed previously? (e.g., "what were we talking about?", "what did we discuss?")
+<task>
+Determine if the user is asking about or referencing past conversations.
 
-**CRITICAL:** If the user asks ANY of these, you MUST set needsRetrieval to true:
-- "When did we last talk?" / "When was our last conversation?"
-- "What were we talking about?" / "What did we discuss?"
-- "What did I tell you about...?"
-- "Remember when...?" / "Do you remember...?"
-- "Last time..." / "Previously..." / "Before..."
-- Any question about past conversations or previous discussions
+Triggers that REQUIRE retrieval (needsRetrieval: true):
+• "When did we last talk?" / "When was our last conversation?"
+• "What were we talking about?" / "What did we discuss?"
+• "What did I tell you about...?"
+• "Remember when...?" / "Do you remember...?"
+• "Last time..." / "Previously..." / "Before..."
+• Any question about past conversations
 
-**IMPORTANT FOR SEARCH QUERIES:**
-- Generate **semantic** search queries that include synonyms and related concepts
-- For "job" also include: work, career, office, gig, employment
-- For "relationship" also include: partner, dating, boyfriend, girlfriend, spouse
-- For "health" also include: fitness, exercise, doctor, sick, wellness
-- For questions about "what we talked about", use broad queries like: "recent topics", "discussion", "conversation"
-- Think about what words the user might have used in past conversations
+Examples NOT requiring retrieval (needsRetrieval: false):
+• "Hello!" - greeting
+• "How are you?" - general question
+• "I'm feeling tired today" - new information
+</task>
 
-Examples that NEED retrieval:
-- "When did we last talk?" → needsRetrieval: true, searchQueries: ["recent conversation", "last chat", "previous discussion"], timeFrameHint: "most recent"
-- "What were we talking about?" → needsRetrieval: true, searchQueries: ["recent topics", "discussion", "conversation content"]
-- "What did I tell you about my job?" → needsRetrieval: true, searchQueries: ["job", "work", "career", "office"]
-- "How's the gig going?" (about work) → needsRetrieval: true, searchQueries: ["job", "work", "gig", "career"]
-- "Remember our conversation about movies?" → needsRetrieval: true, searchQueries: ["movies", "film", "watching", "cinema"]
-- "What were we talking about yesterday?" → needsRetrieval: true, searchQueries: ["yesterday conversation"], timeFrameHint: "yesterday"
-- "Did I mention my sister?" → needsRetrieval: true, searchQueries: ["sister", "family", "sibling"]
+<search_query_guidelines>
+When needsRetrieval is true, generate semantic search queries:
+• Include synonyms: "job" → ["job", "work", "career", "office", "employment"]
+• Include related concepts: "relationship" → ["partner", "dating", "boyfriend", "girlfriend"]
+• For "what we talked about": ["recent topics", "discussion", "conversation"]
+• Maximum 3 queries
+</search_query_guidelines>
 
-Examples that DON'T need retrieval:
-- "Hello!" → needsRetrieval: false
-- "How are you?" → needsRetrieval: false
-- "I'm feeling tired today" → needsRetrieval: false (new information, not asking about past)
-- General greetings or new topics
-
-Return your analysis as JSON.`;
+<output_format>
+{
+  "needsRetrieval": boolean,
+  "searchQueries": ["query1", "query2", "query3"],
+  "timeFrameHint": "optional time reference like 'yesterday', 'last week'"
+}
+</output_format>`;
 
   const requestBody = {
     contents: [{ parts: [{ text: prompt }] }],
     generationConfig: {
-      temperature: 0.3, // Low temperature for accurate retrieval decisions
+      temperature: 0.3,
       responseMimeType: 'application/json',
       responseSchema: MemoryRetrievalDecisionOpenAPISchema,
-      // Low thinking for fast memory retrieval decisions
       thinkingConfig: {
         thinkingLevel: "low",
       },
@@ -203,37 +196,46 @@ async function findRelevantChats(
     return [];
   }
 
-  // chatMetadata is already sorted by recency (most recent first) from the caller
-  const prompt = `You are a chat search engine. Find the most relevant past conversations based on the search queries.
+  const prompt = `<system>
+You are a chat search engine that finds relevant past conversations.
+</system>
 
-SEARCH QUERIES:
-${searchQueries.map(q => `- "${q}"`).join('\n')}
+<search_queries>
+${searchQueries.map(q => `• "${q}"`).join('\n')}
+</search_queries>
 
-${timeFrameHint ? `TIME FRAME HINT: "${timeFrameHint}"` : ''}
+${timeFrameHint ? `<time_hint>${timeFrameHint}</time_hint>` : ''}
 
-AVAILABLE PAST CONVERSATIONS (listed from most recent to oldest):
-${chatMetadata.map(c => `ID: ${c.id}
-Title: ${c.title}
-Date: ${c.date}
-Summary: ${c.summary}
-Messages: ${c.messageCount}
----`).join('\n')}
+<available_chats>
+${chatMetadata.map(c => `<chat id="${c.id}">
+  <title>${c.title}</title>
+  <date>${c.date}</date>
+  <summary>${c.summary}</summary>
+  <message_count>${c.messageCount}</message_count>
+</chat>`).join('\n')}
+</available_chats>
 
-Find up to 3 chats that are most relevant to the search queries. Consider:
-1. **Semantic relevance** - Match concepts, not just keywords (e.g., "job", "work", "gig", "office", "career" are related)
-2. **Recency priority** - When multiple chats match equally, prefer more recent ones. If user mentions "new" or "recent", strongly prioritize newer chats
-3. **Time frame hints** - If a time frame is specified, prioritize chats from that period
-4. **Summary content** - Look for conceptual matches in the summary, not just exact words
+<task>
+Find up to 3 most relevant chats. Consider:
+1. Semantic relevance - match concepts, not just keywords
+2. Recency - prefer newer chats when equally relevant
+3. Time hints - prioritize chats matching any time references
+4. Summary content - look for conceptual matches
+</task>
 
-Return the IDs of the most relevant chats in order of relevance. If no chats are relevant, return an empty array.`;
+<output_format>
+{
+  "relevantChatIds": ["id1", "id2", "id3"]
+}
+Note: Return empty array [] if no chats are relevant.
+</output_format>`;
 
   const requestBody = {
     contents: [{ parts: [{ text: prompt }] }],
     generationConfig: {
-      temperature: 0.2, // Very low temperature for accurate relevance scoring
+      temperature: 0.2,
       responseMimeType: 'application/json',
       responseSchema: ChatRelevanceOpenAPISchema,
-      // Low thinking for fast relevance decisions
       thinkingConfig: {
         thinkingLevel: "low",
       },

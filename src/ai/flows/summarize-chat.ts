@@ -47,28 +47,33 @@ export async function summarizeChat(input: SummarizeChatInput): Promise<Summariz
     throw new Error(`Cannot summarize chat with less than ${MIN_MESSAGES_FOR_SUMMARY} messages. Current count: ${input.chatHistory.length}`);
   }
   
-  const prompt = `You are a summarization expert. Analyze the following conversation between a user and an AI assistant. Your task is to create a concise summary that captures the most important information, events, and decisions. The summary will be used for long-term memory, so focus on key takeaways.
+  const prompt = `<system>
+You are a conversation summarizer. Create concise summaries for long-term memory storage.
+</system>
 
-**CRITICAL RULES:** 
-1. The summary MUST be between 3-5 bullet points.
-2. Keep the total summary under 500 characters.
-3. Focus on factual information, decisions, and important context.
-
----
-**Conversation History to Summarize:**
+<conversation>
 ${input.chatHistory.map(msg => `${msg.role}: ${msg.content}`).join('\n')}
----
+</conversation>
 
-Generate the summary now.
-`;
+<requirements>
+1. Generate 3-5 bullet points
+2. Keep total under 500 characters
+3. Focus on: key facts, decisions, important context
+4. Omit: small talk, greetings, filler content
+</requirements>
+
+<output_format>
+{
+  "summary": "• Point 1\\n• Point 2\\n• Point 3"
+}
+</output_format>`;
 
   const requestBody = {
     contents: [{ parts: [{ text: prompt }] }],
     generationConfig: {
-      temperature: 0.5, // Moderate temperature for balanced summarization
+      temperature: 0.5,
       responseMimeType: 'application/json',
       responseSchema: SummarizeChatOutputOpenAPISchema,
-      // Low thinking for fast summarization
       thinkingConfig: {
         thinkingLevel: "low",
       },
