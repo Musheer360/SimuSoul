@@ -62,27 +62,34 @@ const dbPromise =
           }
           
           // Migrate from v2 to v3: Move chats from personas to separate store
-          if (oldVersion < 3) {
+          // Using cursor-based approach for proper transaction handling
+          if (oldVersion < 3 && oldVersion > 0) {
             const personasStore = tx.objectStore(PERSONAS_STORE);
             const chatsStore = tx.objectStore(CHATS_STORE);
             
-            // Migrate all existing personas' chats
-            personasStore.getAll().then(personas => {
-              for (const persona of personas as LegacyPersona[]) {
-                if (persona.chats && persona.chats.length > 0) {
-                  // Move each chat to the new chats store
-                  for (const chat of persona.chats) {
-                    const chatWithPersonaId: ChatSession = {
-                      ...chat,
-                      personaId: persona.id,
-                    };
-                    chatsStore.put(chatWithPersonaId);
-                  }
+            // Use cursor to iterate through all personas
+            personasStore.openCursor().then(function migrateCursor(cursor) {
+              if (!cursor) return;
+              
+              const persona = cursor.value as LegacyPersona;
+              
+              if (persona.chats && persona.chats.length > 0) {
+                // Move each chat to the new chats store
+                for (const chat of persona.chats) {
+                  const chatWithPersonaId: ChatSession = {
+                    ...chat,
+                    personaId: persona.id,
+                  };
+                  chatsStore.put(chatWithPersonaId);
                 }
-                // Remove chats from persona and save
-                const { chats, ...personaWithoutChats } = persona;
-                personasStore.put(personaWithoutChats as Persona);
               }
+              
+              // Remove chats from persona and update
+              const { chats, ...personaWithoutChats } = persona;
+              cursor.update(personaWithoutChats as Persona);
+              
+              // Move to next persona
+              return cursor.continue().then(migrateCursor);
             });
           }
         },

@@ -893,14 +893,26 @@ export default function PersonaChatPage() {
             c.id !== activeChatId
         );
         
-        // Check each one and delete if empty
-        emptyNewChatHeaders.forEach(async header => {
-          const chat = await getChatSession(header.id);
-          if (chat && chat.messages.length === 0) {
-            await deleteChatSession(header.id);
-            setChatHeaders(prev => prev.filter(h => h.id !== header.id));
+        // Check each one and delete if empty using Promise.all
+        const cleanupEmptyChats = async () => {
+          const chatIds = await Promise.all(
+            emptyNewChatHeaders.map(async header => {
+              const chat = await getChatSession(header.id);
+              if (chat && chat.messages.length === 0) {
+                await deleteChatSession(header.id);
+                return header.id;
+              }
+              return null;
+            })
+          );
+          
+          const deletedIds = chatIds.filter((id): id is string => id !== null);
+          if (deletedIds.length > 0) {
+            setChatHeaders(prev => prev.filter(h => !deletedIds.includes(h.id)));
           }
-        });
+        };
+        
+        cleanupEmptyChats();
     }
   }, [activeChatId, persona, chatHeaders, searchParams]);
 

@@ -30,7 +30,8 @@ export const SummarizeChatOutputSchema = z.object({
 export type SummarizeChatOutput = z.infer<typeof SummarizeChatOutputSchema>;
 
 // Minimum number of messages required before summarization
-const MIN_MESSAGES_FOR_SUMMARY = 6;
+// This should match MIN_MESSAGES_FOR_SUMMARY in page.tsx
+const MIN_MESSAGES_FOR_SUMMARY = 7;
 
 // Manually define the OpenAPI schema for the Gemini API
 const SummarizeChatOutputOpenAPISchema = {
