@@ -36,7 +36,7 @@ interface EditPersonaSheetProps {
   persona: Persona;
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onPersonaUpdate: (updatedPersonaData: Omit<Persona, 'chats' | 'memories'>) => void;
+  onPersonaUpdate: (updatedPersonaData: Omit<Persona, 'memories'>) => void;
 }
 
 export function EditPersonaSheet({ persona, open, onOpenChange, onPersonaUpdate }: EditPersonaSheetProps) {
@@ -82,7 +82,7 @@ export function EditPersonaSheet({ persona, open, onOpenChange, onPersonaUpdate 
             throw new Error(GENERIC_MODERATION_ERROR);
         }
 
-        const updatedPersonaData: Omit<Persona, 'chats' | 'memories'> = {
+        const updatedPersonaData: Omit<Persona, 'memories'> = {
             id: persona.id,
             ...dataToValidate,
             minWpm: formData.minWpm,

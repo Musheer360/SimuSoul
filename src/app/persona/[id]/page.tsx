@@ -9,7 +9,7 @@ import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import { chatWithPersona } from '@/ai/flows/chat-with-persona';
 import { generateChatTitle } from '@/ai/flows/generate-chat-title';
 import { summarizeChat } from '@/ai/flows/summarize-chat';
-import type { Persona, UserDetails, ChatMessage, ChatSession } from '@/lib/types';
+import type { Persona, UserDetails, ChatMessage, ChatSession, ChatSessionHeader } from '@/lib/types';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
@@ -44,14 +44,13 @@ import { FormattedMessage } from '@/components/formatted-message';
 import { useToast } from '@/hooks/use-toast';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { AnimatedChatTitle } from '@/components/animated-chat-title';
-import { getPersona, savePersona, deletePersona, getUserDetails } from '@/lib/db';
+import { getPersona, savePersona, deletePersona, getUserDetails, getPersonaChats, getChatSession, saveChatSession, deleteChatSession, deleteAllPersonaChats, getPersonaChatsWithMessages } from '@/lib/db';
 import { isTestModeActive } from '@/lib/api-key-manager';
 import { MemoryItem } from '@/components/memory-item';
 
 // Constants for chat summarization
 const MIN_MESSAGES_FOR_SUMMARY = 7; // Minimum messages before creating a summary
-const TYPICAL_SUMMARY_MESSAGE_COUNT = 10; // Estimated message count when summary is typically created
-const SUMMARY_STALENESS_THRESHOLD = 15; // Messages count indicating summary may be stale
+const SUMMARY_NEW_MESSAGES_THRESHOLD = 15; // Number of new messages since last summary to trigger re-summarization
 
 // Helper to find the last index of an element in an array.
 const findLastIndex = <T,>(
@@ -266,6 +265,9 @@ export default function PersonaChatPage() {
   const [persona, setPersona] = useState<Persona | null | undefined>(undefined);
   const [userDetails, setUserDetails] = useState<UserDetails>({ name: '', about: '' });
   
+  // Separate state for chat headers (sidebar) and active chat (with messages)
+  const [chatHeaders, setChatHeaders] = useState<ChatSessionHeader[]>([]);
+  const [activeChat, setActiveChat] = useState<ChatSession | null>(null);
   const [activeChatId, setActiveChatId] = useState<string | null>(null);
   
   const [input, setInput] = useState('');
@@ -278,7 +280,7 @@ export default function PersonaChatPage() {
   const [isManagementDialogOpen, setIsManagementDialogOpen] = useState(false);
   const [isMemoryDialogOpen, setIsMemoryDialogOpen] = useState(false);
   const [isClearAllDialogOpen, setIsClearAllDialogOpen] = useState(false);
-  const [chatToDelete, setChatToDelete] = useState<ChatSession | null>(null);
+  const [chatToDelete, setChatToDelete] = useState<ChatSessionHeader | null>(null);
   const [isEditSheetOpen, setIsEditSheetOpen] = useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [isDeleting, setIsDeleting] = useState(false);
@@ -298,6 +300,7 @@ export default function PersonaChatPage() {
   const formRef = useRef<HTMLFormElement>(null);
 
   const personaRef = useRef(persona);
+  const activeChatRef = useRef(activeChat);
   const isAiRespondingRef = useRef(isAiResponding);
   const activeChatIdRef = useRef(activeChatId);
   const userDetailsRef = useRef(userDetails);
@@ -308,6 +311,10 @@ export default function PersonaChatPage() {
   useEffect(() => {
     personaRef.current = persona;
   }, [persona]);
+
+  useEffect(() => {
+    activeChatRef.current = activeChat;
+  }, [activeChat]);
 
   useEffect(() => {
     isAiRespondingRef.current = isAiResponding;
@@ -323,32 +330,60 @@ export default function PersonaChatPage() {
   
   const handleSummarizeChat = useCallback(async (chatId: string) => {
     const currentPersona = personaRef.current;
+    const currentChat = activeChatRef.current;
     if (!currentPersona) return;
 
-    const chatToSummarize = currentPersona.chats.find(c => c.id === chatId);
+    // Get the chat to summarize - either from activeChat if it matches, or fetch it
+    let chatToSummarize = currentChat?.id === chatId ? currentChat : null;
+    if (!chatToSummarize) {
+      chatToSummarize = await getChatSession(chatId) || null;
+    }
 
     if (!chatToSummarize) return;
     
     // Check if chat needs summarization:
     // 1. Has enough messages for meaningful summary
-    // 2. Either has no summary OR summary is stale (chat has grown beyond staleness threshold)
-    const needsSummary = chatToSummarize.messages.length >= MIN_MESSAGES_FOR_SUMMARY && (
+    // 2. Either has no summary OR has enough new messages since last summary
+    const currentMessageCount = chatToSummarize.messages.length;
+    const lastSummarizedAt = chatToSummarize.lastSummarizedAtMessageCount || 0;
+    const newMessagesSinceSummary = currentMessageCount - lastSummarizedAt;
+    
+    const needsSummary = currentMessageCount >= MIN_MESSAGES_FOR_SUMMARY && (
       !chatToSummarize.summary || 
-      (chatToSummarize.summary && chatToSummarize.messages.length >= SUMMARY_STALENESS_THRESHOLD)
+      newMessagesSinceSummary >= SUMMARY_NEW_MESSAGES_THRESHOLD
     );
     
     if (needsSummary) {
         try {
-            console.log(`Summarizing chat: ${chatToSummarize.title} (${chatToSummarize.messages.length} messages)`);
-            const result = await summarizeChat({ chatHistory: chatToSummarize.messages });
-            const updatedPersona = {
-                ...currentPersona,
-                chats: currentPersona.chats.map(c =>
-                    c.id === chatId ? { ...c, summary: result.summary } : c
-                ),
+            console.log(`Summarizing chat: ${chatToSummarize.title} (${currentMessageCount} messages, ${newMessagesSinceSummary} new since last summary)`);
+            const result = await summarizeChat({ 
+              chatHistory: chatToSummarize.messages,
+              existingSummary: chatToSummarize.summary,
+              lastSummarizedAtMessageCount: lastSummarizedAt,
+            });
+            
+            // Update the chat with new summary and message count
+            const updatedChat: ChatSession = {
+              ...chatToSummarize,
+              summary: result.summary,
+              lastSummarizedAtMessageCount: currentMessageCount,
             };
-            setPersona(updatedPersona);
-            await savePersona(updatedPersona);
+            
+            // Save to database
+            await saveChatSession(updatedChat);
+            
+            // Update local state if this is the active chat
+            if (activeChatRef.current?.id === chatId) {
+              setActiveChat(updatedChat);
+            }
+            
+            // Update chat headers
+            setChatHeaders(prev => prev.map(h => 
+              h.id === chatId 
+                ? { ...h, summary: result.summary, lastSummarizedAtMessageCount: currentMessageCount }
+                : h
+            ));
+            
             console.log(`Summary ${chatToSummarize.summary ? 'updated' : 'saved'} for chat: ${chatToSummarize.title}`);
         } catch (e) {
             console.error("Failed to summarize chat:", e);
@@ -360,7 +395,8 @@ export default function PersonaChatPage() {
     if (responseTimerRef.current) clearTimeout(responseTimerRef.current);
     const personaNow = personaRef.current;
     const chatIdNow = activeChatIdRef.current;
-    if (!personaNow || !chatIdNow) return;
+    const currentChatNow = activeChatRef.current;
+    if (!personaNow || !chatIdNow || !currentChatNow) return;
   
     const messagesForTurn = [...messagesSinceLastResponseRef.current];
     if (messagesForTurn.length === 0) return;
@@ -369,14 +405,8 @@ export default function PersonaChatPage() {
     setError(null);
     messagesSinceLastResponseRef.current = [];
   
-    const currentChat = personaNow.chats.find(c => c.id === chatIdNow);
-    if (!currentChat) {
-      setIsAiResponding(false);
-      return;
-    }
-  
-    const historyEndIndex = currentChat.messages.length - messagesForTurn.length;
-    const chatHistoryForAI = currentChat.messages.slice(0, historyEndIndex);
+    const historyEndIndex = currentChatNow.messages.length - messagesForTurn.length;
+    const chatHistoryForAI = currentChatNow.messages.slice(0, historyEndIndex);
     const userMessageContents = messagesForTurn.map(m => m.content);
     const isNewChat = chatHistoryForAI.length === 0;
   
@@ -387,109 +417,106 @@ export default function PersonaChatPage() {
     const currentDateForMemory = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
   
     try {
-      const allChatsForContext = personaNow.chats.filter(c => c.id !== chatIdNow);
+      // Get all chats for context (excluding current chat)
+      const allChatsForContext = await getPersonaChatsWithMessages(personaNow.id);
+      const filteredChats = allChatsForContext.filter(c => c.id !== chatIdNow);
       const testMode = await isTestModeActive();
   
       const res = await chatWithPersona({
-        persona: personaNow, userDetails: userDetailsRef.current, chatHistory: chatHistoryForAI, userMessages: userMessageContents, currentDateTime, currentDateForMemory, allChats: allChatsForContext, activeChatId: chatIdNow, isTestMode: testMode,
+        persona: personaNow, userDetails: userDetailsRef.current, chatHistory: chatHistoryForAI, userMessages: userMessageContents, currentDateTime, currentDateForMemory, allChats: filteredChats, activeChatId: chatIdNow, isTestMode: testMode,
       });
       
       // Handle ignore logic first
       if (res.shouldIgnore) {
-        setPersona(current => {
-            if (!current) return null;
-            const lastUserMessageIndex = findLastIndex(current.chats.find(c => c.id === chatIdNow)?.messages || [], msg => msg.role === 'user');
-            return {
-                ...current,
-                chats: current.chats.map(c =>
-                  c.id === chatIdNow ? { ...c, messages: c.messages.map((m, idx) => idx === lastUserMessageIndex ? { ...m, isIgnored: true } : m) } : c
-                ),
-                ignoredState: {
-                    isIgnored: true,
-                    reason: res.ignoreReason || 'User was being disruptive.',
-                    chatId: chatIdNow,
-                }
-            };
-        });
+        const currentChat = activeChatRef.current;
+        if (currentChat) {
+          const lastUserMessageIndex = findLastIndex(currentChat.messages || [], msg => msg.role === 'user');
+          const updatedChat: ChatSession = {
+            ...currentChat,
+            messages: currentChat.messages.map((m, idx) => 
+              idx === lastUserMessageIndex ? { ...m, isIgnored: true } : m
+            ),
+          };
+          setActiveChat(updatedChat);
+          await saveChatSession(updatedChat);
+        }
+        
+        // Update persona ignore state
+        const updatedPersona = {
+          ...personaNow,
+          ignoredState: {
+            isIgnored: true,
+            reason: res.ignoreReason || 'User was being disruptive.',
+            chatId: chatIdNow,
+          }
+        };
+        setPersona(updatedPersona);
+        await savePersona(updatedPersona);
+        
         setClickedMessageIndex(null);
         setIsAiResponding(false);
         return; // Stop further processing
       }
 
-      // Consolidate all persona updates into a single state update
-      setPersona(current => {
-        if (!current) return null;
-        
-        const currentChat = current.chats.find(c => c.id === chatIdNow);
-        if (!currentChat) return current; // Safety check - chat should exist
-        
-        const lastUserMessageIndex = findLastIndex(currentChat.messages || [], msg => msg.role === 'user');
-        let finalMemories = current.memories || [];
-        const memoryWasUpdated = (res.newMemories?.length || 0) > 0 || (res.removedMemories?.length || 0) > 0;
-  
-        if (memoryWasUpdated) {
-          const memoriesToDelete = new Set(res.removedMemories || []);
-          finalMemories = finalMemories.filter(mem => !memoriesToDelete.has(mem));
-          const memoriesToAdd = res.newMemories || [];
-          finalMemories = [...finalMemories, ...memoriesToAdd];
-  
+      // Handle memory updates
+      let memoryWasUpdated = false;
+      if ((res.newMemories?.length || 0) > 0 || (res.removedMemories?.length || 0) > 0) {
+        memoryWasUpdated = true;
+        let finalMemories = personaNow.memories || [];
+        const memoriesToDelete = new Set(res.removedMemories || []);
+        finalMemories = finalMemories.filter(mem => !memoriesToDelete.has(mem));
+        const memoriesToAdd = res.newMemories || [];
+        finalMemories = [...finalMemories, ...memoriesToAdd];
+
+        const updatedPersona = {
+          ...personaNow,
+          memories: finalMemories,
+          ignoredState: personaNow.ignoredState?.isIgnored ? null : personaNow.ignoredState
+        };
+        setPersona(updatedPersona);
+        await savePersona(updatedPersona);
+
+        const currentChat = activeChatRef.current;
+        if (currentChat) {
           setGlowingMessageIndex(currentChat.messages.length - 1);
           setTimeout(() => setGlowingMessageIndex(null), 1500);
-  
-          if (!isMobile) {
-            setIsMemoryButtonGlowing(true);
-            setTimeout(() => setIsMemoryButtonGlowing(false), 1500);
-          }
         }
 
-        return {
-          ...current,
-          // Update memories
-          memories: finalMemories,
-          // Clear ignore state if it was previously set
-          ignoredState: current.ignoredState?.isIgnored ? null : current.ignoredState
+        if (!isMobile) {
+          setIsMemoryButtonGlowing(true);
+          setTimeout(() => setIsMemoryButtonGlowing(false), 1500);
+        }
+      } else if (personaNow.ignoredState?.isIgnored) {
+        // Clear ignore state if it was previously set
+        const updatedPersona = {
+          ...personaNow,
+          ignoredState: null
         };
-      });
+        setPersona(updatedPersona);
+        await savePersona(updatedPersona);
+      }
 
       // Hide ignored status for previous messages after marking current message as ignored
       setClickedMessageIndex(null);
   
       if (isNewChat && res.response && res.response[0]) {
         generateChatTitle({ userMessage: userMessageContents[0], assistantResponse: res.response[0] })
-          .then(titleResult => {
+          .then(async titleResult => {
             if (titleResult.title) {
-              setPersona(current => {
-                if (!current) return null;
-                return {
-                  ...current,
-                  chats: current.chats.map(c =>
-                    c.id === chatIdNow ? { ...c, title: titleResult.title } : c
-                  ),
-                };
-              });
+              const currentChat = activeChatRef.current;
+              if (currentChat && currentChat.id === chatIdNow) {
+                const updatedChat: ChatSession = { ...currentChat, title: titleResult.title };
+                setActiveChat(updatedChat);
+                await saveChatSession(updatedChat);
+                
+                // Update chat headers
+                setChatHeaders(prev => prev.map(h =>
+                  h.id === chatIdNow ? { ...h, title: titleResult.title } : h
+                ));
+              }
             }
           });
       }
-      
-      let newMessages: ChatMessage[] = [];
-      if (res.response && res.response.length > 0) {
-        newMessages = res.response.map(content => ({ role: 'assistant', content }));
-      }
-
-      setPersona(current => {
-        if (!current) return null;
-        const chat = current.chats.find(c => c.id === chatIdNow);
-        if (!chat) return current;
-        
-        return {
-          ...current,
-          chats: current.chats.map(c =>
-            c.id === chatIdNow
-              ? { ...c, messages: chat.messages, updatedAt: Date.now() }
-              : c
-          ),
-        };
-      });
 
       if (res.response && res.response.length > 0) {
         for (let i = 0; i < res.response.length; i++) {
@@ -513,30 +540,26 @@ export default function PersonaChatPage() {
           setIsTypingTransitioning(false);
           
           // Add the actual message to state
-          setPersona(current => {
-            if (!current) return null;
-            const chat = current.chats.find(c => c.id === chatIdNow);
-            if (!chat) return current;
-            
+          const currentChat = activeChatRef.current;
+          if (currentChat && currentChat.id === chatIdNow) {
             const newAssistantMessage: ChatMessage = { role: 'assistant', content: messageContent };
-            const updatedPersona = {
-              ...current,
-              chats: current.chats.map(c =>
-                c.id === chatIdNow
-                  ? { ...c, messages: [...c.messages, newAssistantMessage], updatedAt: Date.now() }
-                  : c
-              ),
+            const updatedChat: ChatSession = {
+              ...currentChat,
+              messages: [...currentChat.messages, newAssistantMessage],
+              updatedAt: Date.now(),
             };
+            setActiveChat(updatedChat);
             
-            // Save to database immediately after state update
-            savePersona(updatedPersona).catch(err => {
-              console.error('Failed to save persona:', err);
+            // Update chat headers with new updatedAt
+            setChatHeaders(prev => prev.map(h =>
+              h.id === chatIdNow ? { ...h, updatedAt: updatedChat.updatedAt } : h
+            ));
+            
+            // Save to database
+            saveChatSession(updatedChat).catch(err => {
+              console.error('Failed to save chat:', err);
             });
-            
-            return updatedPersona;
-          });
-          
-          // Clear transforming message
+          }
         }
       }
     } catch (err: any) {
@@ -566,21 +589,30 @@ export default function PersonaChatPage() {
     e.preventDefault();
     e.stopPropagation();
     
-    if (!input.trim() || !persona || !activeChatId) return;
+    if (!input.trim() || !persona || !activeChatId || !activeChat) return;
   
     const userMessage: ChatMessage = { role: 'user', content: input, isIgnored: false };
+    const now = Date.now();
   
+    // Update active chat with new message
+    const updatedChat: ChatSession = {
+      ...activeChat,
+      messages: [...activeChat.messages, userMessage],
+      updatedAt: now,
+    };
+    setActiveChat(updatedChat);
+    
+    // Update persona's lastChatTime
     const updatedPersona = {
       ...persona,
-      lastChatTime: Date.now(), // Track when user last interacted
-      chats: persona.chats.map(c =>
-        c.id === activeChatId
-          ? { ...c, messages: [...c.messages, userMessage], updatedAt: Date.now() }
-          : c
-      ),
+      lastChatTime: now,
     };
-    
     setPersona(updatedPersona);
+    
+    // Update chat headers with new updatedAt
+    setChatHeaders(prev => prev.map(h =>
+      h.id === activeChatId ? { ...h, updatedAt: now } : h
+    ));
     
     // Clear input immediately to prevent any UI lag
     setInput('');
@@ -621,7 +653,10 @@ export default function PersonaChatPage() {
     }
     
     // Save to database after UI updates
-    await savePersona(updatedPersona);
+    await Promise.all([
+      saveChatSession(updatedChat),
+      savePersona(updatedPersona),
+    ]);
     
     setError(null);
   
@@ -639,12 +674,15 @@ export default function PersonaChatPage() {
         setPersona(null);
         return;
       }
-      const [p, ud] = await Promise.all([
+      // Load persona metadata and chat headers separately
+      const [p, ud, headers] = await Promise.all([
         getPersona(id),
         getUserDetails(),
+        getPersonaChats(id),
       ]);
       setPersona(p || null);
       setUserDetails(ud);
+      setChatHeaders(headers);
       
       if (!isMobile) {
         setIsSidebarOpen(true);
@@ -662,53 +700,64 @@ export default function PersonaChatPage() {
       setIsSidebarOpen(false);
     }
 
-    const existingNewChat = persona.chats.find(c => c.title === 'New Chat' && c.messages.length === 0);
+    // Check if there's already an empty "New Chat"
+    const existingNewChat = chatHeaders.find(c => c.title === 'New Chat');
     if (existingNewChat) {
-      router.push(`/persona/${persona.id}?chat=${existingNewChat.id}`, { scroll: false });
-      return;
+      // Load the chat to check if it's empty
+      const fullChat = await getChatSession(existingNewChat.id);
+      if (fullChat && fullChat.messages.length === 0) {
+        router.push(`/persona/${persona.id}?chat=${existingNewChat.id}`, { scroll: false });
+        return;
+      }
     }
 
     const now = Date.now();
     const newChat: ChatSession = {
       id: crypto.randomUUID(),
+      personaId: persona.id,
       title: 'New Chat',
       messages: [],
       createdAt: now,
       updatedAt: now,
     };
-    const updatedPersona = {
-      ...persona,
-      chats: [newChat, ...(persona.chats || [])],
+    
+    // Save new chat to database
+    await saveChatSession(newChat);
+    
+    // Update chat headers
+    const newHeader: ChatSessionHeader = {
+      id: newChat.id,
+      personaId: newChat.personaId,
+      title: newChat.title,
+      createdAt: newChat.createdAt,
+      updatedAt: newChat.updatedAt,
     };
-    setPersona(updatedPersona);
-    await savePersona(updatedPersona);
+    setChatHeaders(prev => [newHeader, ...prev]);
+    
     router.push(`/persona/${persona.id}?chat=${newChat.id}`, { scroll: false });
-  }, [persona, router, isMobile]);
+  }, [persona, chatHeaders, router, isMobile]);
   
   const sortedChats = useMemo(() => {
-    if (!persona?.chats) return [];
-    return [...persona.chats].sort((a, b) => (b.updatedAt || b.createdAt) - (a.updatedAt || a.createdAt));
-  }, [persona?.chats]);
+    return [...chatHeaders].sort((a, b) => (b.updatedAt || b.createdAt) - (a.updatedAt || a.createdAt));
+  }, [chatHeaders]);
 
   const prevActiveChatIdRef = useRef<string | null>();
 
   useEffect(() => {
     // Function to clean up empty "New Chat" sessions when navigating away
-    const handleCleanup = (chatIdToClean: string | null | undefined) => {
+    const handleCleanup = async (chatIdToClean: string | null | undefined) => {
         if (!chatIdToClean) return;
 
-        const personaNow = personaRef.current;
-        if (personaNow?.chats && personaNow.chats.length > 1) {
-            const chat = personaNow.chats.find(c => c.id === chatIdToClean);
-            // Only clean up empty "New Chat" sessions with no messages when other chats exist
-            if (chat && chat.title === 'New Chat' && chat.messages.length === 0) {
-                const updatedPersona = {
-                    ...personaNow,
-                    chats: personaNow.chats.filter(c => c.id !== chatIdToClean),
-                };
-                setPersona(updatedPersona);
-                savePersona(updatedPersona);
-            }
+        // Check if it's an empty new chat by looking at the active chat or fetching it
+        const chatToCheck = activeChatRef.current?.id === chatIdToClean 
+          ? activeChatRef.current 
+          : await getChatSession(chatIdToClean);
+        
+        if (chatToCheck && chatToCheck.title === 'New Chat' && chatToCheck.messages.length === 0 && chatHeaders.length > 1) {
+          // Delete empty chat from database
+          await deleteChatSession(chatIdToClean);
+          // Update chat headers
+          setChatHeaders(prev => prev.filter(h => h.id !== chatIdToClean));
         }
     };
     
@@ -735,7 +784,21 @@ export default function PersonaChatPage() {
       }
       if (responseTimerRef.current) clearTimeout(responseTimerRef.current);
     }
-  }, [activeChatId, handleSummarizeChat]);
+  }, [activeChatId, handleSummarizeChat, chatHeaders.length]);
+  
+  // Effect for loading active chat when activeChatId changes
+  useEffect(() => {
+    async function loadActiveChat() {
+      if (!activeChatId) {
+        setActiveChat(null);
+        return;
+      }
+      
+      const chat = await getChatSession(activeChatId);
+      setActiveChat(chat || null);
+    }
+    loadActiveChat();
+  }, [activeChatId]);
   
   // Separate effect for handling URL-based chat selection
   useEffect(() => {
@@ -744,8 +807,8 @@ export default function PersonaChatPage() {
     const chatIdFromQuery = searchParams.get('chat');
     
     if (chatIdFromQuery) {
-        // Check if the chat from the URL exists in our persona's chats
-        const chatExists = persona.chats.some(c => c.id === chatIdFromQuery);
+        // Check if the chat from the URL exists in our chat headers
+        const chatExists = chatHeaders.some(c => c.id === chatIdFromQuery);
         
         if (chatExists) {
             // Valid chat ID in URL, use it
@@ -757,7 +820,7 @@ export default function PersonaChatPage() {
             router.replace(`/persona/${persona.id}`, { scroll: false });
         }
     }
-  }, [persona, searchParams, router, activeChatId]);
+  }, [persona, chatHeaders, searchParams, router, activeChatId]);
 
   // Separate effect for handling new chat creation when no chat ID in URL
   useEffect(() => {
@@ -767,39 +830,54 @@ export default function PersonaChatPage() {
     
     // Only run this logic when there's no chat ID in URL
     if (!chatIdFromQuery) {
-        // Check if we already have an empty "New Chat"
-        const existingEmptyNewChat = persona.chats.find(c => 
-            c.title === 'New Chat' && c.messages.length === 0
-        );
+        // Check if we already have a "New Chat" header
+        const existingNewChatHeader = chatHeaders.find(c => c.title === 'New Chat');
         
-        if (existingEmptyNewChat) {
-            // Use existing empty new chat
-            if (activeChatId !== existingEmptyNewChat.id) {
-                setActiveChatId(existingEmptyNewChat.id);
-                router.replace(`/persona/${persona.id}?chat=${existingEmptyNewChat.id}`, { scroll: false });
-            }
+        if (existingNewChatHeader) {
+            // Check if it's empty by loading it
+            getChatSession(existingNewChatHeader.id).then(chat => {
+              if (chat && chat.messages.length === 0) {
+                // Use existing empty new chat
+                if (activeChatId !== existingNewChatHeader.id) {
+                    setActiveChatId(existingNewChatHeader.id);
+                    router.replace(`/persona/${persona.id}?chat=${existingNewChatHeader.id}`, { scroll: false });
+                }
+              } else {
+                // Create a new chat since the existing one has messages
+                createNewChat();
+              }
+            });
         } else {
             // Create a new chat
-            const now = Date.now();
-            const newChatSession: ChatSession = {
-                id: crypto.randomUUID(),
-                title: 'New Chat',
-                messages: [],
-                createdAt: now,
-                updatedAt: now,
-            };
-            const updatedPersona = {
-                ...persona,
-                chats: [newChatSession, ...(persona.chats || [])],
-            };
-            setPersona(updatedPersona);
-            savePersona(updatedPersona).then(() => {
-                setActiveChatId(newChatSession.id);
-                router.replace(`/persona/${persona.id}?chat=${newChatSession.id}`, { scroll: false });
-            });
+            createNewChat();
+        }
+        
+        async function createNewChat() {
+          const now = Date.now();
+          const newChatSession: ChatSession = {
+              id: crypto.randomUUID(),
+              personaId: persona!.id,
+              title: 'New Chat',
+              messages: [],
+              createdAt: now,
+              updatedAt: now,
+          };
+          
+          await saveChatSession(newChatSession);
+          
+          const newHeader: ChatSessionHeader = {
+            id: newChatSession.id,
+            personaId: newChatSession.personaId,
+            title: newChatSession.title,
+            createdAt: newChatSession.createdAt,
+            updatedAt: newChatSession.updatedAt,
+          };
+          setChatHeaders(prev => [newHeader, ...prev]);
+          setActiveChatId(newChatSession.id);
+          router.replace(`/persona/${persona!.id}?chat=${newChatSession.id}`, { scroll: false });
         }
     }
-  }, [persona?.id, searchParams, router]); // Only depend on persona.id, not the full persona object
+  }, [persona?.id, chatHeaders, searchParams, router, activeChatId]);
 
   // Separate effect for cleaning up empty chats when navigating to existing ones
   useEffect(() => {
@@ -809,41 +887,35 @@ export default function PersonaChatPage() {
     
     // Only cleanup when we have a valid chat ID in URL and it matches activeChatId
     if (chatIdFromQuery && chatIdFromQuery === activeChatId) {
-        const emptyNewChats = persona.chats.filter(c => 
+        // Find empty "New Chat" headers that aren't the active chat
+        const emptyNewChatHeaders = chatHeaders.filter(c => 
             c.title === 'New Chat' && 
-            c.messages.length === 0 && 
             c.id !== activeChatId
         );
         
-        if (emptyNewChats.length > 0) {
-            const updatedPersona = {
-                ...persona,
-                chats: persona.chats.filter(c => 
-                    !(c.title === 'New Chat' && c.messages.length === 0 && c.id !== activeChatId)
-                ),
-            };
-            setPersona(updatedPersona);
-            savePersona(updatedPersona);
-        }
+        // Check each one and delete if empty
+        emptyNewChatHeaders.forEach(async header => {
+          const chat = await getChatSession(header.id);
+          if (chat && chat.messages.length === 0) {
+            await deleteChatSession(header.id);
+            setChatHeaders(prev => prev.filter(h => h.id !== header.id));
+          }
+        });
     }
-  }, [activeChatId]); // Only run when activeChatId changes
-
-  const activeChat = useMemo(() => {
-    return persona?.chats.find(c => c.id === activeChatId);
-  }, [persona, activeChatId]);
+  }, [activeChatId, persona, chatHeaders, searchParams]);
 
   // Auto-focus input on new chats
   useEffect(() => {
     if (activeChat && activeChat.messages.length === 0 && textareaRef.current) {
       setTimeout(() => textareaRef.current?.focus(), 100);
     }
-  }, [activeChat?.id]);
+  }, [activeChat?.id, activeChat?.messages.length]);
 
   const messagesToDisplay = useMemo(() => {
       const messages = activeChat?.messages || [];
       console.log('Messages to display:', messages.length, 'for chat:', activeChatId);
       return messages;
-  }, [activeChat]);
+  }, [activeChat, activeChatId]);
 
   // Performance optimization: Memoize latest user message index calculation
   const latestUserMessageIndex = useMemo(() => {
@@ -904,22 +976,28 @@ export default function PersonaChatPage() {
     const shouldResetIgnoreState = persona.ignoredState?.isIgnored && 
                                    persona.ignoredState?.chatId === chatToDelete.id;
 
-    const updatedPersona = {
+    // Delete chat from database
+    await deleteChatSession(chatToDelete.id);
+    
+    // Update chat headers
+    setChatHeaders(prev => prev.filter(h => h.id !== chatToDelete.id));
+    
+    // Reset ignore state if this chat caused the ignoring
+    if (shouldResetIgnoreState) {
+      const updatedPersona = {
         ...persona,
-        chats: persona.chats.filter(c => c.id !== chatToDelete.id),
-        // Reset ignore state if this chat caused the ignoring
-        ...(shouldResetIgnoreState && {
-          ignoredState: {
-            isIgnored: false,
-            reason: undefined,
-            chatId: undefined,
-          }
-        })
-    };
-    setPersona(updatedPersona);
-    await savePersona(updatedPersona);
+        ignoredState: {
+          isIgnored: false,
+          reason: undefined,
+          chatId: undefined,
+        }
+      };
+      setPersona(updatedPersona);
+      await savePersona(updatedPersona);
+    }
 
     if (activeChatId === chatToDelete.id) {
+      setActiveChat(null);
       router.replace(`/persona/${id}`);
     }
     
@@ -930,9 +1008,16 @@ export default function PersonaChatPage() {
   const handleClearAllChats = useCallback(async () => {
     if (!persona) return;
 
+    // Delete all chats from database
+    await deleteAllPersonaChats(persona.id);
+    
+    // Clear chat headers
+    setChatHeaders([]);
+    setActiveChat(null);
+    
+    // Update persona ignore state
     const updatedPersona = { 
       ...persona, 
-      chats: [],
       // Always reset ignore state when clearing all chats
       ignoredState: {
         isIgnored: false,
@@ -974,7 +1059,7 @@ export default function PersonaChatPage() {
     }
   };
 
-  const handlePersonaUpdate = useCallback(async (updatedPersonaData: Omit<Persona, 'chats' | 'memories'>) => {
+  const handlePersonaUpdate = useCallback(async (updatedPersonaData: Omit<Persona, 'memories'>) => {
     if (!persona) return;
     const updatedPersona = { 
         ...persona,

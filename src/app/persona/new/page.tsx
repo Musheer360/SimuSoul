@@ -37,7 +37,7 @@ import {
 } from '@/components/ui/dialog';
 import { Loader2, Sparkles, Wand2, Upload, Copy, ImageIcon, User } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { savePersona, getUserDetails } from '@/lib/db';
+import { savePersona, getUserDetails, saveChatSession } from '@/lib/db';
 import { isTestModeActive } from '@/lib/api-key-manager';
 import { compressImage } from '@/lib/utils';
 
@@ -320,9 +320,13 @@ export default function NewPersonaPage() {
 
   // Helper function to create persona with a given avatar
   const createPersonaWithAvatar = async (dataToValidate: any, avatarDataUri: string) => {
+    const personaId = crypto.randomUUID();
     const now = Date.now();
+    
+    // Create new chat with personaId
     const newChat: ChatSession = {
       id: crypto.randomUUID(),
+      personaId: personaId,
       title: 'New Chat',
       messages: [],
       createdAt: now,
@@ -330,14 +334,17 @@ export default function NewPersonaPage() {
     };
 
     const newPersona: Persona = {
-      id: crypto.randomUUID(),
+      id: personaId,
       ...dataToValidate,
       profilePictureUrl: avatarDataUri,
-      chats: [newChat],
       memories: [],
     };
 
-    await savePersona(newPersona);
+    // Save persona and chat separately
+    await Promise.all([
+      savePersona(newPersona),
+      saveChatSession(newChat),
+    ]);
     
     toast({
       title: 'Persona Created!',

@@ -6,6 +6,8 @@ export interface ChatMessage {
 
 export interface ChatSession {
   id: string;
+  /** The persona this chat belongs to */
+  personaId: string;
   title: string;
   messages: ChatMessage[];
   createdAt: number;
@@ -16,6 +18,26 @@ export interface ChatSession {
    * May become stale if chat grows significantly after summary creation.
    */
   summary?: string;
+  /**
+   * The message count when the summary was last generated.
+   * Used to determine if a new summary is needed.
+   */
+  lastSummarizedAtMessageCount?: number;
+}
+
+/**
+ * Lightweight chat header for sidebar display.
+ * Does not include the full messages array to avoid loading
+ * entire chat history into memory.
+ */
+export interface ChatSessionHeader {
+  id: string;
+  personaId: string;
+  title: string;
+  createdAt: number;
+  updatedAt: number;
+  summary?: string;
+  lastSummarizedAtMessageCount?: number;
 }
 
 export interface Persona {
@@ -30,7 +52,6 @@ export interface Persona {
   profilePictureUrl: string;
   minWpm: number;
   maxWpm: number;
-  chats: ChatSession[];
   /** 
    * MAJOR life events about the user that the persona remembers permanently.
    * Should ONLY contain highly significant, life-changing information like:
