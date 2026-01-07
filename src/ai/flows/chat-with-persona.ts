@@ -7,7 +7,7 @@
  */
 
 import { callGeminiApi } from '@/lib/api-key-manager';
-import type { ChatMessage, Persona, UserDetails, ChatSession } from '@/lib/types';
+import type { ChatMessage, Persona, UserDetails, ChatSession, FileAttachment } from '@/lib/types';
 import { generateTimeAwarenessPrompt } from '@/lib/time-awareness';
 import { retrieveRelevantMemories, formatRetrievedMemoriesForPrompt } from './retrieve-memories';
 import { z } from 'zod';
@@ -233,9 +233,11 @@ export async function chatWithPersona(
     allChats: ChatSession[];
     activeChatId: string;
     isTestMode: boolean;
+    /** Optional file attachments for the current message */
+    attachments?: FileAttachment[];
   }
 ): Promise<ChatWithPersonaOutput> {
-  const { persona, userDetails, chatHistory, userMessages, currentDateTime, currentDateForMemory, allChats, activeChatId, isTestMode } = payload;
+  const { persona, userDetails, chatHistory, userMessages, currentDateTime, currentDateForMemory, allChats, activeChatId, isTestMode, attachments } = payload;
   
   const personaDescription = `Backstory: ${persona.backstory}\nTraits: ${persona.traits}\nGoals: ${persona.goals}`;
   const userIdentifier = userDetails.name?.split(' ')[0] || 'the user';
@@ -292,8 +294,30 @@ export async function chatWithPersona(
 
   const prompt = buildChatPrompt(input, persona);
 
+  // Build the parts array for the request, starting with the text prompt
+  const parts: Array<{ text: string } | { inlineData: { mimeType: string; data: string } }> = [
+    { text: prompt }
+  ];
+
+  // Add file attachments as inline data if present
+  if (attachments && attachments.length > 0) {
+    for (const attachment of attachments) {
+      parts.push({
+        inlineData: {
+          mimeType: attachment.mimeType,
+          data: attachment.data,
+        }
+      });
+    }
+    // Add a note about attached files to help the model understand context
+    const fileNames = attachments.map(a => a.name).join(', ');
+    parts.push({
+      text: `\n[The user has attached the following file(s): ${fileNames}. Please consider them in your response.]`
+    });
+  }
+
   const requestBody = {
-    contents: [{ parts: [{ text: prompt }] }],
+    contents: [{ parts }],
     generationConfig: {
       temperature: 1.0, // High temperature for natural, varied responses
       topK: 40,
