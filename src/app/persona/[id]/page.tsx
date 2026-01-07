@@ -93,7 +93,7 @@ const ChatMessageItem = memo(function ChatMessageItem({
     >
       <div 
         className={cn(
-          "max-w-[85%] rounded-lg px-4 py-2.5 min-w-0 flex items-center",
+          "max-w-[85%] rounded-lg px-4 py-2.5 min-w-0 flex items-center overflow-hidden",
           message.role === 'user'
             ? 'bg-primary text-primary-foreground'
             : 'bg-secondary',
@@ -126,6 +126,7 @@ const ChatMessageItem = memo(function ChatMessageItem({
         }}
       >
         <div 
+          className="min-w-0 w-full"
           style={{
             // Make the content area clickable but prevent text selection interference
             ...(message.role === 'user' && !isLatestUserMessage && {

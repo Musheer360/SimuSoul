@@ -32,7 +32,7 @@ export function FormattedMessage({ content }: { content: string }) {
       };
 
       return (
-        <div className="relative rounded-md bg-[#0d1117]">
+        <div className="relative rounded-md bg-[#0d1117] overflow-x-auto">
             <div className="absolute top-1.5 right-1.5 flex items-center gap-x-2">
                 <span className="text-xs text-muted-foreground">{language === 'text' ? 'code' : language}</span>
                 <Button
@@ -66,7 +66,7 @@ export function FormattedMessage({ content }: { content: string }) {
     code({ node, inline, className, children, ...props }: any) {
       if (inline) {
         return (
-          <code className="rounded bg-card px-1.5 py-1 font-mono text-sm" {...props}>
+          <code className="rounded bg-card px-1.5 py-1 font-mono text-sm break-all" {...props}>
             {children}
           </code>
         );
@@ -81,7 +81,7 @@ export function FormattedMessage({ content }: { content: string }) {
   };
 
   return (
-    <div className="text-sm leading-relaxed break-words">
+    <div className="text-sm leading-relaxed break-words overflow-hidden [overflow-wrap:anywhere]">
       <ReactMarkdown
         remarkPlugins={[remarkGfm]}
         components={components}
