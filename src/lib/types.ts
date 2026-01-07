@@ -1,7 +1,22 @@
+/**
+ * Represents a file attachment in a chat message.
+ * Files are stored as base64-encoded data with their MIME type.
+ */
+export interface FileAttachment {
+  /** MIME type of the file (e.g., 'image/jpeg', 'application/pdf') */
+  mimeType: string;
+  /** Base64-encoded file data */
+  data: string;
+  /** Original filename for display purposes */
+  name: string;
+}
+
 export interface ChatMessage {
   role: 'user' | 'assistant';
   content: string;
   isIgnored?: boolean;
+  /** Optional file attachments for multimodal messages */
+  attachments?: FileAttachment[];
 }
 
 export interface ChatSession {

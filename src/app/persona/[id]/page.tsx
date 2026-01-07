@@ -9,11 +9,11 @@ import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import { chatWithPersona } from '@/ai/flows/chat-with-persona';
 import { generateChatTitle } from '@/ai/flows/generate-chat-title';
 import { summarizeChat } from '@/ai/flows/summarize-chat';
-import type { Persona, UserDetails, ChatMessage, ChatSession, ChatSessionHeader } from '@/lib/types';
+import type { Persona, UserDetails, ChatMessage, ChatSession, ChatSessionHeader, FileAttachment } from '@/lib/types';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
-import { Send, Loader2, Bot, Trash2, MessageSquarePlus, ArrowLeft, PanelLeft, Pencil, Brain } from 'lucide-react';
+import { Send, Loader2, Bot, Trash2, MessageSquarePlus, ArrowLeft, PanelLeft, Pencil, Brain, Paperclip, X, FileText, Film, ImageIcon } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import {
   AlertDialog,
@@ -47,6 +47,14 @@ import { AnimatedChatTitle } from '@/components/animated-chat-title';
 import { getPersona, savePersona, deletePersona, getUserDetails, getPersonaChats, getChatSession, saveChatSession, deleteChatSession, deleteAllPersonaChats, getPersonaChatsWithMessages } from '@/lib/db';
 import { isTestModeActive } from '@/lib/api-key-manager';
 import { MemoryItem } from '@/components/memory-item';
+
+// Supported file types for Gemini API
+const SUPPORTED_IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+const SUPPORTED_VIDEO_TYPES = ['video/mp4', 'video/webm', 'video/quicktime'];
+const SUPPORTED_DOCUMENT_TYPES = ['application/pdf', 'text/plain', 'text/csv', 'text/html', 'text/css', 'text/javascript', 'application/json', 'application/xml'];
+const SUPPORTED_AUDIO_TYPES = ['audio/mpeg', 'audio/wav', 'audio/ogg', 'audio/webm'];
+const ALL_SUPPORTED_TYPES = [...SUPPORTED_IMAGE_TYPES, ...SUPPORTED_VIDEO_TYPES, ...SUPPORTED_DOCUMENT_TYPES, ...SUPPORTED_AUDIO_TYPES];
+const MAX_FILE_SIZE = 20 * 1024 * 1024; // 20MB max file size
 
 // Constants for chat summarization
 const MIN_MESSAGES_FOR_SUMMARY = 7; // Minimum messages before creating a summary
@@ -83,6 +91,9 @@ const ChatMessageItem = memo(function ChatMessageItem({
   onMessageClick: (index: number) => void;
   showIgnoredStatus: boolean;
 }) {
+  const hasAttachments = message.attachments && message.attachments.length > 0;
+  const hasTextContent = message.content.trim().length > 0;
+  
   return (
     <div
       className={cn(
@@ -91,52 +102,109 @@ const ChatMessageItem = memo(function ChatMessageItem({
         isFirstInSequence ? 'mt-4' : 'mt-1'
       )}
     >
-      <div 
-        className={cn(
-          "max-w-[85%] rounded-lg px-4 py-2.5 min-w-0 flex items-center overflow-hidden",
-          message.role === 'user'
-            ? 'bg-primary text-primary-foreground'
-            : 'bg-secondary',
-          glowing && 'animate-shine-once',
-          message.role === 'user' && !isLatestUserMessage && 'cursor-pointer',
-          message.role === 'assistant' && cn(
-            isFirstInSequence && !isLastInSequence && "rounded-tl-none rounded-bl-none",
-            isFirstInSequence && isLastInSequence && "rounded-tl-none",
-            !isFirstInSequence && !isLastInSequence && "rounded-tl-none rounded-bl-none",
-            !isFirstInSequence && isLastInSequence && "rounded-tl-none rounded-bl-lg",
-          ),
-          message.role === 'user' && cn(
-            isFirstInSequence && !isLastInSequence && "rounded-tr-none rounded-br-none",
-            isFirstInSequence && isLastInSequence && "rounded-tr-none",
-            !isFirstInSequence && !isLastInSequence && "rounded-tr-none rounded-br-none",
-            !isFirstInSequence && isLastInSequence && "rounded-tr-none rounded-br-lg",
-          ),
-        )}
-        onClick={(e) => {
-          if (message.role === 'user' && !isLatestUserMessage) {
-            e.stopPropagation();
-            onMessageClick(messageIndex);
-          }
-        }}
-        style={{
-          // Ensure all child elements are clickable for user messages that aren't latest
-          ...(message.role === 'user' && !isLatestUserMessage && {
-            pointerEvents: 'auto'
-          })
-        }}
-      >
+      {/* Attachment previews */}
+      {hasAttachments && (
+        <div className={cn(
+          "flex flex-wrap gap-2 max-w-[85%]",
+          message.role === 'user' ? 'justify-end' : 'justify-start',
+          hasTextContent && 'mb-1'
+        )}>
+          {message.attachments!.map((attachment, index) => {
+            const isImage = SUPPORTED_IMAGE_TYPES.includes(attachment.mimeType);
+            const isVideo = SUPPORTED_VIDEO_TYPES.includes(attachment.mimeType);
+            
+            if (isImage) {
+              return (
+                <div key={index} className="relative rounded-lg overflow-hidden max-w-[200px]">
+                  <img
+                    src={`data:${attachment.mimeType};base64,${attachment.data}`}
+                    alt={attachment.name}
+                    className="max-h-[200px] w-auto object-contain rounded-lg"
+                  />
+                </div>
+              );
+            }
+            
+            if (isVideo) {
+              return (
+                <div key={index} className="relative rounded-lg overflow-hidden max-w-[250px]">
+                  <video
+                    src={`data:${attachment.mimeType};base64,${attachment.data}`}
+                    controls
+                    className="max-h-[200px] w-auto rounded-lg"
+                  />
+                </div>
+              );
+            }
+            
+            // For other files, show a file indicator
+            return (
+              <div
+                key={index}
+                className={cn(
+                  "flex items-center gap-2 rounded-lg px-3 py-2",
+                  message.role === 'user' 
+                    ? 'bg-primary/80 text-primary-foreground' 
+                    : 'bg-secondary/80'
+                )}
+              >
+                <FileText className="h-4 w-4" />
+                <span className="text-sm truncate max-w-[150px]">{attachment.name}</span>
+              </div>
+            );
+          })}
+        </div>
+      )}
+      
+      {/* Only show text bubble if there's actual text content */}
+      {hasTextContent && (
         <div 
-          className="min-w-0 w-full"
+          className={cn(
+            "max-w-[85%] rounded-lg px-4 py-2.5 min-w-0 flex items-center overflow-hidden",
+            message.role === 'user'
+              ? 'bg-primary text-primary-foreground'
+              : 'bg-secondary',
+            glowing && 'animate-shine-once',
+            message.role === 'user' && !isLatestUserMessage && 'cursor-pointer',
+            message.role === 'assistant' && cn(
+              isFirstInSequence && !isLastInSequence && "rounded-tl-none rounded-bl-none",
+              isFirstInSequence && isLastInSequence && "rounded-tl-none",
+              !isFirstInSequence && !isLastInSequence && "rounded-tl-none rounded-bl-none",
+              !isFirstInSequence && isLastInSequence && "rounded-tl-none rounded-bl-lg",
+            ),
+            message.role === 'user' && cn(
+              isFirstInSequence && !isLastInSequence && "rounded-tr-none rounded-br-none",
+              isFirstInSequence && isLastInSequence && "rounded-tr-none",
+              !isFirstInSequence && !isLastInSequence && "rounded-tr-none rounded-br-none",
+              !isFirstInSequence && isLastInSequence && "rounded-tr-none rounded-br-lg",
+            ),
+          )}
+          onClick={(e) => {
+            if (message.role === 'user' && !isLatestUserMessage) {
+              e.stopPropagation();
+              onMessageClick(messageIndex);
+            }
+          }}
           style={{
-            // Make the content area clickable but prevent text selection interference
+            // Ensure all child elements are clickable for user messages that aren't latest
             ...(message.role === 'user' && !isLatestUserMessage && {
-              pointerEvents: 'none'
+              pointerEvents: 'auto'
             })
           }}
         >
-          <FormattedMessage content={message.content} />
+          <div 
+            className="min-w-0 w-full"
+            style={{
+              // Make the content area clickable but prevent text selection interference
+              ...(message.role === 'user' && !isLatestUserMessage && {
+                pointerEvents: 'none'
+              })
+            }}
+          >
+            <FormattedMessage content={message.content} />
+          </div>
         </div>
-      </div>
+      )}
        {message.role === 'user' && message.isIgnored && showIgnoredStatus && (
           <div className="px-2 pt-1 text-xs text-red-500 dark:text-red-400 flex items-center gap-1">
              Ignored
@@ -296,6 +364,10 @@ export default function PersonaChatPage() {
   const [lastTouchY, setLastTouchY] = useState<number | null>(null);
   const sidebarRef = useRef<HTMLDivElement>(null);
 
+  // File attachment state
+  const [pendingAttachments, setPendingAttachments] = useState<FileAttachment[]>([]);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
   const scrollAreaRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const formRef = useRef<HTMLFormElement>(null);
@@ -328,6 +400,91 @@ export default function PersonaChatPage() {
   useEffect(() => {
     userDetailsRef.current = userDetails;
   }, [userDetails]);
+
+  // File handling functions
+  const handleFileSelect = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+
+    const newAttachments: FileAttachment[] = [];
+
+    for (const file of Array.from(files)) {
+      // Validate file type
+      if (!ALL_SUPPORTED_TYPES.includes(file.type)) {
+        toast({
+          variant: 'destructive',
+          title: 'Unsupported file type',
+          description: `${file.name} is not a supported file type. Supported types: images, videos, PDFs, and text files.`,
+        });
+        continue;
+      }
+
+      // Validate file size
+      if (file.size > MAX_FILE_SIZE) {
+        toast({
+          variant: 'destructive',
+          title: 'File too large',
+          description: `${file.name} is too large. Maximum size is 20MB.`,
+        });
+        continue;
+      }
+
+      // Read file as base64
+      try {
+        const base64Data = await new Promise<string>((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = () => {
+            const result = reader.result as string;
+            // Validate data URL format and extract base64 data
+            if (!result || !result.includes(',')) {
+              reject(new Error('Invalid data URL format'));
+              return;
+            }
+            const base64 = result.split(',')[1];
+            if (!base64) {
+              reject(new Error('No base64 data found'));
+              return;
+            }
+            resolve(base64);
+          };
+          reader.onerror = () => reject(new Error('FileReader error'));
+          reader.readAsDataURL(file);
+        });
+
+        newAttachments.push({
+          mimeType: file.type,
+          data: base64Data,
+          name: file.name,
+        });
+      } catch (error) {
+        console.error('Failed to read file:', error);
+        toast({
+          variant: 'destructive',
+          title: 'Failed to read file',
+          description: `Could not read ${file.name}. Please try again.`,
+        });
+      }
+    }
+
+    if (newAttachments.length > 0) {
+      setPendingAttachments(prev => [...prev, ...newAttachments]);
+    }
+
+    // Reset the file input
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  }, [toast]);
+
+  const removeAttachment = useCallback((index: number) => {
+    setPendingAttachments(prev => prev.filter((_, i) => i !== index));
+  }, []);
+
+  const getFileIcon = useCallback((mimeType: string) => {
+    if (SUPPORTED_IMAGE_TYPES.includes(mimeType)) return ImageIcon;
+    if (SUPPORTED_VIDEO_TYPES.includes(mimeType)) return Film;
+    return FileText;
+  }, []);
   
   const handleSummarizeChat = useCallback(async (chatId: string) => {
     const currentPersona = personaRef.current;
@@ -409,6 +566,8 @@ export default function PersonaChatPage() {
     const historyEndIndex = currentChatNow.messages.length - messagesForTurn.length;
     const chatHistoryForAI = currentChatNow.messages.slice(0, historyEndIndex);
     const userMessageContents = messagesForTurn.map(m => m.content);
+    // Collect attachments from the current turn's messages
+    const attachmentsForTurn = messagesForTurn.flatMap(m => m.attachments || []);
     const isNewChat = chatHistoryForAI.length === 0;
   
     const now = new Date();
@@ -424,7 +583,7 @@ export default function PersonaChatPage() {
       const testMode = await isTestModeActive();
   
       const res = await chatWithPersona({
-        persona: personaNow, userDetails: userDetailsRef.current, chatHistory: chatHistoryForAI, userMessages: userMessageContents, currentDateTime, currentDateForMemory, allChats: filteredChats, activeChatId: chatIdNow, isTestMode: testMode,
+        persona: personaNow, userDetails: userDetailsRef.current, chatHistory: chatHistoryForAI, userMessages: userMessageContents, currentDateTime, currentDateForMemory, allChats: filteredChats, activeChatId: chatIdNow, isTestMode: testMode, attachments: attachmentsForTurn.length > 0 ? attachmentsForTurn : undefined,
       });
       
       // Handle ignore logic first
@@ -590,9 +749,17 @@ export default function PersonaChatPage() {
     e.preventDefault();
     e.stopPropagation();
     
-    if (!input.trim() || !persona || !activeChatId || !activeChat) return;
+    // Allow submission if there's text OR attachments (or both)
+    if ((!input.trim() && pendingAttachments.length === 0) || !persona || !activeChatId || !activeChat) return;
   
-    const userMessage: ChatMessage = { role: 'user', content: input, isIgnored: false };
+    // Create user message with attachments
+    // For attachment-only messages, use empty content string - the attachments speak for themselves
+    const userMessage: ChatMessage = { 
+      role: 'user', 
+      content: input.trim(), 
+      isIgnored: false,
+      attachments: pendingAttachments.length > 0 ? [...pendingAttachments] : undefined,
+    };
     const now = Date.now();
   
     // Update active chat with new message
@@ -615,8 +782,9 @@ export default function PersonaChatPage() {
       h.id === activeChatId ? { ...h, updatedAt: now } : h
     ));
     
-    // Clear input immediately to prevent any UI lag
+    // Clear input and attachments immediately to prevent any UI lag
     setInput('');
+    setPendingAttachments([]);
     
     // On mobile, maintain focus aggressively
     if (isMobile && textareaRef.current) {
@@ -1673,11 +1841,72 @@ export default function PersonaChatPage() {
                     </ScrollArea>
                     <div className="border-t bg-background/50">
                         <div className="max-w-3xl mx-auto p-4">
+                            {/* Attachment preview area */}
+                            {pendingAttachments.length > 0 && (
+                              <div className="mb-2 flex flex-wrap gap-2">
+                                {pendingAttachments.map((attachment, index) => {
+                                  const FileIcon = getFileIcon(attachment.mimeType);
+                                  const isImage = SUPPORTED_IMAGE_TYPES.includes(attachment.mimeType);
+                                  
+                                  return (
+                                    <div
+                                      key={index}
+                                      className="group relative flex items-center gap-2 rounded-lg border bg-secondary/50 p-2 pr-8"
+                                    >
+                                      {isImage ? (
+                                        <div className="h-10 w-10 overflow-hidden rounded">
+                                          <img
+                                            src={`data:${attachment.mimeType};base64,${attachment.data}`}
+                                            alt={attachment.name}
+                                            className="h-full w-full object-cover"
+                                          />
+                                        </div>
+                                      ) : (
+                                        <FileIcon className="h-6 w-6 text-muted-foreground" />
+                                      )}
+                                      <span className="max-w-[120px] truncate text-sm">
+                                        {attachment.name}
+                                      </span>
+                                      <button
+                                        type="button"
+                                        onClick={() => removeAttachment(index)}
+                                        className="absolute right-1 top-1/2 -translate-y-1/2 rounded-full p-1 hover:bg-destructive/20 text-muted-foreground hover:text-destructive"
+                                      >
+                                        <X className="h-4 w-4" />
+                                      </button>
+                                    </div>
+                                  );
+                                })}
+                              </div>
+                            )}
+                            
                             <form
                             ref={formRef}
                             onSubmit={handleSubmit}
                             className="flex w-full items-end gap-2 rounded-lg border bg-secondary/50 p-2"
                             >
+                            {/* Hidden file input */}
+                            <input
+                              ref={fileInputRef}
+                              type="file"
+                              multiple
+                              accept={ALL_SUPPORTED_TYPES.join(',')}
+                              onChange={handleFileSelect}
+                              className="hidden"
+                            />
+                            
+                            {/* Attachment button */}
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => fileInputRef.current?.click()}
+                              className="h-10 w-10 flex-shrink-0 text-muted-foreground hover:text-foreground"
+                              title="Attach file"
+                            >
+                              <Paperclip className="h-5 w-5" />
+                            </Button>
+                            
                             <Textarea
                                 ref={textareaRef}
                                 value={input}
@@ -1691,7 +1920,7 @@ export default function PersonaChatPage() {
                             <Button
                                 type="submit"
                                 size="icon"
-                                disabled={!input.trim()}
+                                disabled={!input.trim() && pendingAttachments.length === 0}
                                 className="h-10 w-10 rounded-md flex-shrink-0"
                             >
                                 <Send className="h-5 w-5" />
