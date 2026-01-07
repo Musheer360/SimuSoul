@@ -12,6 +12,10 @@ import { generateTimeAwarenessPrompt } from '@/lib/time-awareness';
 import { retrieveRelevantMemories, formatRetrievedMemoriesForPrompt } from './retrieve-memories';
 import { z } from 'zod';
 
+// Instruction template for attachment context
+const ATTACHMENT_CONTEXT_TEMPLATE = (fileNames: string) => 
+  `\n[The user has attached the following file(s): ${fileNames}. Please consider them in your response.]`;
+
 const ChatMessageSchema = z.object({
   role: z.enum(['user', 'assistant']),
   content: z.string(),
@@ -312,7 +316,7 @@ export async function chatWithPersona(
     // Add a note about attached files to help the model understand context
     const fileNames = attachments.map(a => a.name).join(', ');
     parts.push({
-      text: `\n[The user has attached the following file(s): ${fileNames}. Please consider them in your response.]`
+      text: ATTACHMENT_CONTEXT_TEMPLATE(fileNames)
     });
   }
 

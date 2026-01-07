@@ -92,6 +92,7 @@ const ChatMessageItem = memo(function ChatMessageItem({
   showIgnoredStatus: boolean;
 }) {
   const hasAttachments = message.attachments && message.attachments.length > 0;
+  const hasTextContent = message.content.trim().length > 0;
   
   return (
     <div
@@ -104,8 +105,9 @@ const ChatMessageItem = memo(function ChatMessageItem({
       {/* Attachment previews */}
       {hasAttachments && (
         <div className={cn(
-          "flex flex-wrap gap-2 mb-1 max-w-[85%]",
-          message.role === 'user' ? 'justify-end' : 'justify-start'
+          "flex flex-wrap gap-2 max-w-[85%]",
+          message.role === 'user' ? 'justify-end' : 'justify-start',
+          hasTextContent && 'mb-1'
         )}>
           {message.attachments!.map((attachment, index) => {
             const isImage = SUPPORTED_IMAGE_TYPES.includes(attachment.mimeType);
@@ -154,52 +156,55 @@ const ChatMessageItem = memo(function ChatMessageItem({
         </div>
       )}
       
-      <div 
-        className={cn(
-          "max-w-[85%] rounded-lg px-4 py-2.5 min-w-0 flex items-center overflow-hidden",
-          message.role === 'user'
-            ? 'bg-primary text-primary-foreground'
-            : 'bg-secondary',
-          glowing && 'animate-shine-once',
-          message.role === 'user' && !isLatestUserMessage && 'cursor-pointer',
-          message.role === 'assistant' && cn(
-            isFirstInSequence && !isLastInSequence && "rounded-tl-none rounded-bl-none",
-            isFirstInSequence && isLastInSequence && "rounded-tl-none",
-            !isFirstInSequence && !isLastInSequence && "rounded-tl-none rounded-bl-none",
-            !isFirstInSequence && isLastInSequence && "rounded-tl-none rounded-bl-lg",
-          ),
-          message.role === 'user' && cn(
-            isFirstInSequence && !isLastInSequence && "rounded-tr-none rounded-br-none",
-            isFirstInSequence && isLastInSequence && "rounded-tr-none",
-            !isFirstInSequence && !isLastInSequence && "rounded-tr-none rounded-br-none",
-            !isFirstInSequence && isLastInSequence && "rounded-tr-none rounded-br-lg",
-          ),
-        )}
-        onClick={(e) => {
-          if (message.role === 'user' && !isLatestUserMessage) {
-            e.stopPropagation();
-            onMessageClick(messageIndex);
-          }
-        }}
-        style={{
-          // Ensure all child elements are clickable for user messages that aren't latest
-          ...(message.role === 'user' && !isLatestUserMessage && {
-            pointerEvents: 'auto'
-          })
-        }}
-      >
+      {/* Only show text bubble if there's actual text content */}
+      {hasTextContent && (
         <div 
-          className="min-w-0 w-full"
+          className={cn(
+            "max-w-[85%] rounded-lg px-4 py-2.5 min-w-0 flex items-center overflow-hidden",
+            message.role === 'user'
+              ? 'bg-primary text-primary-foreground'
+              : 'bg-secondary',
+            glowing && 'animate-shine-once',
+            message.role === 'user' && !isLatestUserMessage && 'cursor-pointer',
+            message.role === 'assistant' && cn(
+              isFirstInSequence && !isLastInSequence && "rounded-tl-none rounded-bl-none",
+              isFirstInSequence && isLastInSequence && "rounded-tl-none",
+              !isFirstInSequence && !isLastInSequence && "rounded-tl-none rounded-bl-none",
+              !isFirstInSequence && isLastInSequence && "rounded-tl-none rounded-bl-lg",
+            ),
+            message.role === 'user' && cn(
+              isFirstInSequence && !isLastInSequence && "rounded-tr-none rounded-br-none",
+              isFirstInSequence && isLastInSequence && "rounded-tr-none",
+              !isFirstInSequence && !isLastInSequence && "rounded-tr-none rounded-br-none",
+              !isFirstInSequence && isLastInSequence && "rounded-tr-none rounded-br-lg",
+            ),
+          )}
+          onClick={(e) => {
+            if (message.role === 'user' && !isLatestUserMessage) {
+              e.stopPropagation();
+              onMessageClick(messageIndex);
+            }
+          }}
           style={{
-            // Make the content area clickable but prevent text selection interference
+            // Ensure all child elements are clickable for user messages that aren't latest
             ...(message.role === 'user' && !isLatestUserMessage && {
-              pointerEvents: 'none'
+              pointerEvents: 'auto'
             })
           }}
         >
-          <FormattedMessage content={message.content} />
+          <div 
+            className="min-w-0 w-full"
+            style={{
+              // Make the content area clickable but prevent text selection interference
+              ...(message.role === 'user' && !isLatestUserMessage && {
+                pointerEvents: 'none'
+              })
+            }}
+          >
+            <FormattedMessage content={message.content} />
+          </div>
         </div>
-      </div>
+      )}
        {message.role === 'user' && message.isIgnored && showIgnoredStatus && (
           <div className="px-2 pt-1 text-xs text-red-500 dark:text-red-400 flex items-center gap-1">
              Ignored
@@ -430,11 +435,19 @@ export default function PersonaChatPage() {
           const reader = new FileReader();
           reader.onload = () => {
             const result = reader.result as string;
-            // Extract base64 data (remove the data:mime/type;base64, prefix)
+            // Validate data URL format and extract base64 data
+            if (!result || !result.includes(',')) {
+              reject(new Error('Invalid data URL format'));
+              return;
+            }
             const base64 = result.split(',')[1];
+            if (!base64) {
+              reject(new Error('No base64 data found'));
+              return;
+            }
             resolve(base64);
           };
-          reader.onerror = reject;
+          reader.onerror = () => reject(new Error('FileReader error'));
           reader.readAsDataURL(file);
         });
 
@@ -740,9 +753,10 @@ export default function PersonaChatPage() {
     if ((!input.trim() && pendingAttachments.length === 0) || !persona || !activeChatId || !activeChat) return;
   
     // Create user message with attachments
+    // For attachment-only messages, use empty content string - the attachments speak for themselves
     const userMessage: ChatMessage = { 
       role: 'user', 
-      content: input.trim() || (pendingAttachments.length > 0 ? `[Attached ${pendingAttachments.length} file(s)]` : ''), 
+      content: input.trim(), 
       isIgnored: false,
       attachments: pendingAttachments.length > 0 ? [...pendingAttachments] : undefined,
     };
