@@ -355,7 +355,7 @@ const TypingIndicator = memo(function TypingIndicator({
     >
       <div className={cn(
         "flex h-11 items-center justify-center rounded-lg bg-secondary px-4 transition-all duration-200 ease-out",
-        "rounded-tl-none rounded-br-lg",
+        getCornerRoundingClasses('assistant', isFirstBubble, true),
         isTransitioning && "scale-98"
       )}>
         <div className={cn(
