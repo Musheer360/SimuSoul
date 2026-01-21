@@ -72,6 +72,29 @@ const findLastIndex = <T,>(
   return -1;
 };
 
+// Helper function to get corner rounding classes based on message role and sequence position
+const getCornerRoundingClasses = (
+  role: 'user' | 'assistant',
+  isFirstInSequence: boolean,
+  isLastInSequence: boolean
+): string => {
+  if (role === 'assistant') {
+    return cn(
+      isFirstInSequence && !isLastInSequence && "rounded-tl-none rounded-bl-none",
+      isFirstInSequence && isLastInSequence && "rounded-tl-none",
+      !isFirstInSequence && !isLastInSequence && "rounded-tl-none rounded-bl-none",
+      !isFirstInSequence && isLastInSequence && "rounded-tl-none rounded-bl-lg",
+    );
+  } else {
+    return cn(
+      isFirstInSequence && !isLastInSequence && "rounded-tr-none rounded-br-none",
+      isFirstInSequence && isLastInSequence && "rounded-tr-none",
+      !isFirstInSequence && !isLastInSequence && "rounded-tr-none rounded-br-none",
+      !isFirstInSequence && isLastInSequence && "rounded-tr-none rounded-br-lg",
+    );
+  }
+};
+
 const ChatMessageItem = memo(function ChatMessageItem({
   message,
   isFirstInSequence,
@@ -81,6 +104,7 @@ const ChatMessageItem = memo(function ChatMessageItem({
   messageIndex,
   onMessageClick,
   showIgnoredStatus,
+  onImagePreview,
 }: {
   message: ChatMessage;
   isFirstInSequence: boolean;
@@ -90,9 +114,26 @@ const ChatMessageItem = memo(function ChatMessageItem({
   messageIndex: number;
   onMessageClick: (index: number) => void;
   showIgnoredStatus: boolean;
+  onImagePreview: (src: string, alt: string) => void;
 }) {
   const hasAttachments = message.attachments && message.attachments.length > 0;
   const hasTextContent = message.content.trim().length > 0;
+  
+  // Calculate corner rounding for attachments
+  // If there's text content below, attachments need to connect (no rounded bottom)
+  // If no text content, attachments follow the normal sequence logic
+  const attachmentIsFirstInSequence = isFirstInSequence;
+  const attachmentIsLastInSequence = hasTextContent ? false : isLastInSequence;
+  
+  // When there's text content below, the text bubble adjusts its top corners
+  // to connect with the attachment above
+  const textIsFirstInSequence = hasAttachments ? false : isFirstInSequence;
+  
+  // Get corner rounding classes for attachments using the shared helper
+  const attachmentRoundingClasses = cn(
+    "rounded-lg",
+    getCornerRoundingClasses(message.role, attachmentIsFirstInSequence, attachmentIsLastInSequence)
+  );
   
   return (
     <div
@@ -114,12 +155,22 @@ const ChatMessageItem = memo(function ChatMessageItem({
             const isVideo = SUPPORTED_VIDEO_TYPES.includes(attachment.mimeType);
             
             if (isImage) {
+              const imageSrc = `data:${attachment.mimeType};base64,${attachment.data}`;
               return (
-                <div key={index} className="relative rounded-lg overflow-hidden max-w-[200px]">
+                <div 
+                  key={index} 
+                  className={cn(
+                    "relative overflow-hidden max-w-[200px] cursor-pointer",
+                    attachmentRoundingClasses
+                  )}
+                  onClick={() => onImagePreview(imageSrc, attachment.name)}
+                  onContextMenu={(e) => e.preventDefault()}
+                >
                   <img
-                    src={`data:${attachment.mimeType};base64,${attachment.data}`}
+                    src={imageSrc}
                     alt={attachment.name}
-                    className="max-h-[200px] w-auto object-contain rounded-lg"
+                    className="max-h-[200px] w-auto object-contain select-none pointer-events-none"
+                    draggable={false}
                   />
                 </div>
               );
@@ -127,11 +178,18 @@ const ChatMessageItem = memo(function ChatMessageItem({
             
             if (isVideo) {
               return (
-                <div key={index} className="relative rounded-lg overflow-hidden max-w-[250px]">
+                <div 
+                  key={index} 
+                  className={cn(
+                    "relative overflow-hidden max-w-[250px]",
+                    attachmentRoundingClasses
+                  )}
+                  onContextMenu={(e) => e.preventDefault()}
+                >
                   <video
                     src={`data:${attachment.mimeType};base64,${attachment.data}`}
                     controls
-                    className="max-h-[200px] w-auto rounded-lg"
+                    className="max-h-[200px] w-auto"
                   />
                 </div>
               );
@@ -142,10 +200,11 @@ const ChatMessageItem = memo(function ChatMessageItem({
               <div
                 key={index}
                 className={cn(
-                  "flex items-center gap-2 rounded-lg px-3 py-2",
+                  "flex items-center gap-2 px-3 py-2",
                   message.role === 'user' 
                     ? 'bg-primary/80 text-primary-foreground' 
-                    : 'bg-secondary/80'
+                    : 'bg-secondary/80',
+                  attachmentRoundingClasses
                 )}
               >
                 <FileText className="h-4 w-4" />
@@ -166,18 +225,7 @@ const ChatMessageItem = memo(function ChatMessageItem({
               : 'bg-secondary',
             glowing && 'animate-shine-once',
             message.role === 'user' && !isLatestUserMessage && 'cursor-pointer',
-            message.role === 'assistant' && cn(
-              isFirstInSequence && !isLastInSequence && "rounded-tl-none rounded-bl-none",
-              isFirstInSequence && isLastInSequence && "rounded-tl-none",
-              !isFirstInSequence && !isLastInSequence && "rounded-tl-none rounded-bl-none",
-              !isFirstInSequence && isLastInSequence && "rounded-tl-none rounded-bl-lg",
-            ),
-            message.role === 'user' && cn(
-              isFirstInSequence && !isLastInSequence && "rounded-tr-none rounded-br-none",
-              isFirstInSequence && isLastInSequence && "rounded-tr-none",
-              !isFirstInSequence && !isLastInSequence && "rounded-tr-none rounded-br-none",
-              !isFirstInSequence && isLastInSequence && "rounded-tr-none rounded-br-lg",
-            ),
+            getCornerRoundingClasses(message.role, textIsFirstInSequence, isLastInSequence),
           )}
           onClick={(e) => {
             if (message.role === 'user' && !isLatestUserMessage) {
@@ -367,6 +415,9 @@ export default function PersonaChatPage() {
   // File attachment state
   const [pendingAttachments, setPendingAttachments] = useState<FileAttachment[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Image preview state
+  const [imagePreview, setImagePreview] = useState<{ src: string; alt: string } | null>(null);
 
   const scrollAreaRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -1284,6 +1335,26 @@ export default function PersonaChatPage() {
     setClickedMessageIndex(prev => prev === messageIndex ? null : messageIndex);
   }, []);
 
+  const handleImagePreview = useCallback((src: string, alt: string) => {
+    setImagePreview({ src, alt });
+  }, []);
+
+  const closeImagePreview = useCallback(() => {
+    setImagePreview(null);
+  }, []);
+
+  // Handle Escape key to close image preview
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && imagePreview !== null) {
+        closeImagePreview();
+      }
+    };
+
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [imagePreview, closeImagePreview]);
+
   const handleOutsideClick = useCallback((e: MouseEvent) => {
     // Check if the click is outside of message bubbles
     const target = e.target as Element;
@@ -1819,6 +1890,7 @@ export default function PersonaChatPage() {
                                  messageIndex={index}
                                  onMessageClick={handleMessageClick}
                                  showIgnoredStatus={showIgnoredStatus}
+                                 onImagePreview={handleImagePreview}
                                />
                              </div>
                            );
@@ -1998,6 +2070,41 @@ export default function PersonaChatPage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Image Preview Dialog */}
+      <Dialog open={imagePreview !== null} onOpenChange={(open) => !open && closeImagePreview()}>
+        <DialogContent 
+          className="flex items-center justify-center border-none bg-transparent p-0 shadow-none max-w-[95vw] max-h-[95vh] w-auto"
+          showCloseButton={false}
+          onContextMenu={(e) => e.preventDefault()}
+        >
+          {imagePreview && (
+            <div 
+              className="relative"
+              onClick={closeImagePreview}
+              onContextMenu={(e) => e.preventDefault()}
+            >
+              <img
+                src={imagePreview.src}
+                alt={imagePreview.alt}
+                className="max-w-[90vw] max-h-[85vh] object-contain rounded-lg select-none"
+                draggable={false}
+                onContextMenu={(e) => e.preventDefault()}
+              />
+              <button
+                className="absolute top-2 right-2 rounded-full bg-black/50 p-2 text-white hover:bg-black/70 transition-colors"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  closeImagePreview();
+                }}
+                aria-label="Close image preview"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </>
   );
 }
