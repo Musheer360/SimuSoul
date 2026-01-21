@@ -72,6 +72,29 @@ const findLastIndex = <T,>(
   return -1;
 };
 
+// Helper function to get corner rounding classes based on message role and sequence position
+const getCornerRoundingClasses = (
+  role: 'user' | 'assistant',
+  isFirstInSequence: boolean,
+  isLastInSequence: boolean
+): string => {
+  if (role === 'assistant') {
+    return cn(
+      isFirstInSequence && !isLastInSequence && "rounded-tl-none rounded-bl-none",
+      isFirstInSequence && isLastInSequence && "rounded-tl-none",
+      !isFirstInSequence && !isLastInSequence && "rounded-tl-none rounded-bl-none",
+      !isFirstInSequence && isLastInSequence && "rounded-tl-none rounded-bl-lg",
+    );
+  } else {
+    return cn(
+      isFirstInSequence && !isLastInSequence && "rounded-tr-none rounded-br-none",
+      isFirstInSequence && isLastInSequence && "rounded-tr-none",
+      !isFirstInSequence && !isLastInSequence && "rounded-tr-none rounded-br-none",
+      !isFirstInSequence && isLastInSequence && "rounded-tr-none rounded-br-lg",
+    );
+  }
+};
+
 const ChatMessageItem = memo(function ChatMessageItem({
   message,
   isFirstInSequence,
@@ -102,30 +125,15 @@ const ChatMessageItem = memo(function ChatMessageItem({
   const attachmentIsFirstInSequence = isFirstInSequence;
   const attachmentIsLastInSequence = hasTextContent ? false : isLastInSequence;
   
-  // Corner rounding classes for attachments (same logic as text bubbles)
-  const getAttachmentRoundingClasses = () => {
-    if (message.role === 'assistant') {
-      return cn(
-        "rounded-lg",
-        attachmentIsFirstInSequence && !attachmentIsLastInSequence && "rounded-tl-none rounded-bl-none",
-        attachmentIsFirstInSequence && attachmentIsLastInSequence && "rounded-tl-none",
-        !attachmentIsFirstInSequence && !attachmentIsLastInSequence && "rounded-tl-none rounded-bl-none",
-        !attachmentIsFirstInSequence && attachmentIsLastInSequence && "rounded-tl-none rounded-bl-lg",
-      );
-    } else {
-      return cn(
-        "rounded-lg",
-        attachmentIsFirstInSequence && !attachmentIsLastInSequence && "rounded-tr-none rounded-br-none",
-        attachmentIsFirstInSequence && attachmentIsLastInSequence && "rounded-tr-none",
-        !attachmentIsFirstInSequence && !attachmentIsLastInSequence && "rounded-tr-none rounded-br-none",
-        !attachmentIsFirstInSequence && attachmentIsLastInSequence && "rounded-tr-none rounded-br-lg",
-      );
-    }
-  };
-  
   // When there's text content below, the text bubble adjusts its top corners
   // to connect with the attachment above
   const textIsFirstInSequence = hasAttachments ? false : isFirstInSequence;
+  
+  // Get corner rounding classes for attachments using the shared helper
+  const attachmentRoundingClasses = cn(
+    "rounded-lg",
+    getCornerRoundingClasses(message.role, attachmentIsFirstInSequence, attachmentIsLastInSequence)
+  );
   
   return (
     <div
@@ -153,7 +161,7 @@ const ChatMessageItem = memo(function ChatMessageItem({
                   key={index} 
                   className={cn(
                     "relative overflow-hidden max-w-[200px] cursor-pointer",
-                    getAttachmentRoundingClasses()
+                    attachmentRoundingClasses
                   )}
                   onClick={() => onImagePreview(imageSrc, attachment.name)}
                   onContextMenu={(e) => e.preventDefault()}
@@ -174,7 +182,7 @@ const ChatMessageItem = memo(function ChatMessageItem({
                   key={index} 
                   className={cn(
                     "relative overflow-hidden max-w-[250px]",
-                    getAttachmentRoundingClasses()
+                    attachmentRoundingClasses
                   )}
                   onContextMenu={(e) => e.preventDefault()}
                 >
@@ -196,7 +204,7 @@ const ChatMessageItem = memo(function ChatMessageItem({
                   message.role === 'user' 
                     ? 'bg-primary/80 text-primary-foreground' 
                     : 'bg-secondary/80',
-                  getAttachmentRoundingClasses()
+                  attachmentRoundingClasses
                 )}
               >
                 <FileText className="h-4 w-4" />
@@ -217,18 +225,7 @@ const ChatMessageItem = memo(function ChatMessageItem({
               : 'bg-secondary',
             glowing && 'animate-shine-once',
             message.role === 'user' && !isLatestUserMessage && 'cursor-pointer',
-            message.role === 'assistant' && cn(
-              textIsFirstInSequence && !isLastInSequence && "rounded-tl-none rounded-bl-none",
-              textIsFirstInSequence && isLastInSequence && "rounded-tl-none",
-              !textIsFirstInSequence && !isLastInSequence && "rounded-tl-none rounded-bl-none",
-              !textIsFirstInSequence && isLastInSequence && "rounded-tl-none rounded-bl-lg",
-            ),
-            message.role === 'user' && cn(
-              textIsFirstInSequence && !isLastInSequence && "rounded-tr-none rounded-br-none",
-              textIsFirstInSequence && isLastInSequence && "rounded-tr-none",
-              !textIsFirstInSequence && !isLastInSequence && "rounded-tr-none rounded-br-none",
-              !textIsFirstInSequence && isLastInSequence && "rounded-tr-none rounded-br-lg",
-            ),
+            getCornerRoundingClasses(message.role, textIsFirstInSequence, isLastInSequence),
           )}
           onClick={(e) => {
             if (message.role === 'user' && !isLatestUserMessage) {
@@ -1345,6 +1342,18 @@ export default function PersonaChatPage() {
   const closeImagePreview = useCallback(() => {
     setImagePreview(null);
   }, []);
+
+  // Handle Escape key to close image preview
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && imagePreview !== null) {
+        closeImagePreview();
+      }
+    };
+
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [imagePreview, closeImagePreview]);
 
   const handleOutsideClick = useCallback((e: MouseEvent) => {
     // Check if the click is outside of message bubbles
