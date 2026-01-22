@@ -102,6 +102,20 @@ const ChatMessageItem = memo(function ChatMessageItem({
     e.preventDefault();
     return false;
   };
+
+  // Helper function to get media corner styling based on message sequence
+  const getMediaCornerStyles = () => {
+    if (message.role === 'assistant') {
+      // Left-aligned messages: adjust top-left and bottom-left corners
+      if (isFirstInSequence && isLastInSequence) return "rounded-tl-none";
+      if (isFirstInSequence || !isLastInSequence) return "rounded-tl-none rounded-bl-none";
+      return "rounded-tl-none rounded-bl-lg";
+    }
+    // User messages (right-aligned): adjust top-right and bottom-right corners
+    if (isFirstInSequence && isLastInSequence) return "rounded-tr-none";
+    if (isFirstInSequence || !isLastInSequence) return "rounded-tr-none rounded-br-none";
+    return "rounded-tr-none rounded-br-lg";
+  };
   
   return (
     <div
@@ -128,7 +142,10 @@ const ChatMessageItem = memo(function ChatMessageItem({
               return (
                 <div
                   key={index}
-                  className="relative rounded-lg overflow-hidden max-w-[200px] cursor-pointer"
+                  className={cn(
+                    "relative rounded-lg overflow-hidden max-w-[200px] cursor-pointer",
+                    getMediaCornerStyles(),
+                  )}
                   onClick={() => onMediaClick(mediaSrc, attachment.name, attachment.mimeType)}
                   onContextMenu={handleMediaContextMenu}
                   onTouchStart={(e) => {
@@ -139,7 +156,10 @@ const ChatMessageItem = memo(function ChatMessageItem({
                   <img
                     src={mediaSrc}
                     alt={attachment.name}
-                    className="max-h-[200px] w-auto object-contain rounded-lg select-none pointer-events-none"
+                    className={cn(
+                      "max-h-[200px] w-auto object-contain rounded-lg select-none pointer-events-none",
+                      getMediaCornerStyles(),
+                    )}
                     draggable={false}
                   />
                 </div>
@@ -150,7 +170,10 @@ const ChatMessageItem = memo(function ChatMessageItem({
               return (
                 <div
                   key={index}
-                  className="relative rounded-lg overflow-hidden max-w-[250px] cursor-pointer group"
+                  className={cn(
+                    "relative rounded-lg overflow-hidden max-w-[250px] cursor-pointer group",
+                    getMediaCornerStyles(),
+                  )}
                   onClick={() => onMediaClick(mediaSrc, attachment.name, attachment.mimeType)}
                   onContextMenu={handleMediaContextMenu}
                   onTouchStart={(e) => {
@@ -159,7 +182,10 @@ const ChatMessageItem = memo(function ChatMessageItem({
                 >
                   <video
                     src={mediaSrc}
-                    className="max-h-[200px] w-auto rounded-lg select-none pointer-events-none"
+                    className={cn(
+                      "max-h-[200px] w-auto rounded-lg select-none pointer-events-none",
+                      getMediaCornerStyles(),
+                    )}
                     muted
                     playsInline
                   />
