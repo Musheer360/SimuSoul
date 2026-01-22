@@ -2,7 +2,7 @@
 'use client';
 
 import React, { useState, useMemo, memo } from 'react';
-import ReactMarkdown, { Components } from 'react-markdown';
+import ReactMarkdown, { Components, ExtraProps } from 'react-markdown';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { vscDarkPlus } from 'react-syntax-highlighter/dist/esm/styles/prism';
 import { Copy, Check } from 'lucide-react';
@@ -12,6 +12,22 @@ import remarkGfm from 'remark-gfm';
 interface CodeBlockProps {
   codeString: string;
   language: string;
+}
+
+/** Props for code element extracted from pre's children */
+interface CodeElementProps {
+  children?: React.ReactNode;
+  className?: string;
+}
+
+/** Type guard to check if element has the expected code props structure */
+function hasCodeProps(props: unknown): props is CodeElementProps {
+  if (!props || typeof props !== 'object') return false;
+  const p = props as Record<string, unknown>;
+  return (
+    (p.children === undefined || typeof p.children !== 'undefined') &&
+    (p.className === undefined || typeof p.className === 'string')
+  );
 }
 
 // Separate component for code blocks that can properly use hooks
@@ -82,21 +98,25 @@ export const FormattedMessage = memo(function FormattedMessage({ content }: { co
   // Memoize components object to avoid creating new object on every render
   const components: Components = useMemo(() => ({
     p: Paragraph,
-    pre: ({ children, ...props }) => {
+    pre: ({ children, ...props }: React.HTMLAttributes<HTMLPreElement> & ExtraProps) => {
       const codeElement = React.Children.toArray(children)[0];
       
       if (!React.isValidElement(codeElement)) {
         return <pre {...props}>{children}</pre>;
       }
 
-      // Safely extract props from the code element
-      const codeProps = codeElement.props as { children?: React.ReactNode; className?: string };
+      // Safely extract props from the code element using type guard
+      if (!hasCodeProps(codeElement.props)) {
+        return <pre {...props}>{children}</pre>;
+      }
+      
+      const codeProps = codeElement.props;
       const codeString = String(codeProps.children || '').replace(/\n$/, '');
       const language = codeProps.className?.replace('language-', '') || 'text';
 
       return <CodeBlock codeString={codeString} language={language} />;
     },
-    code: ({ className, children, ...props }) => {
+    code: ({ className, children, ...props }: React.HTMLAttributes<HTMLElement> & ExtraProps) => {
       // Check if this is inline code (not inside a pre tag)
       // When inside pre, the parent component handles it
       const isInline = !className?.includes('language-');

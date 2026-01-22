@@ -47,6 +47,11 @@ export function isSupportedFileType(mimeType: string): boolean {
 
 export type MediaType = 'image' | 'video' | 'audio' | 'document';
 
+/**
+ * Determines the media type category for a given MIME type.
+ * Returns 'document' as the default fallback for unsupported or unrecognized MIME types.
+ * This is intentional as documents are the safest fallback that shows a generic file icon.
+ */
 export function getMediaType(mimeType: string): MediaType {
   if (isImageType(mimeType)) return 'image';
   if (isVideoType(mimeType)) return 'video';
