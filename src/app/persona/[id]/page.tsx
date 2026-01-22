@@ -48,18 +48,16 @@ import { getPersona, savePersona, deletePersona, getUserDetails, getPersonaChats
 import { isTestModeActive } from '@/lib/api-key-manager';
 import { MemoryItem } from '@/components/memory-item';
 import { MediaPreview } from '@/components/media-preview';
-
-// Supported file types for Gemini API
-const SUPPORTED_IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
-const SUPPORTED_VIDEO_TYPES = ['video/mp4', 'video/webm', 'video/quicktime'];
-const SUPPORTED_DOCUMENT_TYPES = ['application/pdf', 'text/plain', 'text/csv', 'text/html', 'text/css', 'text/javascript', 'application/json', 'application/xml'];
-const SUPPORTED_AUDIO_TYPES = ['audio/mpeg', 'audio/wav', 'audio/ogg', 'audio/webm'];
-const ALL_SUPPORTED_TYPES = [...SUPPORTED_IMAGE_TYPES, ...SUPPORTED_VIDEO_TYPES, ...SUPPORTED_DOCUMENT_TYPES, ...SUPPORTED_AUDIO_TYPES];
-const MAX_FILE_SIZE = 20 * 1024 * 1024; // 20MB max file size
-
-// Constants for chat summarization
-const MIN_MESSAGES_FOR_SUMMARY = 7; // Minimum messages before creating a summary
-const SUMMARY_NEW_MESSAGES_THRESHOLD = 15; // Number of new messages since last summary to trigger re-summarization
+import {
+  ALL_SUPPORTED_TYPES,
+  MAX_FILE_SIZE,
+  MIN_MESSAGES_FOR_SUMMARY,
+  SUMMARY_NEW_MESSAGES_THRESHOLD,
+  isImageType,
+  isVideoType,
+  isAudioType,
+  isSupportedFileType,
+} from '@/lib/constants';
 
 // Helper to find the last index of an element in an array.
 const findLastIndex = <T,>(
@@ -138,9 +136,9 @@ const ChatMessageItem = memo(function ChatMessageItem({
           hasTextContent && 'mb-1'
         )}>
           {message.attachments!.map((attachment, index) => {
-            const isImage = SUPPORTED_IMAGE_TYPES.includes(attachment.mimeType);
-            const isVideo = SUPPORTED_VIDEO_TYPES.includes(attachment.mimeType);
-            const isAudio = SUPPORTED_AUDIO_TYPES.includes(attachment.mimeType);
+            const isImage = isImageType(attachment.mimeType);
+            const isVideo = isVideoType(attachment.mimeType);
+            const isAudio = isAudioType(attachment.mimeType);
             const mediaSrc = `data:${attachment.mimeType};base64,${attachment.data}`;
             
             if (isImage) {
@@ -506,7 +504,7 @@ export default function PersonaChatPage() {
 
     for (const file of Array.from(files)) {
       // Validate file type
-      if (!ALL_SUPPORTED_TYPES.includes(file.type)) {
+      if (!isSupportedFileType(file.type)) {
         toast({
           variant: 'destructive',
           title: 'Unsupported file type',
@@ -577,8 +575,8 @@ export default function PersonaChatPage() {
   }, []);
 
   const getFileIcon = useCallback((mimeType: string) => {
-    if (SUPPORTED_IMAGE_TYPES.includes(mimeType)) return ImageIcon;
-    if (SUPPORTED_VIDEO_TYPES.includes(mimeType)) return Film;
+    if (isImageType(mimeType)) return ImageIcon;
+    if (isVideoType(mimeType)) return Film;
     return FileText;
   }, []);
   
@@ -1953,7 +1951,7 @@ export default function PersonaChatPage() {
                               <div className="mb-2 flex flex-wrap gap-2">
                                 {pendingAttachments.map((attachment, index) => {
                                   const FileIcon = getFileIcon(attachment.mimeType);
-                                  const isImage = SUPPORTED_IMAGE_TYPES.includes(attachment.mimeType);
+                                  const isImage = isImageType(attachment.mimeType);
                                   
                                   return (
                                     <div
