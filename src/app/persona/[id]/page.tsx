@@ -128,7 +128,22 @@ const ChatMessageItem = memo(function ChatMessageItem({
               return (
                 <div
                   key={index}
-                  className="relative rounded-lg overflow-hidden max-w-[200px] cursor-pointer"
+                  className={cn(
+                    "relative rounded-lg overflow-hidden max-w-[200px] cursor-pointer",
+                    // Apply corner styling based on message sequence
+                    message.role === 'assistant' && cn(
+                      isFirstInSequence && !isLastInSequence && "rounded-tl-none rounded-bl-none",
+                      isFirstInSequence && isLastInSequence && "rounded-tl-none",
+                      !isFirstInSequence && !isLastInSequence && "rounded-tl-none rounded-bl-none",
+                      !isFirstInSequence && isLastInSequence && "rounded-tl-none rounded-bl-lg",
+                    ),
+                    message.role === 'user' && cn(
+                      isFirstInSequence && !isLastInSequence && "rounded-tr-none rounded-br-none",
+                      isFirstInSequence && isLastInSequence && "rounded-tr-none",
+                      !isFirstInSequence && !isLastInSequence && "rounded-tr-none rounded-br-none",
+                      !isFirstInSequence && isLastInSequence && "rounded-tr-none rounded-br-lg",
+                    ),
+                  )}
                   onClick={() => onMediaClick(mediaSrc, attachment.name, attachment.mimeType)}
                   onContextMenu={handleMediaContextMenu}
                   onTouchStart={(e) => {
@@ -139,7 +154,22 @@ const ChatMessageItem = memo(function ChatMessageItem({
                   <img
                     src={mediaSrc}
                     alt={attachment.name}
-                    className="max-h-[200px] w-auto object-contain rounded-lg select-none pointer-events-none"
+                    className={cn(
+                      "max-h-[200px] w-auto object-contain rounded-lg select-none pointer-events-none",
+                      // Apply corner styling based on message sequence
+                      message.role === 'assistant' && cn(
+                        isFirstInSequence && !isLastInSequence && "rounded-tl-none rounded-bl-none",
+                        isFirstInSequence && isLastInSequence && "rounded-tl-none",
+                        !isFirstInSequence && !isLastInSequence && "rounded-tl-none rounded-bl-none",
+                        !isFirstInSequence && isLastInSequence && "rounded-tl-none rounded-bl-lg",
+                      ),
+                      message.role === 'user' && cn(
+                        isFirstInSequence && !isLastInSequence && "rounded-tr-none rounded-br-none",
+                        isFirstInSequence && isLastInSequence && "rounded-tr-none",
+                        !isFirstInSequence && !isLastInSequence && "rounded-tr-none rounded-br-none",
+                        !isFirstInSequence && isLastInSequence && "rounded-tr-none rounded-br-lg",
+                      ),
+                    )}
                     draggable={false}
                   />
                 </div>
@@ -150,7 +180,22 @@ const ChatMessageItem = memo(function ChatMessageItem({
               return (
                 <div
                   key={index}
-                  className="relative rounded-lg overflow-hidden max-w-[250px] cursor-pointer group"
+                  className={cn(
+                    "relative rounded-lg overflow-hidden max-w-[250px] cursor-pointer group",
+                    // Apply corner styling based on message sequence
+                    message.role === 'assistant' && cn(
+                      isFirstInSequence && !isLastInSequence && "rounded-tl-none rounded-bl-none",
+                      isFirstInSequence && isLastInSequence && "rounded-tl-none",
+                      !isFirstInSequence && !isLastInSequence && "rounded-tl-none rounded-bl-none",
+                      !isFirstInSequence && isLastInSequence && "rounded-tl-none rounded-bl-lg",
+                    ),
+                    message.role === 'user' && cn(
+                      isFirstInSequence && !isLastInSequence && "rounded-tr-none rounded-br-none",
+                      isFirstInSequence && isLastInSequence && "rounded-tr-none",
+                      !isFirstInSequence && !isLastInSequence && "rounded-tr-none rounded-br-none",
+                      !isFirstInSequence && isLastInSequence && "rounded-tr-none rounded-br-lg",
+                    ),
+                  )}
                   onClick={() => onMediaClick(mediaSrc, attachment.name, attachment.mimeType)}
                   onContextMenu={handleMediaContextMenu}
                   onTouchStart={(e) => {
@@ -159,7 +204,22 @@ const ChatMessageItem = memo(function ChatMessageItem({
                 >
                   <video
                     src={mediaSrc}
-                    className="max-h-[200px] w-auto rounded-lg select-none pointer-events-none"
+                    className={cn(
+                      "max-h-[200px] w-auto rounded-lg select-none pointer-events-none",
+                      // Apply corner styling based on message sequence
+                      message.role === 'assistant' && cn(
+                        isFirstInSequence && !isLastInSequence && "rounded-tl-none rounded-bl-none",
+                        isFirstInSequence && isLastInSequence && "rounded-tl-none",
+                        !isFirstInSequence && !isLastInSequence && "rounded-tl-none rounded-bl-none",
+                        !isFirstInSequence && isLastInSequence && "rounded-tl-none rounded-bl-lg",
+                      ),
+                      message.role === 'user' && cn(
+                        isFirstInSequence && !isLastInSequence && "rounded-tr-none rounded-br-none",
+                        isFirstInSequence && isLastInSequence && "rounded-tr-none",
+                        !isFirstInSequence && !isLastInSequence && "rounded-tr-none rounded-br-none",
+                        !isFirstInSequence && isLastInSequence && "rounded-tr-none rounded-br-lg",
+                      ),
+                    )}
                     muted
                     playsInline
                   />
