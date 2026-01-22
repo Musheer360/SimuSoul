@@ -13,7 +13,7 @@ import type { Persona, UserDetails, ChatMessage, ChatSession, ChatSessionHeader,
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
-import { Send, Loader2, Bot, Trash2, MessageSquarePlus, ArrowLeft, PanelLeft, Pencil, Brain, Paperclip, X, FileText, Film, ImageIcon } from 'lucide-react';
+import { Send, Loader2, Bot, Trash2, MessageSquarePlus, ArrowLeft, PanelLeft, Pencil, Brain, Paperclip, X, FileText, Film, ImageIcon, Music } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import {
   AlertDialog,
@@ -98,7 +98,7 @@ const ChatMessageItem = memo(function ChatMessageItem({
   const hasTextContent = message.content.trim().length > 0;
 
   // Block context menu (right-click) and long-press on media
-  const handleMediaContextMenu = (e: React.MouseEvent) => {
+  const handleMediaContextMenu = (e: React.MouseEvent | Event) => {
     e.preventDefault();
     return false;
   };
@@ -133,7 +133,7 @@ const ChatMessageItem = memo(function ChatMessageItem({
                   onContextMenu={handleMediaContextMenu}
                   onTouchStart={(e) => {
                     // Prevent touch-hold context menu on mobile
-                    e.currentTarget.addEventListener('contextmenu', handleMediaContextMenu as unknown as EventListener, { once: true });
+                    e.currentTarget.addEventListener('contextmenu', handleMediaContextMenu, { once: true });
                   }}
                 >
                   <img
@@ -154,7 +154,7 @@ const ChatMessageItem = memo(function ChatMessageItem({
                   onClick={() => onMediaClick(mediaSrc, attachment.name, attachment.mimeType)}
                   onContextMenu={handleMediaContextMenu}
                   onTouchStart={(e) => {
-                    e.currentTarget.addEventListener('contextmenu', handleMediaContextMenu as unknown as EventListener, { once: true });
+                    e.currentTarget.addEventListener('contextmenu', handleMediaContextMenu, { once: true });
                   }}
                 >
                   <video
@@ -186,7 +186,7 @@ const ChatMessageItem = memo(function ChatMessageItem({
                   onClick={() => onMediaClick(mediaSrc, attachment.name, attachment.mimeType)}
                   onContextMenu={handleMediaContextMenu}
                 >
-                  <ImageIcon className="h-4 w-4" />
+                  <Music className="h-4 w-4" />
                   <span className="text-sm truncate max-w-[150px]">{attachment.name}</span>
                 </div>
               );

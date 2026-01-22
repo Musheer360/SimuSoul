@@ -138,6 +138,7 @@ export function MediaPreview({ src, alt, mimeType, isOpen, onClose }: MediaPrevi
     if (mediaType !== 'image') return;
     
     if (scale > 1) {
+      e.preventDefault(); // Prevent unwanted text selection or default drag behavior
       setIsDragging(true);
       setDragStart({
         x: e.clientX - position.x,
