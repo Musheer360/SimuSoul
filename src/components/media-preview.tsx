@@ -3,13 +3,7 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { X, FileText, Music } from 'lucide-react';
 import { cn } from '@/lib/utils';
-
-// Supported file types (matching the ones in the persona page)
-const SUPPORTED_IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
-const SUPPORTED_VIDEO_TYPES = ['video/mp4', 'video/webm', 'video/quicktime'];
-const SUPPORTED_AUDIO_TYPES = ['audio/mpeg', 'audio/wav', 'audio/ogg', 'audio/webm'];
-
-type MediaType = 'image' | 'video' | 'audio' | 'document';
+import { getMediaType, type MediaType } from '@/lib/constants';
 
 interface MediaPreviewProps {
   src: string;
@@ -17,13 +11,6 @@ interface MediaPreviewProps {
   mimeType: string;
   isOpen: boolean;
   onClose: () => void;
-}
-
-function getMediaType(mimeType: string): MediaType {
-  if (SUPPORTED_IMAGE_TYPES.includes(mimeType)) return 'image';
-  if (SUPPORTED_VIDEO_TYPES.includes(mimeType)) return 'video';
-  if (SUPPORTED_AUDIO_TYPES.includes(mimeType)) return 'audio';
-  return 'document';
 }
 
 export function MediaPreview({ src, alt, mimeType, isOpen, onClose }: MediaPreviewProps) {
