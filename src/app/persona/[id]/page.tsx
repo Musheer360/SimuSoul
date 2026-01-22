@@ -103,7 +103,7 @@ const ChatMessageItem = memo(function ChatMessageItem({
     return false;
   };
 
-  // Helper function to get media corner styling based on message sequence
+  // Helper function to get media corner styling based on message sequence and text content
   const getMediaCornerStyles = () => {
     if (message.role === 'assistant') {
       // Left-aligned messages: adjust top-left and bottom-left corners
@@ -112,6 +112,11 @@ const ChatMessageItem = memo(function ChatMessageItem({
       return "rounded-tl-none rounded-bl-lg";
     }
     // User messages (right-aligned): adjust top-right and bottom-right corners
+    // If there's text content below the media, bottom-right should be pointy to connect with text bubble
+    if (hasTextContent) {
+      return "rounded-tr-none rounded-br-none";
+    }
+    // No text content below - use standard sequence-based styling
     if (isFirstInSequence && isLastInSequence) return "rounded-tr-none";
     if (isFirstInSequence || !isLastInSequence) return "rounded-tr-none rounded-br-none";
     return "rounded-tr-none rounded-br-lg";
