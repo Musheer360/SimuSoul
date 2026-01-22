@@ -14,6 +14,8 @@ export function AppViewportManager({ children }: { children: React.ReactNode }) 
     }
 
     const visualViewport = window.visualViewport;
+    if (!visualViewport) return;
+    
     const documentElement = document.documentElement;
 
     const handleResize = () => {

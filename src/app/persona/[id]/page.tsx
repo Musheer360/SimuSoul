@@ -1440,7 +1440,7 @@ export default function PersonaChatPage() {
 
   // Simple auto-scroll to bottom when mobile keyboard opens
   useEffect(() => {
-    if (!isMobile || typeof window.visualViewport === 'undefined') return;
+    if (!isMobile || typeof window.visualViewport === 'undefined' || !window.visualViewport) return;
 
     const visualViewport = window.visualViewport;
     let previousHeight = visualViewport.height;
@@ -1808,7 +1808,7 @@ export default function PersonaChatPage() {
             </div>
             
             <div className="flex-1 min-h-0 px-4 pb-4">
-                <ScrollArea className="h-full" type="never">
+                <ScrollArea className="h-full" type="auto">
                   <div className="space-y-1">
                     {sortedChats.length > 0 ? (
                       sortedChats.map(chat => (
