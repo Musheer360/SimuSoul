@@ -13,7 +13,7 @@ import type { Persona, UserDetails, ChatMessage, ChatSession, ChatSessionHeader,
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
-import { Send, Loader2, Bot, Trash2, MessageSquarePlus, ArrowLeft, PanelLeft, Pencil, Brain, Paperclip, X, FileText, Film, ImageIcon } from 'lucide-react';
+import { Send, Loader2, Bot, Trash2, MessageSquarePlus, ArrowLeft, PanelLeft, Pencil, Brain, Paperclip, X, FileText, Film, ImageIcon, Music } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import {
   AlertDialog,
@@ -47,6 +47,7 @@ import { AnimatedChatTitle } from '@/components/animated-chat-title';
 import { getPersona, savePersona, deletePersona, getUserDetails, getPersonaChats, getChatSession, saveChatSession, deleteChatSession, deleteAllPersonaChats, getPersonaChatsWithMessages } from '@/lib/db';
 import { isTestModeActive } from '@/lib/api-key-manager';
 import { MemoryItem } from '@/components/memory-item';
+import { MediaPreview } from '@/components/media-preview';
 
 // Supported file types for Gemini API
 const SUPPORTED_IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
@@ -80,6 +81,7 @@ const ChatMessageItem = memo(function ChatMessageItem({
   isLatestUserMessage,
   messageIndex,
   onMessageClick,
+  onMediaClick,
   showIgnoredStatus,
 }: {
   message: ChatMessage;
@@ -89,10 +91,17 @@ const ChatMessageItem = memo(function ChatMessageItem({
   isLatestUserMessage: boolean;
   messageIndex: number;
   onMessageClick: (index: number) => void;
+  onMediaClick: (src: string, alt: string, mimeType: string) => void;
   showIgnoredStatus: boolean;
 }) {
   const hasAttachments = message.attachments && message.attachments.length > 0;
   const hasTextContent = message.content.trim().length > 0;
+
+  // Block context menu (right-click) and long-press on media
+  const handleMediaContextMenu = (e: React.MouseEvent | Event) => {
+    e.preventDefault();
+    return false;
+  };
   
   return (
     <div
@@ -112,14 +121,26 @@ const ChatMessageItem = memo(function ChatMessageItem({
           {message.attachments!.map((attachment, index) => {
             const isImage = SUPPORTED_IMAGE_TYPES.includes(attachment.mimeType);
             const isVideo = SUPPORTED_VIDEO_TYPES.includes(attachment.mimeType);
+            const isAudio = SUPPORTED_AUDIO_TYPES.includes(attachment.mimeType);
+            const mediaSrc = `data:${attachment.mimeType};base64,${attachment.data}`;
             
             if (isImage) {
               return (
-                <div key={index} className="relative rounded-lg overflow-hidden max-w-[200px]">
+                <div
+                  key={index}
+                  className="relative rounded-lg overflow-hidden max-w-[200px] cursor-pointer"
+                  onClick={() => onMediaClick(mediaSrc, attachment.name, attachment.mimeType)}
+                  onContextMenu={handleMediaContextMenu}
+                  onTouchStart={(e) => {
+                    // Prevent touch-hold context menu on mobile
+                    e.currentTarget.addEventListener('contextmenu', handleMediaContextMenu, { once: true });
+                  }}
+                >
                   <img
-                    src={`data:${attachment.mimeType};base64,${attachment.data}`}
+                    src={mediaSrc}
                     alt={attachment.name}
-                    className="max-h-[200px] w-auto object-contain rounded-lg"
+                    className="max-h-[200px] w-auto object-contain rounded-lg select-none pointer-events-none"
+                    draggable={false}
                   />
                 </div>
               );
@@ -127,26 +148,62 @@ const ChatMessageItem = memo(function ChatMessageItem({
             
             if (isVideo) {
               return (
-                <div key={index} className="relative rounded-lg overflow-hidden max-w-[250px]">
+                <div
+                  key={index}
+                  className="relative rounded-lg overflow-hidden max-w-[250px] cursor-pointer group"
+                  onClick={() => onMediaClick(mediaSrc, attachment.name, attachment.mimeType)}
+                  onContextMenu={handleMediaContextMenu}
+                  onTouchStart={(e) => {
+                    e.currentTarget.addEventListener('contextmenu', handleMediaContextMenu, { once: true });
+                  }}
+                >
                   <video
-                    src={`data:${attachment.mimeType};base64,${attachment.data}`}
-                    controls
-                    className="max-h-[200px] w-auto rounded-lg"
+                    src={mediaSrc}
+                    className="max-h-[200px] w-auto rounded-lg select-none pointer-events-none"
+                    muted
+                    playsInline
                   />
+                  {/* Play button overlay */}
+                  <div className="absolute inset-0 flex items-center justify-center bg-black/20 group-hover:bg-black/30 transition-colors">
+                    <div className="w-12 h-12 rounded-full bg-white/90 flex items-center justify-center">
+                      <Film className="h-6 w-6 text-black ml-0.5" />
+                    </div>
+                  </div>
+                </div>
+              );
+            }
+
+            if (isAudio) {
+              return (
+                <div
+                  key={index}
+                  className={cn(
+                    "flex items-center gap-2 rounded-lg px-3 py-2 cursor-pointer hover:opacity-80 transition-opacity",
+                    message.role === 'user' 
+                      ? 'bg-primary/80 text-primary-foreground' 
+                      : 'bg-secondary/80'
+                  )}
+                  onClick={() => onMediaClick(mediaSrc, attachment.name, attachment.mimeType)}
+                  onContextMenu={handleMediaContextMenu}
+                >
+                  <Music className="h-4 w-4" />
+                  <span className="text-sm truncate max-w-[150px]">{attachment.name}</span>
                 </div>
               );
             }
             
-            // For other files, show a file indicator
+            // For document files, show a file indicator with click to preview
             return (
               <div
                 key={index}
                 className={cn(
-                  "flex items-center gap-2 rounded-lg px-3 py-2",
+                  "flex items-center gap-2 rounded-lg px-3 py-2 cursor-pointer hover:opacity-80 transition-opacity",
                   message.role === 'user' 
                     ? 'bg-primary/80 text-primary-foreground' 
                     : 'bg-secondary/80'
                 )}
+                onClick={() => onMediaClick(mediaSrc, attachment.name, attachment.mimeType)}
+                onContextMenu={handleMediaContextMenu}
               >
                 <FileText className="h-4 w-4" />
                 <span className="text-sm truncate max-w-[150px]">{attachment.name}</span>
@@ -367,6 +424,14 @@ export default function PersonaChatPage() {
   // File attachment state
   const [pendingAttachments, setPendingAttachments] = useState<FileAttachment[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Media preview state
+  const [mediaPreview, setMediaPreview] = useState<{ src: string; alt: string; mimeType: string; isOpen: boolean }>({
+    src: '',
+    alt: '',
+    mimeType: '',
+    isOpen: false,
+  });
 
   const scrollAreaRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -1284,6 +1349,16 @@ export default function PersonaChatPage() {
     setClickedMessageIndex(prev => prev === messageIndex ? null : messageIndex);
   }, []);
 
+  // Handle media click to open preview
+  const handleMediaClick = useCallback((src: string, alt: string, mimeType: string) => {
+    setMediaPreview({ src, alt, mimeType, isOpen: true });
+  }, []);
+
+  // Handle media preview close
+  const handleMediaPreviewClose = useCallback(() => {
+    setMediaPreview(prev => ({ ...prev, isOpen: false }));
+  }, []);
+
   const handleOutsideClick = useCallback((e: MouseEvent) => {
     // Check if the click is outside of message bubbles
     const target = e.target as Element;
@@ -1818,6 +1893,7 @@ export default function PersonaChatPage() {
                                  isLatestUserMessage={isLatestUserMessage}
                                  messageIndex={index}
                                  onMessageClick={handleMessageClick}
+                                 onMediaClick={handleMediaClick}
                                  showIgnoredStatus={showIgnoredStatus}
                                />
                              </div>
@@ -1998,6 +2074,15 @@ export default function PersonaChatPage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Media Preview Modal */}
+      <MediaPreview
+        src={mediaPreview.src}
+        alt={mediaPreview.alt}
+        mimeType={mediaPreview.mimeType}
+        isOpen={mediaPreview.isOpen}
+        onClose={handleMediaPreviewClose}
+      />
     </>
   );
 }
