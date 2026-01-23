@@ -8,7 +8,7 @@ import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -28,6 +28,7 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.simusoul.app.data.SimuSoulRepository
 import com.simusoul.app.data.models.*
 import com.simusoul.app.data.remote.*
@@ -414,36 +415,48 @@ fun ChatScreen(
                 modifier = Modifier
                     .weight(1f)
                     .fillMaxHeight()
+                    .background(colors.background.copy(alpha = 0.8f))
             ) {
                 // Header
-                Surface(
-                    modifier = Modifier.fillMaxWidth(),
-                    color = colors.background,
-                    shadowElevation = 1.dp
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .background(colors.background)
+                        .padding(horizontal = 8.dp, vertical = 12.dp),
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 8.dp, vertical = 8.dp),
-                        verticalAlignment = Alignment.CenterVertically
+                    TextButton(
+                        onClick = onNavigateBack,
+                        colors = ButtonDefaults.textButtonColors(
+                            contentColor = colors.mutedForeground
+                        )
                     ) {
-                        IconButton(onClick = onNavigateBack) {
-                            Icon(
-                                imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                                contentDescription = "Back"
-                            )
-                        }
-                        
-                        Spacer(modifier = Modifier.weight(1f))
-                        
-                        IconButton(onClick = { isSidebarOpen = !isSidebarOpen }) {
-                            Icon(
-                                imageVector = Icons.Default.Menu,
-                                contentDescription = "Menu"
-                            )
-                        }
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                            contentDescription = "Back",
+                            modifier = Modifier.size(18.dp)
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text("All Personas")
+                    }
+                    
+                    Spacer(modifier = Modifier.weight(1f))
+                    
+                    FilledTonalIconButton(
+                        onClick = { isSidebarOpen = !isSidebarOpen },
+                        colors = IconButtonDefaults.filledTonalIconButtonColors(
+                            containerColor = Color.Transparent,
+                            contentColor = colors.foreground
+                        )
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Menu,
+                            contentDescription = "Menu"
+                        )
                     }
                 }
+                
+                HorizontalDivider(color = colors.border)
                 
                 // Messages area
                 Box(
@@ -479,25 +492,34 @@ fun ChatScreen(
                             )
                         }
                     } else {
+                        val messages = activeChat?.messages ?: emptyList()
                         LazyColumn(
                             state = listState,
                             modifier = Modifier
                                 .fillMaxSize()
                                 .padding(horizontal = 16.dp),
-                            contentPadding = PaddingValues(vertical = 16.dp),
-                            verticalArrangement = Arrangement.spacedBy(8.dp)
+                            contentPadding = PaddingValues(vertical = 8.dp)
                         ) {
-                            items(activeChat?.messages ?: emptyList()) { message ->
+                            itemsIndexed(messages) { index, message ->
+                                val prevMessage = messages.getOrNull(index - 1)
+                                val nextMessage = messages.getOrNull(index + 1)
+                                val isFirstInSequence = prevMessage?.role != message.role
+                                val isLastInSequence = nextMessage?.role != message.role
+                                
                                 MessageBubble(
                                     message = message,
-                                    isUser = message.role == "user"
+                                    isUser = message.role == "user",
+                                    isFirstInSequence = isFirstInSequence,
+                                    isLastInSequence = isLastInSequence
                                 )
                             }
                             
                             if (isAiTyping) {
                                 item {
                                     Row(
-                                        modifier = Modifier.fillMaxWidth(),
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .padding(top = 16.dp),
                                         horizontalArrangement = Arrangement.Start
                                     ) {
                                         TypingIndicator()
@@ -528,15 +550,15 @@ fun ChatScreen(
                 }
                 
                 // Input area
-                Surface(
-                    modifier = Modifier.fillMaxWidth(),
-                    color = colors.background,
-                    shadowElevation = 4.dp
+                Column(
+                    modifier = Modifier.fillMaxWidth()
                 ) {
+                    HorizontalDivider(color = colors.border)
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(16.dp),
+                            .background(colors.background)
+                            .padding(horizontal = 16.dp, vertical = 12.dp),
                         verticalAlignment = Alignment.Bottom
                     ) {
                         OutlinedTextField(
@@ -545,28 +567,40 @@ fun ChatScreen(
                             modifier = Modifier
                                 .weight(1f)
                                 .heightIn(min = 48.dp, max = 150.dp),
-                            placeholder = { Text("Message ${persona!!.name}...") },
+                            placeholder = { 
+                                Text(
+                                    "Message ${persona!!.name}...",
+                                    color = colors.mutedForeground
+                                ) 
+                            },
                             colors = OutlinedTextFieldDefaults.colors(
-                                focusedBorderColor = colors.primary,
-                                unfocusedBorderColor = colors.border
+                                focusedBorderColor = colors.border,
+                                unfocusedBorderColor = colors.border,
+                                focusedContainerColor = colors.secondary,
+                                unfocusedContainerColor = colors.secondary,
+                                cursorColor = colors.foreground
                             ),
                             shape = RoundedCornerShape(24.dp),
                             maxLines = 5
                         )
                         
-                        Spacer(modifier = Modifier.width(8.dp))
+                        Spacer(modifier = Modifier.width(12.dp))
                         
                         FilledIconButton(
                             onClick = { sendMessage() },
                             enabled = input.isNotBlank() && !isAiResponding,
+                            modifier = Modifier.size(48.dp),
                             colors = IconButtonDefaults.filledIconButtonColors(
                                 containerColor = colors.primary,
-                                contentColor = colors.primaryForeground
+                                contentColor = colors.primaryForeground,
+                                disabledContainerColor = colors.muted,
+                                disabledContentColor = colors.mutedForeground
                             )
                         ) {
                             Icon(
                                 imageVector = Icons.AutoMirrored.Filled.Send,
-                                contentDescription = "Send"
+                                contentDescription = "Send",
+                                modifier = Modifier.size(20.dp)
                             )
                         }
                     }
@@ -773,29 +807,38 @@ fun ChatScreen(
 @Composable
 private fun MessageBubble(
     message: ChatMessage,
-    isUser: Boolean
+    isUser: Boolean,
+    isFirstInSequence: Boolean = true,
+    isLastInSequence: Boolean = true
 ) {
     val colors = SimuSoulTheme.colors
     
     Row(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(
+                top = if (isFirstInSequence) 16.dp else 2.dp,
+                bottom = 0.dp
+            ),
         horizontalArrangement = if (isUser) Arrangement.End else Arrangement.Start
     ) {
         Surface(
-            modifier = Modifier.widthIn(max = 300.dp),
+            modifier = Modifier.widthIn(max = 320.dp),
             shape = RoundedCornerShape(
-                topStart = 16.dp,
-                topEnd = 16.dp,
-                bottomStart = if (isUser) 16.dp else 4.dp,
-                bottomEnd = if (isUser) 4.dp else 16.dp
+                topStart = if (isUser) 16.dp else if (isFirstInSequence) 4.dp else 4.dp,
+                topEnd = if (isUser) if (isFirstInSequence) 4.dp else 4.dp else 16.dp,
+                bottomStart = if (isUser) 16.dp else if (isLastInSequence) 16.dp else 4.dp,
+                bottomEnd = if (isUser) if (isLastInSequence) 16.dp else 4.dp else 16.dp
             ),
             color = if (isUser) colors.primary else colors.secondary
         ) {
             Text(
                 text = message.content,
-                style = MaterialTheme.typography.bodyMedium,
+                style = MaterialTheme.typography.bodyMedium.copy(
+                    lineHeight = 22.sp
+                ),
                 color = if (isUser) colors.primaryForeground else colors.foreground,
-                modifier = Modifier.padding(12.dp)
+                modifier = Modifier.padding(horizontal = 16.dp, vertical = 10.dp)
             )
         }
     }

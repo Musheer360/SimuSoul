@@ -1,5 +1,6 @@
 package com.simusoul.app.ui.screens.home
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -10,6 +11,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.simusoul.app.data.SimuSoulRepository
 import com.simusoul.app.data.models.UserDetails
 import com.simusoul.app.ui.components.AnimatedGradientText
@@ -58,6 +60,7 @@ fun HomeScreen(
     Column(
         modifier = Modifier
             .fillMaxSize()
+            .background(colors.background)
             .statusBarsPadding()
     ) {
         SiteHeader(
@@ -70,40 +73,42 @@ fun HomeScreen(
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(16.dp),
+                .padding(24.dp),
             contentAlignment = Alignment.Center
         ) {
             Column(
                 horizontalAlignment = Alignment.CenterHorizontally,
-                modifier = Modifier.padding(horizontal = 16.dp)
+                modifier = Modifier.fillMaxWidth()
             ) {
                 AnimatedGradientText(
                     text = "Create, Converse, Connect.",
-                    modifier = Modifier.padding(horizontal = 16.dp)
+                    modifier = Modifier.padding(horizontal = 8.dp)
                 )
                 
                 Spacer(modifier = Modifier.height(16.dp))
                 
                 Text(
                     text = "Craft unique AI personas and engage in dynamic, memorable conversations. Your imagination is the only limit.",
-                    style = MaterialTheme.typography.bodyLarge,
+                    style = MaterialTheme.typography.bodyLarge.copy(
+                        fontSize = 18.sp,
+                        lineHeight = 28.sp
+                    ),
                     color = colors.mutedForeground,
                     textAlign = TextAlign.Center,
-                    modifier = Modifier.padding(horizontal = 24.dp)
+                    modifier = Modifier.widthIn(max = 600.dp)
                 )
                 
                 Spacer(modifier = Modifier.height(32.dp))
                 
                 Button(
                     onClick = onNavigateToPersonas,
-                    modifier = Modifier
-                        .height(56.dp)
-                        .padding(horizontal = 32.dp),
-                    shape = RoundedCornerShape(28.dp),
+                    modifier = Modifier.height(52.dp),
+                    shape = RoundedCornerShape(26.dp),
                     colors = ButtonDefaults.buttonColors(
                         containerColor = colors.primary,
                         contentColor = colors.primaryForeground
-                    )
+                    ),
+                    contentPadding = PaddingValues(horizontal = 32.dp, vertical = 0.dp)
                 ) {
                     Icon(
                         imageVector = Icons.Default.Rocket,
@@ -113,7 +118,9 @@ fun HomeScreen(
                     Spacer(modifier = Modifier.width(8.dp))
                     Text(
                         text = "Get Started",
-                        style = MaterialTheme.typography.titleMedium
+                        style = MaterialTheme.typography.titleMedium.copy(
+                            fontSize = 18.sp
+                        )
                     )
                 }
             }

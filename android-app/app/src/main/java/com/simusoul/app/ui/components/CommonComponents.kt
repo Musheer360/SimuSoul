@@ -32,66 +32,64 @@ fun SiteHeader(
 ) {
     val colors = SimuSoulTheme.colors
     
-    Surface(
-        modifier = Modifier.fillMaxWidth(),
-        color = colors.background,
-        shadowElevation = 1.dp
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(colors.background.copy(alpha = 0.8f))
+            .padding(horizontal = 16.dp, vertical = 16.dp),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
     ) {
+        Text(
+            text = "SimuSoul",
+            style = MaterialTheme.typography.titleLarge,
+            fontWeight = FontWeight.Bold,
+            color = colors.foreground
+        )
+        
         Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 12.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            Text(
-                text = "SimuSoul",
-                style = MaterialTheme.typography.headlineSmall,
-                fontWeight = FontWeight.Bold,
-                color = colors.primary
-            )
-            
-            Row(
-                horizontalArrangement = Arrangement.spacedBy(4.dp)
+            FilledTonalIconButton(
+                onClick = onNavigateToAbout,
+                colors = IconButtonDefaults.filledTonalIconButtonColors(
+                    containerColor = colors.secondary,
+                    contentColor = colors.secondaryForeground
+                )
             ) {
-                IconButton(
-                    onClick = onNavigateToAbout,
-                    colors = IconButtonDefaults.iconButtonColors(
-                        containerColor = colors.secondary
-                    )
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Info,
-                        contentDescription = "About",
-                        tint = colors.foreground
-                    )
-                }
-                
-                IconButton(
-                    onClick = onThemeToggle,
-                    colors = IconButtonDefaults.iconButtonColors(
-                        containerColor = colors.secondary
-                    )
-                ) {
-                    Icon(
-                        imageVector = if (isDarkTheme) Icons.Outlined.LightMode else Icons.Outlined.DarkMode,
-                        contentDescription = "Toggle theme",
-                        tint = colors.foreground
-                    )
-                }
-                
-                IconButton(
-                    onClick = onNavigateToSettings,
-                    colors = IconButtonDefaults.iconButtonColors(
-                        containerColor = colors.secondary
-                    )
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Settings,
-                        contentDescription = "Settings",
-                        tint = colors.foreground
-                    )
-                }
+                Icon(
+                    imageVector = Icons.Default.Info,
+                    contentDescription = "About",
+                    modifier = Modifier.size(20.dp)
+                )
+            }
+            
+            FilledTonalIconButton(
+                onClick = onThemeToggle,
+                colors = IconButtonDefaults.filledTonalIconButtonColors(
+                    containerColor = colors.secondary,
+                    contentColor = colors.secondaryForeground
+                )
+            ) {
+                Icon(
+                    imageVector = if (isDarkTheme) Icons.Outlined.LightMode else Icons.Outlined.DarkMode,
+                    contentDescription = "Toggle theme",
+                    modifier = Modifier.size(20.dp)
+                )
+            }
+            
+            FilledTonalIconButton(
+                onClick = onNavigateToSettings,
+                colors = IconButtonDefaults.filledTonalIconButtonColors(
+                    containerColor = colors.secondary,
+                    contentColor = colors.secondaryForeground
+                )
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Settings,
+                    contentDescription = "Settings",
+                    modifier = Modifier.size(20.dp)
+                )
             }
         }
     }

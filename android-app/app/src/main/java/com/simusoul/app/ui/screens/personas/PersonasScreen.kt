@@ -2,12 +2,15 @@ package com.simusoul.app.ui.screens.personas
 
 import android.graphics.BitmapFactory
 import android.util.Base64
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
@@ -23,8 +26,11 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import coil.compose.AsyncImage
 import com.simusoul.app.data.SimuSoulRepository
 import com.simusoul.app.data.models.Persona
 import com.simusoul.app.ui.components.ConfirmDialog
@@ -32,8 +38,6 @@ import com.simusoul.app.ui.components.LoadingIndicator
 import com.simusoul.app.ui.components.SiteHeader
 import com.simusoul.app.ui.theme.SimuSoulTheme
 import kotlinx.coroutines.launch
-import androidx.compose.foundation.Image
-import coil.compose.AsyncImage
 
 @Composable
 fun PersonasScreen(
@@ -55,6 +59,7 @@ fun PersonasScreen(
     Column(
         modifier = Modifier
             .fillMaxSize()
+            .background(colors.background)
             .statusBarsPadding()
     ) {
         SiteHeader(
@@ -67,46 +72,63 @@ fun PersonasScreen(
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(16.dp)
+                .padding(horizontal = 16.dp, vertical = 24.dp)
         ) {
-            // Header section
-            Row(
+            // Header section matching web app
+            Column(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
+                horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        text = "Your Personas",
-                        style = MaterialTheme.typography.headlineMedium,
-                        fontWeight = FontWeight.Bold,
-                        color = colors.foreground
-                    )
-                    Text(
-                        text = "Manage your AI companions or create new ones.",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = colors.mutedForeground
-                    )
-                }
-                
-                Button(
-                    onClick = onNavigateToNewPersona,
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = colors.primary,
-                        contentColor = colors.primaryForeground
-                    )
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Icon(
-                        imageVector = Icons.Default.Add,
-                        contentDescription = null,
-                        modifier = Modifier.size(18.dp)
-                    )
-                    Spacer(modifier = Modifier.width(4.dp))
-                    Text("Create")
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            text = "Your Personas",
+                            style = MaterialTheme.typography.headlineMedium.copy(
+                                fontSize = 28.sp,
+                                fontWeight = FontWeight.Bold,
+                                letterSpacing = (-0.5).sp
+                            ),
+                            color = colors.foreground
+                        )
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Text(
+                            text = "Manage your AI companions or create new ones.",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = colors.mutedForeground
+                        )
+                    }
+                    
+                    Spacer(modifier = Modifier.width(16.dp))
+                    
+                    Button(
+                        onClick = onNavigateToNewPersona,
+                        modifier = Modifier.height(44.dp),
+                        shape = RoundedCornerShape(8.dp),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = colors.primary,
+                            contentColor = colors.primaryForeground
+                        ),
+                        contentPadding = PaddingValues(horizontal = 16.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Add,
+                            contentDescription = null,
+                            modifier = Modifier.size(18.dp)
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            text = "Create New Persona",
+                            style = MaterialTheme.typography.labelLarge
+                        )
+                    }
                 }
             }
             
-            Spacer(modifier = Modifier.height(24.dp))
+            Spacer(modifier = Modifier.height(32.dp))
             
             // Content
             when {
@@ -114,13 +136,13 @@ fun PersonasScreen(
                     LoadingIndicator()
                 }
                 personas!!.isEmpty() -> {
-                    EmptyPersonasView(onNavigateToNewPersona)
+                    EmptyPersonasView()
                 }
                 else -> {
                     LazyVerticalGrid(
-                        columns = GridCells.Adaptive(minSize = 160.dp),
-                        horizontalArrangement = Arrangement.spacedBy(12.dp),
-                        verticalArrangement = Arrangement.spacedBy(12.dp),
+                        columns = GridCells.Adaptive(minSize = 280.dp),
+                        horizontalArrangement = Arrangement.spacedBy(16.dp),
+                        verticalArrangement = Arrangement.spacedBy(16.dp),
                         modifier = Modifier.fillMaxSize()
                     ) {
                         items(personas!!) { persona ->
@@ -139,8 +161,8 @@ fun PersonasScreen(
     // Delete confirmation dialog
     personaToDelete?.let { persona ->
         ConfirmDialog(
-            title = "Delete Persona?",
-            message = "This will permanently delete ${persona.name} and all associated chats. This cannot be undone.",
+            title = "Are you absolutely sure?",
+            message = "This action cannot be undone. This will permanently delete the persona \"${persona.name}\".",
             confirmText = "Delete",
             isDestructive = true,
             onConfirm = {
@@ -165,28 +187,49 @@ private fun PersonaCard(
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .aspectRatio(0.7f)
+            .height(320.dp)
+            .clip(RoundedCornerShape(12.dp))
+            .border(
+                width = 1.dp,
+                color = colors.border.copy(alpha = 0.2f),
+                shape = RoundedCornerShape(12.dp)
+            )
             .clickable(onClick = onClick),
         shape = RoundedCornerShape(12.dp),
         colors = CardDefaults.cardColors(
-            containerColor = colors.card
-        )
+            containerColor = colors.card.copy(alpha = 0.8f)
+        ),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
     ) {
         Box(modifier = Modifier.fillMaxSize()) {
             // Profile picture
             if (persona.profilePictureUrl.startsWith("data:image")) {
-                // Base64 image
-                val base64Data = persona.profilePictureUrl
-                    .substringAfter("base64,")
-                val imageBytes = Base64.decode(base64Data, Base64.DEFAULT)
-                val bitmap = BitmapFactory.decodeByteArray(imageBytes, 0, imageBytes.size)
-                bitmap?.let {
-                    Image(
-                        bitmap = it.asImageBitmap(),
-                        contentDescription = persona.name,
-                        modifier = Modifier.fillMaxSize(),
-                        contentScale = ContentScale.Crop
-                    )
+                val base64Data = persona.profilePictureUrl.substringAfter("base64,")
+                try {
+                    val imageBytes = Base64.decode(base64Data, Base64.DEFAULT)
+                    val bitmap = BitmapFactory.decodeByteArray(imageBytes, 0, imageBytes.size)
+                    bitmap?.let {
+                        Image(
+                            bitmap = it.asImageBitmap(),
+                            contentDescription = persona.name,
+                            modifier = Modifier.fillMaxSize(),
+                            contentScale = ContentScale.Crop
+                        )
+                    }
+                } catch (e: Exception) {
+                    // Handle SVG or invalid base64 - show placeholder
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .background(colors.secondary),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = persona.name.take(2).uppercase(),
+                            style = MaterialTheme.typography.displayLarge,
+                            color = colors.mutedForeground
+                        )
+                    }
                 }
             } else {
                 AsyncImage(
@@ -197,23 +240,23 @@ private fun PersonaCard(
                 )
             }
             
-            // Delete button
+            // Delete button - always visible
             IconButton(
                 onClick = onDelete,
                 modifier = Modifier
                     .align(Alignment.TopEnd)
-                    .padding(8.dp)
+                    .padding(12.dp)
                     .size(32.dp)
             ) {
                 Icon(
                     imageVector = Icons.Default.Delete,
-                    contentDescription = "Delete",
+                    contentDescription = "Delete ${persona.name}",
                     tint = colors.destructive,
                     modifier = Modifier.size(20.dp)
                 )
             }
             
-            // Gradient overlay with text
+            // Gradient overlay
             Box(
                 modifier = Modifier
                     .fillMaxSize()
@@ -222,7 +265,7 @@ private fun PersonaCard(
                             colors = listOf(
                                 Color.Transparent,
                                 Color.Transparent,
-                                Color.Black.copy(alpha = 0.7f),
+                                Color.Black.copy(alpha = 0.6f),
                                 Color.Black.copy(alpha = 0.9f)
                             )
                         )
@@ -233,19 +276,22 @@ private fun PersonaCard(
             Column(
                 modifier = Modifier
                     .align(Alignment.BottomStart)
-                    .padding(12.dp)
+                    .padding(16.dp)
             ) {
                 Text(
                     text = persona.name,
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.SemiBold,
+                    style = MaterialTheme.typography.titleLarge.copy(
+                        fontWeight = FontWeight.SemiBold,
+                        fontSize = 20.sp
+                    ),
                     color = Color.White,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
                 )
+                Spacer(modifier = Modifier.height(4.dp))
                 Text(
                     text = persona.relation,
-                    style = MaterialTheme.typography.bodySmall,
+                    style = MaterialTheme.typography.bodyMedium,
                     color = Color.White.copy(alpha = 0.8f),
                     maxLines = 2,
                     overflow = TextOverflow.Ellipsis
@@ -256,9 +302,7 @@ private fun PersonaCard(
 }
 
 @Composable
-private fun EmptyPersonasView(
-    onNavigateToNewPersona: () -> Unit
-) {
+private fun EmptyPersonasView() {
     val colors = SimuSoulTheme.colors
     
     Box(
@@ -266,40 +310,43 @@ private fun EmptyPersonasView(
         contentAlignment = Alignment.Center
     ) {
         Column(
-            horizontalAlignment = Alignment.CenterHorizontally
+            horizontalAlignment = Alignment.CenterHorizontally,
+            modifier = Modifier.padding(32.dp)
         ) {
-            Surface(
+            Box(
                 modifier = Modifier
-                    .size(96.dp),
-                shape = RoundedCornerShape(48.dp),
-                color = colors.primary.copy(alpha = 0.1f)
+                    .size(96.dp)
+                    .clip(CircleShape)
+                    .background(colors.primary.copy(alpha = 0.1f)),
+                contentAlignment = Alignment.Center
             ) {
-                Box(contentAlignment = Alignment.Center) {
-                    Icon(
-                        imageVector = Icons.Default.SmartToy,
-                        contentDescription = null,
-                        modifier = Modifier.size(48.dp),
-                        tint = colors.primary
-                    )
-                }
+                Icon(
+                    imageVector = Icons.Default.SmartToy,
+                    contentDescription = null,
+                    modifier = Modifier.size(48.dp),
+                    tint = colors.primary
+                )
             }
             
             Spacer(modifier = Modifier.height(24.dp))
             
             Text(
                 text = "Your Collection is Empty",
-                style = MaterialTheme.typography.headlineSmall,
-                fontWeight = FontWeight.Medium,
-                color = colors.foreground
+                style = MaterialTheme.typography.headlineSmall.copy(
+                    fontWeight = FontWeight.Medium
+                ),
+                color = colors.foreground,
+                textAlign = TextAlign.Center
             )
             
             Spacer(modifier = Modifier.height(8.dp))
             
             Text(
                 text = "You haven't created any personas yet.\nClick the button above to bring your first character to life.",
-                style = MaterialTheme.typography.bodyMedium,
+                style = MaterialTheme.typography.bodyLarge,
                 color = colors.mutedForeground,
-                modifier = Modifier.padding(horizontal = 32.dp)
+                textAlign = TextAlign.Center,
+                modifier = Modifier.widthIn(max = 350.dp)
             )
         }
     }
