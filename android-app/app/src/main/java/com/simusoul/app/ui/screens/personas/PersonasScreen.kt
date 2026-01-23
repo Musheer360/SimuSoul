@@ -36,6 +36,7 @@ import com.simusoul.app.data.models.Persona
 import com.simusoul.app.ui.components.ConfirmDialog
 import com.simusoul.app.ui.components.LoadingIndicator
 import com.simusoul.app.ui.components.SiteHeader
+import com.simusoul.app.ui.theme.SimuSoulColors
 import com.simusoul.app.ui.theme.SimuSoulTheme
 import kotlinx.coroutines.launch
 
@@ -208,28 +209,20 @@ private fun PersonaCard(
                 try {
                     val imageBytes = Base64.decode(base64Data, Base64.DEFAULT)
                     val bitmap = BitmapFactory.decodeByteArray(imageBytes, 0, imageBytes.size)
-                    bitmap?.let {
+                    if (bitmap != null) {
                         Image(
-                            bitmap = it.asImageBitmap(),
+                            bitmap = bitmap.asImageBitmap(),
                             contentDescription = persona.name,
                             modifier = Modifier.fillMaxSize(),
                             contentScale = ContentScale.Crop
                         )
+                    } else {
+                        // Bitmap decode returned null (SVG or unsupported format)
+                        PersonaPlaceholder(name = persona.name, colors = colors)
                     }
-                } catch (e: Exception) {
-                    // Handle SVG or invalid base64 - show placeholder
-                    Box(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .background(colors.secondary),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Text(
-                            text = persona.name.take(2).uppercase(),
-                            style = MaterialTheme.typography.displayLarge,
-                            color = colors.mutedForeground
-                        )
-                    }
+                } catch (e: IllegalArgumentException) {
+                    // Invalid Base64 encoding
+                    PersonaPlaceholder(name = persona.name, colors = colors)
                 }
             } else {
                 AsyncImage(
@@ -298,6 +291,25 @@ private fun PersonaCard(
                 )
             }
         }
+    }
+}
+
+@Composable
+private fun PersonaPlaceholder(
+    name: String,
+    colors: SimuSoulColors
+) {
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(colors.secondary),
+        contentAlignment = Alignment.Center
+    ) {
+        Text(
+            text = name.take(2).uppercase(),
+            style = MaterialTheme.typography.displayLarge,
+            color = colors.mutedForeground
+        )
     }
 }
 
