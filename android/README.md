@@ -1,22 +1,39 @@
 # SimuSoul Android App
 
-This is a native Android wrapper for the SimuSoul web application. It wraps the deployed web app in a fullscreen WebView to provide a native app experience.
+A modern, native Android wrapper for the SimuSoul web application built with **Jetpack Compose** and the latest Android technologies.
+
+## Features
+
+- **Jetpack Compose UI** - Modern declarative UI framework
+- **Material 3** - Latest Material Design components
+- **Splash Screen API** - Native splash screen with animated "S" logo
+- **Theme-aware system bars** - Status bar and nav bar colors adapt to light/dark mode
+- **Smooth loading transition** - Animated loading screen integrated with splash
+- **Edge-to-edge display** - Content extends behind system bars with proper insets
+
+## Tech Stack
+
+- **Kotlin 2.1** - Latest stable Kotlin version
+- **Jetpack Compose BOM 2024.12** - Latest Compose libraries
+- **Android Gradle Plugin 8.7** - Latest build tooling
+- **Target SDK 35** - Android 15 support
+- **Min SDK 24** - Android 7.0+ (covers 99%+ of devices)
 
 ## How It Works
 
-The Android app uses a WebView to load the SimuSoul web application from `https://simusoul.vercel.app`. This approach provides:
+The app uses a WebView to load the SimuSoul web application from `https://simusoul.vercel.app`:
 
-- **Native app experience**: Runs as a fullscreen app with no browser UI
-- **Single codebase**: No need to maintain separate native code for features
-- **Automatic updates**: Web updates are reflected immediately in the app
-- **Easy deployment**: Build once, deploy via Vercel for web and Play Store for Android
+1. **Splash Screen**: Shows animated "S" logo on app launch
+2. **Loading Screen**: Displays pulsing logo with animated dots while web content loads
+3. **WebView**: Renders the full web app with native-like experience
+4. **Theme Sync**: System bars adapt to light/dark mode (white/black backgrounds)
 
 ## Building the APK
 
 ### Prerequisites
 
-1. [Android Studio](https://developer.android.com/studio) (Arctic Fox or newer)
-2. Android SDK (API 34 recommended)
+1. [Android Studio](https://developer.android.com/studio) (Ladybug or newer recommended)
+2. Android SDK (API 35)
 3. JDK 17 or newer
 
 ### Build Steps
@@ -53,23 +70,21 @@ For Play Store release, you'll need to sign the APK:
 
 ### Changing the Web App URL
 
-Update the `WEB_APP_URL` constant in `MainActivity.kt`:
+Update the URL in `MainActivity.kt`:
 
 ```kotlin
 private const val WEB_APP_URL = "https://your-url.vercel.app"
 ```
 
-### App Icon
+### App Icon & Splash Logo
 
-Replace the launcher icons in `app/src/main/res/drawable/`:
-- `ic_launcher_foreground.xml` - Foreground icon layer
-- `ic_launcher_background.xml` - Background color/pattern
-
-For different density icons, add PNG files to `mipmap-*` folders.
+- `app/src/main/res/drawable/splash_icon.xml` - Splash screen logo
+- `app/src/main/res/drawable/ic_launcher_foreground.xml` - Launcher icon foreground
+- `app/src/main/res/drawable/ic_launcher_background.xml` - Launcher icon background
 
 ### Theme Colors
 
-Edit `app/src/main/res/values/colors.xml` to match your brand.
+Edit `app/src/main/res/values/colors.xml` to customize brand colors.
 
 ## Notes
 

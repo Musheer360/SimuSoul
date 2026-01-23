@@ -7,3 +7,7 @@
 
 # Keep the main activity
 -keep class com.simusoul.app.MainActivity { *; }
+
+# Jetpack Compose
+-dontwarn androidx.compose.**
+-keep class androidx.compose.** { *; }

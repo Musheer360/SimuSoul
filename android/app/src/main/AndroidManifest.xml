@@ -16,9 +16,9 @@
         <activity
             android:name=".MainActivity"
             android:exported="true"
-            android:configChanges="orientation|screenSize|keyboardHidden"
+            android:configChanges="orientation|screenSize|keyboardHidden|uiMode"
             android:launchMode="singleTask"
-            android:theme="@style/Theme.SimuSoul">
+            android:theme="@style/Theme.SimuSoul.Splash">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />

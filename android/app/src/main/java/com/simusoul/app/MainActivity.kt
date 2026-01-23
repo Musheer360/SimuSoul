@@ -3,154 +3,94 @@ package com.simusoul.app
 import android.annotation.SuppressLint
 import android.graphics.Bitmap
 import android.os.Bundle
-import android.view.View
-import android.view.WindowManager
 import android.webkit.WebChromeClient
 import android.webkit.WebResourceRequest
 import android.webkit.WebView
 import android.webkit.WebViewClient
-import android.widget.ProgressBar
+import androidx.activity.ComponentActivity
 import androidx.activity.OnBackPressedCallback
-import androidx.appcompat.app.AppCompatActivity
+import androidx.activity.compose.setContent
+import androidx.activity.enableEdgeToEdge
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.foundation.background
+import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
+import androidx.compose.material3.darkColorScheme
+import androidx.compose.material3.lightColorScheme
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.toArgb
+import androidx.compose.ui.platform.LocalView
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import androidx.compose.ui.viewinterop.AndroidView
+import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.core.view.WindowCompat
-import androidx.core.view.WindowInsetsCompat
-import androidx.core.view.WindowInsetsControllerCompat
 
 /**
- * MainActivity wraps the SimuSoul web application in a fullscreen WebView.
- * This provides a native app experience for the web application.
+ * MainActivity wraps the SimuSoul web application in a WebView with Jetpack Compose.
+ * Features theme-aware system bars, splash screen, and integrated loading animation.
  */
-class MainActivity : AppCompatActivity() {
-
-    private lateinit var webView: WebView
-    private lateinit var progressBar: ProgressBar
+class MainActivity : ComponentActivity() {
 
     companion object {
-        // URL of the deployed SimuSoul web application
         private const val WEB_APP_URL = "https://simusoul.vercel.app"
     }
 
+    private var keepSplashScreen = true
+    private var webViewInstance: WebView? = null
+
     override fun onCreate(savedInstanceState: Bundle?) {
+        // Install splash screen before super.onCreate()
+        val splashScreen = installSplashScreen()
+        splashScreen.setKeepOnScreenCondition { keepSplashScreen }
+
         super.onCreate(savedInstanceState)
 
-        // Enable edge-to-edge display
+        // Enable edge-to-edge for proper system bar handling
         enableEdgeToEdge()
 
-        // Create the UI programmatically
-        createUI()
-
-        // Configure WebView
-        setupWebView()
-
-        // Handle back button navigation within WebView
-        setupBackNavigation()
-
-        // Load the web application
-        webView.loadUrl(WEB_APP_URL)
-    }
-
-    private fun enableEdgeToEdge() {
-        WindowCompat.setDecorFitsSystemWindows(window, false)
-
-        val controller = WindowInsetsControllerCompat(window, window.decorView)
-        controller.hide(WindowInsetsCompat.Type.systemBars())
-        controller.systemBarsBehavior = 
-            WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
-
-        // Keep screen on while using the app
-        window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
-    }
-
-    private fun createUI() {
-        // Create ProgressBar
-        progressBar = ProgressBar(this, null, android.R.attr.progressBarStyleHorizontal).apply {
-            layoutParams = android.widget.FrameLayout.LayoutParams(
-                android.widget.FrameLayout.LayoutParams.MATCH_PARENT,
-                8
-            )
-            visibility = View.GONE
-        }
-
-        // Create WebView
-        webView = WebView(this).apply {
-            layoutParams = android.widget.FrameLayout.LayoutParams(
-                android.widget.FrameLayout.LayoutParams.MATCH_PARENT,
-                android.widget.FrameLayout.LayoutParams.MATCH_PARENT
-            )
-        }
-
-        // Create container FrameLayout
-        val container = android.widget.FrameLayout(this).apply {
-            addView(webView)
-            addView(progressBar)
-        }
-
-        setContentView(container)
-    }
-
-    @SuppressLint("SetJavaScriptEnabled")
-    private fun setupWebView() {
-        webView.settings.apply {
-            javaScriptEnabled = true
-            domStorageEnabled = true
-            databaseEnabled = true
-            loadWithOverviewMode = true
-            useWideViewPort = true
-            setSupportZoom(false)
-            builtInZoomControls = false
-            displayZoomControls = false
-            allowFileAccess = false
-            allowContentAccess = false
-        }
-
-        // Set WebViewClient to handle page loading
-        webView.webViewClient = object : WebViewClient() {
-            override fun onPageStarted(view: WebView?, url: String?, favicon: Bitmap?) {
-                super.onPageStarted(view, url, favicon)
-                progressBar.visibility = View.VISIBLE
-            }
-
-            override fun onPageFinished(view: WebView?, url: String?) {
-                super.onPageFinished(view, url)
-                progressBar.visibility = View.GONE
-            }
-
-            override fun shouldOverrideUrlLoading(
-                view: WebView?,
-                request: WebResourceRequest?
-            ): Boolean {
-                val url = request?.url?.toString() ?: return false
-
-                // Keep navigation within the app for the main domain
-                return if (url.startsWith(WEB_APP_URL)) {
-                    false // Let WebView handle it
-                } else {
-                    // Open external links in the browser
-                    try {
-                        startActivity(android.content.Intent(
-                            android.content.Intent.ACTION_VIEW,
-                            android.net.Uri.parse(url)
-                        ))
-                    } catch (_: android.content.ActivityNotFoundException) {
-                        // No browser available to handle the URL
-                    }
-                    true
-                }
-            }
-        }
-
-        // Set WebChromeClient for progress updates
-        webView.webChromeClient = object : WebChromeClient() {
-            override fun onProgressChanged(view: WebView?, newProgress: Int) {
-                progressBar.progress = newProgress
-                if (newProgress == 100) {
-                    progressBar.visibility = View.GONE
-                }
+        setContent {
+            SimuSoulTheme {
+                SimuSoulApp(
+                    onWebViewCreated = { webView ->
+                        webViewInstance = webView
+                        setupBackNavigation(webView)
+                    },
+                    onSplashDismiss = { keepSplashScreen = false }
+                )
             }
         }
     }
 
-    private fun setupBackNavigation() {
+    private fun setupBackNavigation(webView: WebView) {
         onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
             override fun handleOnBackPressed() {
                 if (webView.canGoBack()) {
@@ -165,16 +105,267 @@ class MainActivity : AppCompatActivity() {
 
     override fun onResume() {
         super.onResume()
-        webView.onResume()
+        webViewInstance?.onResume()
     }
 
     override fun onPause() {
         super.onPause()
-        webView.onPause()
+        webViewInstance?.onPause()
     }
 
     override fun onDestroy() {
-        webView.destroy()
+        webViewInstance?.destroy()
         super.onDestroy()
     }
+}
+
+// Dark theme colors (pitch black)
+private val DarkColorScheme = darkColorScheme(
+    primary = Color(0xFF6366F1),
+    onPrimary = Color.White,
+    background = Color.Black,
+    onBackground = Color.White,
+    surface = Color.Black,
+    onSurface = Color.White
+)
+
+// Light theme colors (pure white)
+private val LightColorScheme = lightColorScheme(
+    primary = Color(0xFF6366F1),
+    onPrimary = Color.White,
+    background = Color.White,
+    onBackground = Color.Black,
+    surface = Color.White,
+    onSurface = Color.Black
+)
+
+@Composable
+fun SimuSoulTheme(
+    darkTheme: Boolean = isSystemInDarkTheme(),
+    content: @Composable () -> Unit
+) {
+    val colorScheme = if (darkTheme) DarkColorScheme else LightColorScheme
+
+    // Update system bar colors based on theme
+    val view = LocalView.current
+    DisposableEffect(darkTheme) {
+        val window = (view.context as ComponentActivity).window
+        val insetsController = WindowCompat.getInsetsController(window, view)
+        
+        // Set status bar and nav bar colors
+        window.statusBarColor = colorScheme.background.toArgb()
+        window.navigationBarColor = colorScheme.background.toArgb()
+        
+        // Set icon colors (light icons for dark theme, dark icons for light theme)
+        insetsController.isAppearanceLightStatusBars = !darkTheme
+        insetsController.isAppearanceLightNavigationBars = !darkTheme
+        
+        onDispose {}
+    }
+
+    MaterialTheme(
+        colorScheme = colorScheme,
+        content = content
+    )
+}
+
+@Composable
+fun SimuSoulApp(
+    onWebViewCreated: (WebView) -> Unit,
+    onSplashDismiss: () -> Unit
+) {
+    var isLoading by remember { mutableStateOf(true) }
+    var loadProgress by remember { mutableFloatStateOf(0f) }
+    var splashDismissed by remember { mutableStateOf(false) }
+
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(MaterialTheme.colorScheme.background)
+    ) {
+        // WebView (always present but may be hidden by loading overlay)
+        SimuSoulWebView(
+            url = "https://simusoul.vercel.app",
+            onWebViewCreated = onWebViewCreated,
+            onLoadingStateChanged = { loading -> isLoading = loading },
+            onProgressChanged = { progress ->
+                loadProgress = progress
+                // Dismiss splash once we start loading
+                if (progress > 0.1f && !splashDismissed) {
+                    splashDismissed = true
+                    onSplashDismiss()
+                }
+            }
+        )
+
+        // Loading overlay with animated logo
+        AnimatedVisibility(
+            visible = isLoading,
+            enter = fadeIn(),
+            exit = fadeOut(animationSpec = tween(500))
+        ) {
+            LoadingScreen(progress = loadProgress)
+        }
+    }
+}
+
+@Composable
+fun LoadingScreen(progress: Float) {
+    val infiniteTransition = rememberInfiniteTransition(label = "pulse")
+    val pulseAlpha by infiniteTransition.animateFloat(
+        initialValue = 0.4f,
+        targetValue = 1f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(1000, easing = LinearEasing),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "pulseAlpha"
+    )
+
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(MaterialTheme.colorScheme.background),
+        contentAlignment = Alignment.Center
+    ) {
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            // Animated "S" logo
+            Text(
+                text = "S",
+                fontSize = 72.sp,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.alpha(pulseAlpha)
+            )
+
+            Spacer(modifier = Modifier.height(24.dp))
+
+            // Loading dots animation
+            LoadingDots()
+        }
+    }
+}
+
+@Composable
+fun LoadingDots() {
+    val infiniteTransition = rememberInfiniteTransition(label = "dots")
+    
+    val dot1Alpha by infiniteTransition.animateFloat(
+        initialValue = 0.3f,
+        targetValue = 1f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(600, easing = LinearEasing),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "dot1"
+    )
+    
+    val dot2Alpha by infiniteTransition.animateFloat(
+        initialValue = 0.3f,
+        targetValue = 1f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(600, delayMillis = 200, easing = LinearEasing),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "dot2"
+    )
+    
+    val dot3Alpha by infiniteTransition.animateFloat(
+        initialValue = 0.3f,
+        targetValue = 1f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(600, delayMillis = 400, easing = LinearEasing),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "dot3"
+    )
+
+    Row {
+        listOf(dot1Alpha, dot2Alpha, dot3Alpha).forEach { alpha ->
+            Box(
+                modifier = Modifier
+                    .size(8.dp)
+                    .alpha(alpha)
+                    .background(
+                        color = MaterialTheme.colorScheme.primary,
+                        shape = CircleShape
+                    )
+            )
+            Spacer(modifier = Modifier.size(8.dp))
+        }
+    }
+}
+
+@SuppressLint("SetJavaScriptEnabled")
+@Composable
+fun SimuSoulWebView(
+    url: String,
+    onWebViewCreated: (WebView) -> Unit,
+    onLoadingStateChanged: (Boolean) -> Unit,
+    onProgressChanged: (Float) -> Unit
+) {
+    AndroidView(
+        factory = { context ->
+            WebView(context).apply {
+                settings.apply {
+                    javaScriptEnabled = true
+                    domStorageEnabled = true
+                    databaseEnabled = true
+                    loadWithOverviewMode = true
+                    useWideViewPort = true
+                    setSupportZoom(false)
+                    builtInZoomControls = false
+                    displayZoomControls = false
+                    allowFileAccess = false
+                    allowContentAccess = false
+                }
+
+                webViewClient = object : WebViewClient() {
+                    override fun onPageStarted(view: WebView?, pageUrl: String?, favicon: Bitmap?) {
+                        super.onPageStarted(view, pageUrl, favicon)
+                        onLoadingStateChanged(true)
+                    }
+
+                    override fun onPageFinished(view: WebView?, pageUrl: String?) {
+                        super.onPageFinished(view, pageUrl)
+                        onLoadingStateChanged(false)
+                    }
+
+                    override fun shouldOverrideUrlLoading(
+                        view: WebView?,
+                        request: WebResourceRequest?
+                    ): Boolean {
+                        val requestUrl = request?.url?.toString() ?: return false
+                        return if (requestUrl.startsWith(url)) {
+                            false
+                        } else {
+                            try {
+                                context.startActivity(
+                                    android.content.Intent(
+                                        android.content.Intent.ACTION_VIEW,
+                                        android.net.Uri.parse(requestUrl)
+                                    )
+                                )
+                            } catch (_: android.content.ActivityNotFoundException) {
+                                // No browser available
+                            }
+                            true
+                        }
+                    }
+                }
+
+                webChromeClient = object : WebChromeClient() {
+                    override fun onProgressChanged(view: WebView?, newProgress: Int) {
+                        onProgressChanged(newProgress / 100f)
+                    }
+                }
+
+                onWebViewCreated(this)
+                loadUrl(url)
+            }
+        },
+        modifier = Modifier.fillMaxSize()
+    )
 }
