@@ -1,14 +1,10 @@
 package com.simusoul.app
 
 import android.annotation.SuppressLint
-import android.content.pm.ActivityInfo
 import android.graphics.Color
 import android.os.Bundle
-import android.view.View
-import android.view.WindowManager
 import android.webkit.ConsoleMessage
 import android.webkit.PermissionRequest
-import android.webkit.ValueCallback
 import android.webkit.WebChromeClient
 import android.webkit.WebResourceRequest
 import android.webkit.WebSettings
@@ -18,8 +14,6 @@ import android.widget.FrameLayout
 import androidx.activity.ComponentActivity
 import androidx.activity.OnBackPressedCallback
 import androidx.core.view.WindowCompat
-import androidx.core.view.WindowInsetsCompat
-import androidx.core.view.WindowInsetsControllerCompat
 
 class MainActivity : ComponentActivity() {
     private lateinit var webView: WebView

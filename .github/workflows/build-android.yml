@@ -32,6 +32,7 @@ jobs:
 
     - name: Copy web files to Android assets
       run: |
+        mkdir -p android-app/app/src/main/assets/www
         rm -rf android-app/app/src/main/assets/www/*
         cp -r out/* android-app/app/src/main/assets/www/
 
