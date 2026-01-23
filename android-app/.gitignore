@@ -56,3 +56,7 @@ lint/intermediates/
 lint/generated/
 lint/outputs/
 lint/tmp/
+
+# Bundled web files (generated during build)
+app/src/main/assets/www/*
+!app/src/main/assets/www/.gitkeep

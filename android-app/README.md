@@ -1,48 +1,58 @@
 # SimuSoul Android App
 
-Native Android implementation of SimuSoul using Kotlin and Jetpack Compose.
+This Android app wraps the SimuSoul web application in a native WebView container. The web app files are bundled directly in the APK, so everything runs locally - only the Gemini API calls go to the internet.
 
 ## Features
 
-- Create and customize AI personas
-- Chat with personas using Gemini AI
-- Local data storage with Room database
-- Dark/Light theme support (AMOLED dark)
-- Material Design 3 UI
+- **Fully local**: All web app files are bundled in the APK
+- **Native performance**: Uses Android WebView with hardware acceleration
+- **Dark theme support**: Respects the web app's theme settings
+- **IndexedDB support**: All data is stored locally on the device
+- **Full offline functionality**: Works without internet (except for AI chat which requires API calls)
 
 ## Requirements
 
-- Android Studio Hedgehog (2023.1.1) or later
-- JDK 17
-- Android SDK 35
-- Minimum SDK: 26 (Android 8.0)
+- Android 8.0+ (API 26)
+- JDK 17 for building
+- Node.js 20+ for building
 
 ## Building the APK
 
 ### Using GitHub Actions (Recommended)
 
-A GitHub Actions workflow is included that automatically builds the APK:
+1. Go to the **Actions** tab in the repository
+2. Select **Build Android APK** workflow
+3. Click **Run workflow**
+4. Download the APK from the artifacts
 
-1. Go to **Actions** tab in the repository
-2. Click on **Build Android APK** workflow
-3. Click **Run workflow** button
-4. After the build completes, download the APK from the workflow artifacts
+### Building Locally
 
-### Using Android Studio
+1. First, build the static web export:
+   ```bash
+   npm ci
+   npm run build
+   ```
 
-1. Open the `android-app` folder in Android Studio
-2. Wait for Gradle sync to complete
-3. Go to **Build > Build Bundle(s) / APK(s) > Build APK(s)**
-4. The APK will be generated in `app/build/outputs/apk/debug/`
+2. Copy the web files to the Android assets folder:
+   ```bash
+   cp -r out/* android-app/app/src/main/assets/www/
+   ```
 
-### Using Command Line
+3. Build the APK:
+   ```bash
+   cd android-app
+   ./gradlew assembleDebug
+   ```
 
-```bash
-cd android-app
-./gradlew assembleDebug
-```
+4. The APK will be at `android-app/app/build/outputs/apk/debug/app-debug.apk`
 
-The APK will be at `app/build/outputs/apk/debug/app-debug.apk`
+## How It Works
+
+1. The web app is built as a static export using Next.js
+2. The static files (HTML, CSS, JS) are bundled in the APK's `assets/www` folder
+3. The Android app loads these files in a WebView from `file:///android_asset/www/`
+4. IndexedDB works natively in WebView for local data storage
+5. Only external API calls (Gemini) go over the internet
 
 ## Project Structure
 
@@ -50,21 +60,37 @@ The APK will be at `app/build/outputs/apk/debug/app-debug.apk`
 android-app/
 ├── app/
 │   └── src/main/
+│       ├── assets/www/       # Bundled web app files
 │       ├── java/com/simusoul/app/
-│       │   ├── data/           # Data layer (Room DB, API, Repository)
-│       │   ├── navigation/     # Navigation setup
-│       │   ├── ui/             # UI components and screens
-│       │   │   ├── components/ # Reusable UI components
-│       │   │   ├── screens/    # App screens
-│       │   │   └── theme/      # Theme and styling
-│       │   ├── MainActivity.kt
-│       │   └── SimuSoulApplication.kt
-│       ├── res/                # Android resources
+│       │   └── MainActivity.kt  # WebView wrapper
+│       ├── res/              # Android resources
 │       └── AndroidManifest.xml
 ├── gradle/
 ├── build.gradle.kts
 ├── settings.gradle.kts
 └── gradlew
+```
+
+## Architecture
+
+```
+┌─────────────────────────────────────┐
+│           Android APK               │
+├─────────────────────────────────────┤
+│   MainActivity (WebView wrapper)    │
+├─────────────────────────────────────┤
+│   assets/www/ (static web files)    │
+│   ├── index.html                    │
+│   ├── _next/ (JS, CSS bundles)      │
+│   ├── personas/                     │
+│   └── ...                           │
+└─────────────────────────────────────┘
+         │
+         │ API calls only
+         ▼
+┌─────────────────────────────────────┐
+│      Gemini API (Internet)          │
+└─────────────────────────────────────┘
 ```
 
 ## Configuration

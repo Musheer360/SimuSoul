@@ -1,55 +1,143 @@
 package com.simusoul.app
 
+import android.annotation.SuppressLint
+import android.content.pm.ActivityInfo
+import android.graphics.Color
 import android.os.Bundle
+import android.view.View
+import android.view.WindowManager
+import android.webkit.ConsoleMessage
+import android.webkit.PermissionRequest
+import android.webkit.ValueCallback
+import android.webkit.WebChromeClient
+import android.webkit.WebResourceRequest
+import android.webkit.WebSettings
+import android.webkit.WebView
+import android.webkit.WebViewClient
+import android.widget.FrameLayout
 import androidx.activity.ComponentActivity
-import androidx.activity.compose.setContent
-import androidx.activity.enableEdgeToEdge
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.material3.Surface
-import androidx.compose.runtime.*
-import androidx.compose.ui.Modifier
-import androidx.navigation.compose.rememberNavController
-import com.simusoul.app.navigation.SimuSoulNavHost
-import com.simusoul.app.ui.theme.SimuSoulTheme
-import kotlinx.coroutines.launch
+import androidx.activity.OnBackPressedCallback
+import androidx.core.view.WindowCompat
+import androidx.core.view.WindowInsetsCompat
+import androidx.core.view.WindowInsetsControllerCompat
 
 class MainActivity : ComponentActivity() {
+    private lateinit var webView: WebView
+    
+    @SuppressLint("SetJavaScriptEnabled")
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        enableEdgeToEdge()
         
-        val application = application as SimuSoulApplication
-        val repository = application.repository
+        // Enable edge-to-edge display
+        WindowCompat.setDecorFitsSystemWindows(window, false)
+        window.statusBarColor = Color.TRANSPARENT
+        window.navigationBarColor = Color.TRANSPARENT
         
-        setContent {
-            val navController = rememberNavController()
-            val scope = rememberCoroutineScope()
+        // Create WebView
+        webView = WebView(this).apply {
+            layoutParams = FrameLayout.LayoutParams(
+                FrameLayout.LayoutParams.MATCH_PARENT,
+                FrameLayout.LayoutParams.MATCH_PARENT
+            )
             
-            // Theme state
-            var isDarkTheme by remember { mutableStateOf(true) }
+            // Configure WebView settings
+            settings.apply {
+                javaScriptEnabled = true
+                domStorageEnabled = true
+                databaseEnabled = true
+                allowFileAccess = true
+                allowContentAccess = true
+                mediaPlaybackRequiresUserGesture = false
+                mixedContentMode = WebSettings.MIXED_CONTENT_ALWAYS_ALLOW
+                cacheMode = WebSettings.LOAD_DEFAULT
+                setSupportZoom(false)
+                builtInZoomControls = false
+                displayZoomControls = false
+                loadWithOverviewMode = true
+                useWideViewPort = true
+                
+                // Allow local storage (IndexedDB)
+                javaScriptCanOpenWindowsAutomatically = true
+            }
             
-            // Load theme preference
-            LaunchedEffect(Unit) {
-                repository.themeMode.collect { mode ->
-                    isDarkTheme = mode == "dark"
+            // Set transparent background for dark theme
+            setBackgroundColor(Color.BLACK)
+            
+            // Custom WebViewClient to handle navigation
+            webViewClient = object : WebViewClient() {
+                override fun shouldOverrideUrlLoading(view: WebView?, request: WebResourceRequest?): Boolean {
+                    val url = request?.url?.toString() ?: return false
+                    
+                    // Allow all file:// and asset URLs to load in WebView
+                    if (url.startsWith("file://") || url.startsWith("https://appassets.androidplatform.net")) {
+                        return false
+                    }
+                    
+                    // For external URLs (API calls), allow them
+                    return false
+                }
+                
+                override fun onPageFinished(view: WebView?, url: String?) {
+                    super.onPageFinished(view, url)
+                    // Inject CSS to fix any mobile viewport issues
+                    view?.evaluateJavascript("""
+                        (function() {
+                            var meta = document.querySelector('meta[name="viewport"]');
+                            if (!meta) {
+                                meta = document.createElement('meta');
+                                meta.name = 'viewport';
+                                document.head.appendChild(meta);
+                            }
+                            meta.content = 'width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover';
+                            
+                            // Add padding for safe areas on notched devices
+                            document.body.style.paddingTop = 'env(safe-area-inset-top)';
+                            document.body.style.paddingBottom = 'env(safe-area-inset-bottom)';
+                        })();
+                    """.trimIndent(), null)
                 }
             }
             
-            SimuSoulTheme(darkTheme = isDarkTheme) {
-                Surface(modifier = Modifier.fillMaxSize()) {
-                    SimuSoulNavHost(
-                        navController = navController,
-                        repository = repository,
-                        isDarkTheme = isDarkTheme,
-                        onThemeToggle = {
-                            isDarkTheme = !isDarkTheme
-                            scope.launch {
-                                repository.setThemeMode(if (isDarkTheme) "dark" else "light")
-                            }
-                        }
-                    )
+            // Custom WebChromeClient for console logging and permissions
+            webChromeClient = object : WebChromeClient() {
+                override fun onConsoleMessage(consoleMessage: ConsoleMessage?): Boolean {
+                    consoleMessage?.let {
+                        android.util.Log.d("SimuSoul-Web", "${it.message()} -- From line ${it.lineNumber()} of ${it.sourceId()}")
+                    }
+                    return true
+                }
+                
+                override fun onPermissionRequest(request: PermissionRequest?) {
+                    request?.grant(request.resources)
                 }
             }
         }
+        
+        setContentView(webView)
+        
+        // Handle back button navigation in WebView
+        onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
+            override fun handleOnBackPressed() {
+                if (webView.canGoBack()) {
+                    webView.goBack()
+                } else {
+                    isEnabled = false
+                    onBackPressedDispatcher.onBackPressed()
+                }
+            }
+        })
+        
+        // Load the web app from assets
+        webView.loadUrl("file:///android_asset/www/index.html")
+    }
+    
+    override fun onSaveInstanceState(outState: Bundle) {
+        super.onSaveInstanceState(outState)
+        webView.saveState(outState)
+    }
+    
+    override fun onRestoreInstanceState(savedInstanceState: Bundle) {
+        super.onRestoreInstanceState(savedInstanceState)
+        webView.restoreState(savedInstanceState)
     }
 }
