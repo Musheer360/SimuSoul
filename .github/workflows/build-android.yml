@@ -1,0 +1,57 @@
+name: Build Android APK
+
+on:
+  push:
+    branches: [ main, master ]
+    paths:
+      - 'android-app/**'
+  pull_request:
+    branches: [ main, master ]
+    paths:
+      - 'android-app/**'
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Set up JDK 17
+      uses: actions/setup-java@v4
+      with:
+        java-version: '17'
+        distribution: 'temurin'
+        cache: gradle
+
+    - name: Setup Android SDK
+      uses: android-actions/setup-android@v3
+
+    - name: Grant execute permission for gradlew
+      run: chmod +x android-app/gradlew
+
+    - name: Build Debug APK
+      run: |
+        cd android-app
+        ./gradlew assembleDebug --no-daemon
+
+    - name: Upload APK
+      uses: actions/upload-artifact@v4
+      with:
+        name: SimuSoul-debug-apk
+        path: android-app/app/build/outputs/apk/debug/app-debug.apk
+
+    - name: Build Release APK
+      run: |
+        cd android-app
+        ./gradlew assembleRelease --no-daemon
+      continue-on-error: true
+
+    - name: Upload Release APK
+      uses: actions/upload-artifact@v4
+      if: success()
+      with:
+        name: SimuSoul-release-apk
+        path: android-app/app/build/outputs/apk/release/app-release-unsigned.apk
