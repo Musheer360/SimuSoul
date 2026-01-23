@@ -14,6 +14,7 @@ import android.widget.FrameLayout
 import androidx.activity.ComponentActivity
 import androidx.activity.OnBackPressedCallback
 import androidx.core.view.WindowCompat
+import java.io.IOException
 
 class MainActivity : ComponentActivity() {
     private lateinit var webView: WebView
@@ -54,8 +55,8 @@ class MainActivity : ComponentActivity() {
                 javaScriptCanOpenWindowsAutomatically = true
             }
             
-            // Set transparent background for dark theme
-            setBackgroundColor(Color.BLACK)
+            // Set dark background color
+            setBackgroundColor(Color.parseColor("#0a0a0a"))
             
             // Custom WebViewClient to handle navigation
             webViewClient = object : WebViewClient() {
@@ -121,8 +122,22 @@ class MainActivity : ComponentActivity() {
             }
         })
         
-        // Load the web app from assets
-        webView.loadUrl("file:///android_asset/www/index.html")
+        // Check if web files exist and load appropriate page
+        if (webFilesExist()) {
+            webView.loadUrl("file:///android_asset/www/index.html")
+        } else {
+            webView.loadUrl("file:///android_asset/www/fallback.html")
+        }
+    }
+    
+    private fun webFilesExist(): Boolean {
+        return try {
+            val files = assets.list("www") ?: emptyArray()
+            // Check if index.html exists (not just fallback.html)
+            files.contains("index.html")
+        } catch (e: IOException) {
+            false
+        }
     }
     
     override fun onSaveInstanceState(outState: Bundle) {

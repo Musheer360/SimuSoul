@@ -33,8 +33,18 @@ jobs:
     - name: Copy web files to Android assets
       run: |
         mkdir -p android-app/app/src/main/assets/www
-        rm -rf android-app/app/src/main/assets/www/*
         cp -r out/* android-app/app/src/main/assets/www/
+        
+    - name: Verify web files were copied
+      run: |
+        echo "Contents of android-app/app/src/main/assets/www:"
+        ls -la android-app/app/src/main/assets/www/
+        if [ -f "android-app/app/src/main/assets/www/index.html" ]; then
+          echo "✅ index.html found"
+        else
+          echo "❌ index.html NOT found"
+          exit 1
+        fi
 
     - name: Set up JDK 17
       uses: actions/setup-java@v4

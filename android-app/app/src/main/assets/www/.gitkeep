@@ -1,5 +1,0 @@
-# This folder will contain the static web export during build
-# The GitHub Actions workflow will:
-# 1. Build the Next.js app with static export
-# 2. Copy the output to this folder
-# 3. Build the Android APK

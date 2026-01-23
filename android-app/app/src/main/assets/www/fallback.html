@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>SimuSoul</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background-color: #0a0a0a;
+            color: #fafafa;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 24px;
+        }
+        
+        .container {
+            text-align: center;
+            max-width: 400px;
+        }
+        
+        .logo {
+            width: 80px;
+            height: 80px;
+            background: linear-gradient(135deg, #8b5cf6 0%, #6366f1 100%);
+            border-radius: 20px;
+            margin: 0 auto 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 40px;
+        }
+        
+        h1 {
+            font-size: 24px;
+            font-weight: 600;
+            margin-bottom: 16px;
+            background: linear-gradient(135deg, #8b5cf6 0%, #6366f1 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        
+        p {
+            color: #a1a1aa;
+            line-height: 1.6;
+            margin-bottom: 24px;
+        }
+        
+        .error-box {
+            background: #18181b;
+            border: 1px solid #27272a;
+            border-radius: 12px;
+            padding: 16px;
+            margin-bottom: 24px;
+        }
+        
+        .error-box h3 {
+            color: #f87171;
+            font-size: 14px;
+            font-weight: 500;
+            margin-bottom: 8px;
+        }
+        
+        .error-box code {
+            display: block;
+            background: #0a0a0a;
+            padding: 12px;
+            border-radius: 8px;
+            font-size: 12px;
+            color: #a1a1aa;
+            overflow-x: auto;
+            text-align: left;
+        }
+        
+        .steps {
+            text-align: left;
+            background: #18181b;
+            border: 1px solid #27272a;
+            border-radius: 12px;
+            padding: 16px;
+        }
+        
+        .steps h3 {
+            font-size: 14px;
+            font-weight: 500;
+            margin-bottom: 12px;
+            color: #8b5cf6;
+        }
+        
+        .steps ol {
+            margin-left: 20px;
+            color: #a1a1aa;
+            font-size: 13px;
+            line-height: 1.8;
+        }
+        
+        .steps li {
+            margin-bottom: 4px;
+        }
+        
+        .steps code {
+            background: #0a0a0a;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 11px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="logo">🤖</div>
+        <h1>SimuSoul</h1>
+        <p>The app files weren't bundled correctly. Please build the app using the GitHub Actions workflow or follow the steps below.</p>
+        
+        <div class="error-box">
+            <h3>What happened?</h3>
+            <code>Web files not found in APK assets</code>
+        </div>
+        
+        <div class="steps">
+            <h3>To fix this:</h3>
+            <ol>
+                <li>Go to <strong>Actions</strong> tab in GitHub</li>
+                <li>Select <strong>Build Android APK</strong></li>
+                <li>Click <strong>Run workflow</strong></li>
+                <li>Download the APK from artifacts</li>
+            </ol>
+        </div>
+    </div>
+</body>
+</html>
