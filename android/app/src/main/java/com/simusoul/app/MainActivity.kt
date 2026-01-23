@@ -10,7 +10,6 @@ import android.webkit.WebViewClient
 import androidx.activity.ComponentActivity
 import androidx.activity.OnBackPressedCallback
 import androidx.activity.compose.setContent
-import androidx.activity.enableEdgeToEdge
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.RepeatMode
@@ -74,8 +73,8 @@ class MainActivity : ComponentActivity() {
 
         super.onCreate(savedInstanceState)
 
-        // Enable edge-to-edge for proper system bar handling
-        enableEdgeToEdge()
+        // Ensure content stays within system bars (not edge-to-edge)
+        WindowCompat.setDecorFitsSystemWindows(window, true)
 
         setContent {
             SimuSoulTheme {

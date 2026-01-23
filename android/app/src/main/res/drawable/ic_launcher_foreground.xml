@@ -4,8 +4,8 @@
     android:height="108dp"
     android:viewportWidth="108"
     android:viewportHeight="108">
-    <!-- Minimal "S" logo for SimuSoul launcher icon -->
+    <!-- Clean minimal bold "S" logo -->
     <path
         android:fillColor="#FFFFFF"
-        android:pathData="M54,28 C40,28 32,35 32,44 C32,53 40,56 54,60 C68,64 76,67 76,76 C76,85 68,92 54,92 C40,92 32,85 32,76 L32,73 C32,71.5 33.5,70 35,70 C36.5,70 38,71.5 38,73 L38,76 C38,81 44,86 54,86 C64,86 70,81 70,76 C70,71 60,68 46,64 C32,60 24,53 24,44 C24,32 36,22 54,22 C72,22 84,32 84,44 L84,47 C84,48.5 82.5,50 81,50 C79.5,50 78,48.5 78,47 L78,44 C78,35 68,28 54,28 Z"/>
+        android:pathData="M66,28H42c-8,0,-14,6,-14,14v6c0,8,6,14,14,14h12c4,0,6,2,6,6s-2,6,-6,6H28v10h38c8,0,14,-6,14,-14v-6c0,-8,-6,-14,-14,-14H54c-4,0,-6,-2,-6,-6s2,-6,6,-6h26V28z"/>
 </vector>
