@@ -34,7 +34,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -147,19 +147,20 @@ fun SimuSoulTheme(
 
     // Update system bar colors based on theme
     val view = LocalView.current
-    DisposableEffect(darkTheme) {
-        val window = (view.context as ComponentActivity).window
-        val insetsController = WindowCompat.getInsetsController(window, view)
-        
-        // Set status bar and nav bar colors
-        window.statusBarColor = colorScheme.background.toArgb()
-        window.navigationBarColor = colorScheme.background.toArgb()
-        
-        // Set icon colors (light icons for dark theme, dark icons for light theme)
-        insetsController.isAppearanceLightStatusBars = !darkTheme
-        insetsController.isAppearanceLightNavigationBars = !darkTheme
-        
-        onDispose {}
+    if (!view.isInEditMode) {
+        LaunchedEffect(darkTheme) {
+            val window = (view.context as ComponentActivity).window
+            val insetsController = WindowCompat.getInsetsController(window, view)
+            
+            // Set status bar and nav bar colors based on theme
+            val systemBarColor = colorScheme.background.toArgb()
+            window.statusBarColor = systemBarColor
+            window.navigationBarColor = systemBarColor
+            
+            // Set icon colors (light icons for dark theme, dark icons for light theme)
+            insetsController.isAppearanceLightStatusBars = !darkTheme
+            insetsController.isAppearanceLightNavigationBars = !darkTheme
+        }
     }
 
     MaterialTheme(
