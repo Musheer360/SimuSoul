@@ -1,6 +1,7 @@
 package com.simusoul.app
 
 import android.annotation.SuppressLint
+import android.content.res.Configuration
 import android.graphics.Bitmap
 import android.os.Bundle
 import android.webkit.WebChromeClient
@@ -34,7 +35,6 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -44,14 +44,13 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.toArgb
-import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.core.view.WindowCompat
+import androidx.core.view.WindowInsetsControllerCompat
 
 /**
  * MainActivity wraps the SimuSoul web application in a WebView with Jetpack Compose.
@@ -75,6 +74,9 @@ class MainActivity : ComponentActivity() {
 
         // Ensure content stays within system bars (not edge-to-edge)
         WindowCompat.setDecorFitsSystemWindows(window, true)
+        
+        // Apply system bar colors based on current theme
+        updateSystemBarColors()
 
         setContent {
             SimuSoulTheme {
@@ -87,6 +89,30 @@ class MainActivity : ComponentActivity() {
                 )
             }
         }
+    }
+    
+    override fun onConfigurationChanged(newConfig: Configuration) {
+        super.onConfigurationChanged(newConfig)
+        // Update system bar colors when theme changes
+        updateSystemBarColors()
+    }
+    
+    private fun updateSystemBarColors() {
+        val isDarkTheme = (resources.configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK) == Configuration.UI_MODE_NIGHT_YES
+        
+        // Use color resources for consistency with theme
+        val systemBarColor = if (isDarkTheme) {
+            getColor(R.color.background_dark)
+        } else {
+            getColor(R.color.background_light)
+        }
+        
+        window.statusBarColor = systemBarColor
+        window.navigationBarColor = systemBarColor
+        
+        val insetsController = WindowInsetsControllerCompat(window, window.decorView)
+        insetsController.isAppearanceLightStatusBars = !isDarkTheme
+        insetsController.isAppearanceLightNavigationBars = !isDarkTheme
     }
 
     private fun setupBackNavigation(webView: WebView) {
@@ -105,6 +131,8 @@ class MainActivity : ComponentActivity() {
     override fun onResume() {
         super.onResume()
         webViewInstance?.onResume()
+        // Also update system bar colors on resume in case theme changed while app was in background
+        updateSystemBarColors()
     }
 
     override fun onPause() {
@@ -144,24 +172,6 @@ fun SimuSoulTheme(
     content: @Composable () -> Unit
 ) {
     val colorScheme = if (darkTheme) DarkColorScheme else LightColorScheme
-
-    // Update system bar colors based on theme
-    val view = LocalView.current
-    if (!view.isInEditMode) {
-        LaunchedEffect(darkTheme) {
-            val window = (view.context as ComponentActivity).window
-            val insetsController = WindowCompat.getInsetsController(window, view)
-            
-            // Set status bar and nav bar colors based on theme
-            val systemBarColor = colorScheme.background.toArgb()
-            window.statusBarColor = systemBarColor
-            window.navigationBarColor = systemBarColor
-            
-            // Set icon colors (light icons for dark theme, dark icons for light theme)
-            insetsController.isAppearanceLightStatusBars = !darkTheme
-            insetsController.isAppearanceLightNavigationBars = !darkTheme
-        }
-    }
 
     MaterialTheme(
         colorScheme = colorScheme,
