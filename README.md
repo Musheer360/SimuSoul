@@ -103,19 +103,19 @@ The app then:
 
 ## Persona creation modes
 
-## 1) Manual
+### 1) Manual
 
 Fill name/relation (+ optional age), then provide traits, backstory, goals, and response style.
 You can also auto-generate details from just name + relation.
 
-## 2) AI Generate
+### 2) AI Generate
 
 Provide a prompt; AI returns full structured persona fields:
 - name, relation, age
 - traits, backstory, goals, response style
 - minWpm/maxWpm
 
-## 3) Clone Chat
+### 3) Clone Chat
 
 Paste/upload chat export and target person name; AI infers:
 - personality traits
