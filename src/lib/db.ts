@@ -68,7 +68,7 @@ const dbPromise =
             const chatsStore = tx.objectStore(CHATS_STORE);
             
             // Use cursor to iterate through all personas
-            personasStore.openCursor().then(function migrateCursor(cursor) {
+            personasStore.openCursor().then(function migrateCursor(cursor): Promise<void> | void {
               if (!cursor) return;
               
               const persona = cursor.value as LegacyPersona;

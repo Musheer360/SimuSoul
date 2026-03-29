@@ -154,8 +154,19 @@ export default function NewPersonaPage() {
         userAbout: userDetails?.about,
       });
       
+      // Map chat analysis fields to persona format for moderation
+      const mappedForModeration = {
+        name: result.name,
+        relation: result.relation,
+        age: result.age || undefined,
+        traits: result.traits,
+        backstory: result.backstory,
+        goals: result.interests, // Use interests as goals
+        responseStyle: `${result.communicationStyle}\n\nEmotional Tone: ${result.emotionalTone}\n\nValues: ${result.values}\n\nQuirks: ${result.quirks}`,
+      };
+      
       const testMode = await isTestModeActive();
-      const moderationResult = await moderatePersonaContent({ ...result, age: result.age || undefined, isTestMode: testMode });
+      const moderationResult = await moderatePersonaContent({ ...mappedForModeration, isTestMode: testMode });
 
       if (!moderationResult.isSafe) {
         throw new Error(GENERIC_MODERATION_ERROR);
@@ -176,10 +187,9 @@ export default function NewPersonaPage() {
       
       setFormKey(Date.now());
       setActiveTab('manual');
-      const modelInfo = result.modelUsed ? `Using ${result.modelUsed}${result.modelReason ? ` – ${result.modelReason}` : ''}.` : '';
       toast({
         title: 'Persona Cloned!',
-        description: `Successfully analyzed ${personNameForClone}'s chat. Review and create. ${modelInfo}`,
+        description: `Successfully analyzed ${personNameForClone}'s chat. Review and create.`,
       });
     } catch (err: any) {
       setError(err.message || 'Failed to analyze chat.');
