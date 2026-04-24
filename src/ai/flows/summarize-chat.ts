@@ -7,6 +7,9 @@
  */
 
 import { callGeminiApi } from '@/lib/api-key-manager';
+import { safeParseJson } from '@/lib/safe-json';
+import { zodToGeminiSchema } from '@/lib/zod-to-gemini';
+import { GEMINI_TEXT_MODEL, MIN_MESSAGES_FOR_SUMMARY } from '@/lib/constants';
 import type { ChatMessage } from '@/lib/types';
 import { z } from 'zod';
 
@@ -29,21 +32,7 @@ export const SummarizeChatOutputSchema = z.object({
 });
 export type SummarizeChatOutput = z.infer<typeof SummarizeChatOutputSchema>;
 
-// Minimum number of messages required before summarization
-// This should match MIN_MESSAGES_FOR_SUMMARY in page.tsx
-const MIN_MESSAGES_FOR_SUMMARY = 7;
 
-// Manually define the OpenAPI schema for the Gemini API
-const SummarizeChatOutputOpenAPISchema = {
-  type: 'OBJECT',
-  properties: {
-    summary: {
-      type: 'STRING',
-      description: 'A concise summary of the conversation in 3-5 bullet points.',
-    },
-  },
-  required: ['summary'],
-};
 
 export async function summarizeChat(input: SummarizeChatInput): Promise<SummarizeChatOutput> {
   // Validate minimum message count
@@ -118,19 +107,19 @@ ${input.chatHistory.map(msg => `${msg.role}: ${msg.content}`).join('\n')}
     generationConfig: {
       temperature: 0.5,
       responseMimeType: 'application/json',
-      responseSchema: SummarizeChatOutputOpenAPISchema,
+      responseSchema: zodToGeminiSchema(SummarizeChatOutputSchema),
       thinkingConfig: {
         thinkingLevel: "low",
       },
     },
   };
 
-  const response = await callGeminiApi<any>('gemini-3-flash-preview:generateContent', requestBody);
+  const response = await callGeminiApi<any>(`${GEMINI_TEXT_MODEL}:generateContent`, requestBody);
   
   if (!response.candidates || !response.candidates[0].content.parts[0].text) {
     throw new Error('Invalid response from AI model for summary generation.');
   }
   
-  const jsonResponse = JSON.parse(response.candidates[0].content.parts[0].text);
+  const jsonResponse = safeParseJson(response.candidates[0].content.parts[0].text, 'summarizeChat');
   return SummarizeChatOutputSchema.parse(jsonResponse);
 }

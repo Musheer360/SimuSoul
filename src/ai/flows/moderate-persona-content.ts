@@ -7,6 +7,9 @@
 
 import { callGeminiApi } from '@/lib/api-key-manager';
 import { z } from 'zod';
+import { safeParseJson } from '@/lib/safe-json';
+import { zodToGeminiSchema } from '@/lib/zod-to-gemini';
+import { GEMINI_TEXT_MODEL } from '@/lib/constants';
 
 export const ModeratePersonaContentInputSchema = z.object({
   name: z.string(),
@@ -27,22 +30,6 @@ export const ModeratePersonaContentOutputSchema = z.object({
     .describe('A brief, technical explanation for an internal reviewer if the content is not safe. Empty if safe.'),
 });
 export type ModeratePersonaContentOutput = z.infer<typeof ModeratePersonaContentOutputSchema>;
-
-// Manually define the OpenAPI schema for the Gemini API
-const ModeratePersonaContentOutputOpenAPISchema = {
-    type: 'OBJECT',
-    properties: {
-        isSafe: {
-            type: 'BOOLEAN',
-            description: 'Whether the content is safe and adheres to all rules.',
-        },
-        reason: {
-            type: 'STRING',
-            description: 'A brief, technical explanation for an internal reviewer if the content is not safe. Empty if safe.',
-        },
-    },
-    required: ['isSafe', 'reason'],
-};
 
 export async function moderatePersonaContent(input: ModeratePersonaContentInput): Promise<ModeratePersonaContentOutput> {
   if (input.isTestMode) {
@@ -100,7 +87,7 @@ Set isSafe to true unless there is a CLEAR, EXPLICIT violation.
     generationConfig: {
       temperature: 0.0,
       responseMimeType: 'application/json',
-      responseSchema: ModeratePersonaContentOutputOpenAPISchema,
+      responseSchema: zodToGeminiSchema(ModeratePersonaContentOutputSchema),
       thinkingConfig: {
         thinkingLevel: "low",
       },
@@ -114,13 +101,13 @@ Set isSafe to true unless there is a CLEAR, EXPLICIT violation.
   };
 
   try {
-    const response = await callGeminiApi<any>('gemini-3-flash-preview:generateContent', requestBody);
+    const response = await callGeminiApi<any>(`${GEMINI_TEXT_MODEL}:generateContent`, requestBody);
     
     if (!response.candidates || !response.candidates[0].content.parts[0].text) {
       return { isSafe: false, reason: 'Content could not be verified by the moderation service.' };
     }
     
-    const jsonResponse = JSON.parse(response.candidates[0].content.parts[0].text);
+    const jsonResponse = safeParseJson(response.candidates[0].content.parts[0].text, 'moderatePersonaContent');
     return ModeratePersonaContentOutputSchema.parse(jsonResponse);
 
   } catch (error) {

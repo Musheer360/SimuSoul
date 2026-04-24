@@ -3,11 +3,7 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { X, FileText, Music } from 'lucide-react';
 import { cn } from '@/lib/utils';
-
-// Supported file types (matching the ones in the persona page)
-const SUPPORTED_IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
-const SUPPORTED_VIDEO_TYPES = ['video/mp4', 'video/webm', 'video/quicktime'];
-const SUPPORTED_AUDIO_TYPES = ['audio/mpeg', 'audio/wav', 'audio/ogg', 'audio/webm'];
+import { SUPPORTED_IMAGE_TYPES, SUPPORTED_VIDEO_TYPES, SUPPORTED_AUDIO_TYPES } from '@/lib/constants';
 
 type MediaType = 'image' | 'video' | 'audio' | 'document';
 

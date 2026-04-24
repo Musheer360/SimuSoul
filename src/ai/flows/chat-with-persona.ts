@@ -11,6 +11,9 @@ import type { ChatMessage, Persona, UserDetails, ChatSession, FileAttachment } f
 import { generateTimeAwarenessPrompt } from '@/lib/time-awareness';
 import { retrieveRelevantMemories, formatRetrievedMemoriesForPrompt } from './retrieve-memories';
 import { z } from 'zod';
+import { safeParseJson } from '@/lib/safe-json';
+import { zodToGeminiSchema } from '@/lib/zod-to-gemini';
+import { GEMINI_TEXT_MODEL } from '@/lib/constants';
 
 // Instruction template for attachment context
 const ATTACHMENT_CONTEXT_TEMPLATE = (fileNames: string) => 
@@ -71,37 +74,10 @@ const ChatWithPersonaOutputSchema = z.object({
 });
 export type ChatWithPersonaOutput = z.infer<typeof ChatWithPersonaOutputSchema>;
 
-// Manually define the OpenAPI schema for the Gemini API
-const ChatWithPersonaOutputOpenAPISchema = {
-  type: 'OBJECT',
-  properties: {
-    response: {
-      type: 'ARRAY',
-      items: { type: 'STRING' },
-      description: 'An array of response messages from the persona, split into natural conversational chunks. The number of messages should vary based on context (e.g., more short messages if excited, fewer long messages if serious). Should be between 1 and 10 messages. If you decide to ignore the user, this MUST be an empty array.',
-    },
-    newMemories: {
-      type: 'ARRAY',
-      items: { type: 'STRING' },
-      description: 'A list of MAJOR life events to remember permanently. ONLY save highly significant, life-changing information like: new job, new pet, moving to a new city, getting married, having a baby, major health changes, buying a house/car, graduating, etc. Do NOT save mundane conversation topics or daily activities - those are handled by chat summaries.',
-    },
-    removedMemories: {
-      type: 'ARRAY',
-      items: { type: 'STRING' },
-      description: 'A list of old memories to remove because the life situation has changed (e.g., remove "has a dog named Max" when the dog passes away).',
-    },
-    shouldIgnore: {
-        type: 'BOOLEAN',
-        description: 'Whether the persona has decided to start or continue ignoring the user. This should ONLY be true as a last resort after giving warnings. If you respond, this must be false.'
-    },
-    ignoreReason: {
-        type: 'STRING',
-        description: 'If you decide to start ignoring the user, provide a brief, internal reason why (e.g., "User was rude," "User pushed boundaries"). Empty if not ignoring.'
-    }
-  },
-  required: ['response'],
-};
-
+/** Strip XML-like tags from user input to prevent prompt injection */
+function sanitizeForPrompt(text: string): string {
+  return text.replace(/<\/?[a-zA-Z_][^>]*>/g, '');
+}
 
 function buildChatPrompt(input: ChatWithPersonaInput, persona: Persona): string {
     const userIdentifier = input.userDetails?.name?.split(' ')[0] || 'the user';
@@ -172,7 +148,7 @@ ${wasIgnoringInPreviousChat ? 'This is a new chat - you may respond but should a
 
 <new_message>
 ${userIdentifier} just said:
-${input.userMessages.map(msg => `"${msg}"`).join('\n')}
+${input.userMessages.map(msg => `"${sanitizeForPrompt(msg)}"`).join('\n')}
 </new_message>
 
 ${contentRestrictions}
@@ -327,7 +303,7 @@ export async function chatWithPersona(
       topK: 40,
       topP: 0.95,
       responseMimeType: 'application/json',
-      responseSchema: ChatWithPersonaOutputOpenAPISchema,
+      responseSchema: zodToGeminiSchema(ChatWithPersonaOutputSchema),
       // Low thinking for fast, natural chat responses
       thinkingConfig: {
         thinkingLevel: "low",
@@ -348,7 +324,7 @@ export async function chatWithPersona(
     ],
   };
 
-  const response = await callGeminiApi<any>('gemini-3-flash-preview:generateContent', requestBody);
+  const response = await callGeminiApi<any>(`${GEMINI_TEXT_MODEL}:generateContent`, requestBody);
 
   if (!response.candidates || !response.candidates[0].content.parts[0].text) {
     console.warn("AI returned no response text. This could be due to a safety filter or model error. Suppressing output for this turn.");
@@ -358,11 +334,7 @@ export async function chatWithPersona(
   let responseText = response.candidates[0].content.parts[0].text;
   
   // Clean up malformed JSON responses
-  responseText = responseText.replace(/",\s*"/g, '", "'); // Fix comma spacing
-  responseText = responseText.replace(/",\s*,/g, '",'); // Remove double commas
-  responseText = responseText.replace(/,\s*]/g, ']'); // Remove trailing commas in arrays
-
-  const jsonResponse = JSON.parse(responseText);
+  const jsonResponse = safeParseJson<Record<string, any>>(responseText, 'chatWithPersona');
   const validatedResponse = ChatWithPersonaOutputSchema.safeParse(jsonResponse);
 
   if (!validatedResponse.success) {

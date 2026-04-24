@@ -112,20 +112,12 @@ export default function PersonasPage() {
           </div>
         ) : personas.length > 0 ? (
           // Grid layout using calculated viewport height
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-            {personas.map((persona, index) => {
-              // Calculate if this card is in the last row
-              const isMobile = typeof window !== 'undefined' && window.innerWidth < 640;
-              const isTablet = typeof window !== 'undefined' && window.innerWidth < 1024;
-              const cardsPerRow = isMobile ? 1 : isTablet ? 2 : 3;
-              const totalCards = personas.length;
-              const lastRowStartIndex = Math.floor((totalCards - 1) / cardsPerRow) * cardsPerRow;
-              const isLastRow = index >= lastRowStartIndex;
-              
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 pb-10">
+            {personas.map((persona) => {
               return (
                 <div
                   key={persona.id}
-                  className={`relative group ${isLastRow ? 'mb-10' : ''}`}
+                  className="relative group"
                   style={{height: `${cardHeight}px`}}
                 >
                 <AlertDialog>

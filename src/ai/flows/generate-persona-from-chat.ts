@@ -1,6 +1,8 @@
 'use client';
 
 import { callGeminiApi } from '@/lib/api-key-manager';
+import { safeParseJson } from '@/lib/safe-json';
+import { GEMINI_TEXT_MODEL } from '@/lib/constants';
 import { z } from 'zod';
 
 export const GeneratePersonaFromChatInputSchema = z.object({
@@ -221,13 +223,13 @@ ${userContext}
 
   let response;
   try {
-    response = await callGeminiApi<any>('gemini-3-flash-preview:generateContent', requestBody);
+    response = await callGeminiApi<any>(`${GEMINI_TEXT_MODEL}:generateContent`, requestBody);
   } catch (error) {
     // If thinking config is not supported, retry without it
     if (isThinkingConfigUnsupported(error)) {
       console.log('Thinking config not supported, retrying without it...');
       const { thinkingConfig, ...restGenerationConfig } = requestBody.generationConfig;
-      response = await callGeminiApi<any>('gemini-3-flash-preview:generateContent', {
+      response = await callGeminiApi<any>(`${GEMINI_TEXT_MODEL}:generateContent`, {
         ...requestBody,
         generationConfig: restGenerationConfig,
       });
@@ -242,7 +244,11 @@ ${userContext}
     throw new Error('No response from AI model');
   }
 
-  const result = JSON.parse(textContent);
+  const result = safeParseJson<Record<string, any>>(textContent, 'generatePersonaFromChat');
+  const validated = GeneratePersonaFromChatOutputSchema.safeParse(result);
+  if (!validated.success) {
+    console.warn('Persona from chat validation warning:', validated.error.message);
+  }
   
   return {
     name: result.name || personName,

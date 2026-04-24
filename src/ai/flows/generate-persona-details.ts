@@ -7,6 +7,9 @@
 
 import { callGeminiApi } from '@/lib/api-key-manager';
 import { z } from 'zod';
+import { safeParseJson } from '@/lib/safe-json';
+import { zodToGeminiSchema } from '@/lib/zod-to-gemini';
+import { GEMINI_TEXT_MODEL } from '@/lib/constants';
 
 export const GeneratePersonaDetailsInputSchema = z.object({
   personaName: z.string(),
@@ -26,38 +29,6 @@ export const GeneratePersonaDetailsOutputSchema = z.object({
   maxWpm: z.number().describe("The persona's maximum typing speed in words per minute (WPM). This should be 10-15 WPM higher than minWpm. Must be an integer."),
 });
 export type GeneratePersonaDetailsOutput = z.infer<typeof GeneratePersonaDetailsOutputSchema>;
-
-// Manually define the OpenAPI schema for the Gemini API
-const GeneratePersonaDetailsOutputOpenAPISchema = {
-  type: 'OBJECT',
-  properties: {
-    traits: {
-      type: 'STRING',
-      description: "The persona's key traits and characteristics.",
-    },
-    backstory: {
-      type: 'STRING',
-      description: "The persona's detailed backstory.",
-    },
-    goals: {
-      type: 'STRING',
-      description: "The persona's primary goals and motivations.",
-    },
-    responseStyle: {
-      type: 'STRING',
-      description: "A detailed description of the persona's communication style. Must include details like formality, use of slang/emojis, and crucially, their typing habits (e.g., perfect grammar vs. common typos and lowercase text).",
-    },
-    minWpm: {
-      type: 'NUMBER',
-      description: "The persona's minimum typing speed in words per minute (WPM). This should reflect their age, tech-savviness, and personality. Must be an integer.",
-    },
-    maxWpm: {
-      type: 'NUMBER',
-      description: "The persona's maximum typing speed in words per minute (WPM). This should be 10-15 WPM higher than minWpm. Must be an integer.",
-    },
-  },
-  required: ['traits', 'backstory', 'goals', 'responseStyle', 'minWpm', 'maxWpm'],
-};
 
 export async function generatePersonaDetails(input: GeneratePersonaDetailsInput): Promise<GeneratePersonaDetailsOutput> {
   const { userName, userAbout, isTestMode } = input;
@@ -143,7 +114,7 @@ Generate detailed, authentic character elements now.`;
       topP: 0.95,
       topK: 40,
       responseMimeType: 'application/json',
-      responseSchema: GeneratePersonaDetailsOutputOpenAPISchema,
+      responseSchema: zodToGeminiSchema(GeneratePersonaDetailsOutputSchema),
       thinkingConfig: {
         thinkingLevel: "medium",
       },
@@ -163,12 +134,12 @@ Generate detailed, authentic character elements now.`;
     ],
   };
 
-  const response = await callGeminiApi<any>('gemini-3-flash-preview:generateContent', requestBody);
+  const response = await callGeminiApi<any>(`${GEMINI_TEXT_MODEL}:generateContent`, requestBody);
   
   if (!response.candidates || !response.candidates[0].content.parts[0].text) {
     throw new Error('Invalid response from AI model for detail generation.');
   }
   
-  const jsonResponse = JSON.parse(response.candidates[0].content.parts[0].text);
+  const jsonResponse = safeParseJson(response.candidates[0].content.parts[0].text, 'generatePersonaDetails');
   return GeneratePersonaDetailsOutputSchema.parse(jsonResponse);
 }

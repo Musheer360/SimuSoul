@@ -68,7 +68,7 @@ const dbPromise =
             const chatsStore = tx.objectStore(CHATS_STORE);
             
             // Use cursor to iterate through all personas
-            personasStore.openCursor().then(function migrateCursor(cursor) {
+            personasStore.openCursor().then(function migrateCursor(cursor): Promise<void> | void {
               if (!cursor) return;
               
               const persona = cursor.value as LegacyPersona;
@@ -115,17 +115,15 @@ export async function savePersona(persona: Persona): Promise<string> {
 export async function deletePersona(id: string): Promise<void> {
     if (!dbPromise) throw new Error("Database not available on server.");
     const db = await dbPromise;
-    
-    // Delete all chats associated with this persona
     const chats = await db.getAllFromIndex(CHATS_STORE, 'by-personaId', id);
-    const tx = db.transaction(CHATS_STORE, 'readwrite');
-    await Promise.all([
-      ...chats.map(chat => tx.store.delete(chat.id)),
-      tx.done,
-    ]);
-    
-    // Delete the persona
-    return db.delete(PERSONAS_STORE, id);
+    const tx = db.transaction([CHATS_STORE, PERSONAS_STORE], 'readwrite');
+    const chatStore = tx.objectStore(CHATS_STORE);
+    const personaStore = tx.objectStore(PERSONAS_STORE);
+    for (const chat of chats) {
+      chatStore.delete(chat.id);
+    }
+    personaStore.delete(id);
+    await tx.done;
 }
 
 // Chat operations

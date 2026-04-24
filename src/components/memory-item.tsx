@@ -17,21 +17,16 @@ export function MemoryItem({ memory, onDelete }: MemoryItemProps) {
   const formattedMemory = memory.replace(/^\d{4}-\d{2}-\d{2}: /, '');
 
   useLayoutEffect(() => {
-    const checkLines = () => {
-      if (pRef.current) {
-        const pElement = pRef.current;
-        const computedStyle = window.getComputedStyle(pElement);
-        const lineHeight = parseFloat(computedStyle.lineHeight);
-        // If the element's total height is greater than its line height, it must be wrapping.
-        // We use a 1.2 multiplier for safety against floating point inaccuracies.
-        setIsMultiLine(pElement.scrollHeight > lineHeight * 1.2);
-      }
+    const el = pRef.current;
+    if (!el) return;
+    const check = () => {
+      const lineHeight = parseFloat(window.getComputedStyle(el).lineHeight);
+      setIsMultiLine(el.scrollHeight > lineHeight * 1.2);
     };
-
-    // Check on mount and also on window resize to handle responsive changes.
-    checkLines();
-    window.addEventListener('resize', checkLines);
-    return () => window.removeEventListener('resize', checkLines);
+    check();
+    const observer = new ResizeObserver(check);
+    observer.observe(el);
+    return () => observer.disconnect();
   }, [formattedMemory]);
 
   return (

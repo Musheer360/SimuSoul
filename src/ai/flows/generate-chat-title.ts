@@ -6,6 +6,9 @@
  */
 
 import { callGeminiApi } from '@/lib/api-key-manager';
+import { safeParseJson } from '@/lib/safe-json';
+import { zodToGeminiSchema } from '@/lib/zod-to-gemini';
+import { GEMINI_TEXT_MODEL } from '@/lib/constants';
 import { z } from 'zod';
 
 export const GenerateChatTitleInputSchema = z.object({
@@ -19,17 +22,7 @@ export const GenerateChatTitleOutputSchema = z.object({
 });
 export type GenerateChatTitleOutput = z.infer<typeof GenerateChatTitleOutputSchema>;
 
-// Manually define the OpenAPI schema for the Gemini API
-const GenerateChatTitleOutputOpenAPISchema = {
-  type: 'OBJECT',
-  properties: {
-    title: {
-      type: 'STRING',
-      description: 'A very short chat title, 4-5 words maximum.',
-    },
-  },
-  required: ['title'],
-};
+
 
 export async function generateChatTitle(input: GenerateChatTitleInput): Promise<GenerateChatTitleOutput> {
   const prompt = `<system>
@@ -56,19 +49,19 @@ Maximum 4-5 words. Be descriptive but concise.
     generationConfig: {
       temperature: 0.7,
       responseMimeType: 'application/json',
-      responseSchema: GenerateChatTitleOutputOpenAPISchema,
+      responseSchema: zodToGeminiSchema(GenerateChatTitleOutputSchema),
       thinkingConfig: {
         thinkingLevel: "low",
       },
     },
   };
 
-  const response = await callGeminiApi<any>('gemini-3-flash-preview:generateContent', requestBody);
+  const response = await callGeminiApi<any>(`${GEMINI_TEXT_MODEL}:generateContent`, requestBody);
   
   if (!response.candidates || !response.candidates[0].content.parts[0].text) {
     throw new Error('Invalid response from AI model for title generation.');
   }
   
-  const jsonResponse = JSON.parse(response.candidates[0].content.parts[0].text);
+  const jsonResponse = safeParseJson(response.candidates[0].content.parts[0].text, 'generateChatTitle');
   return GenerateChatTitleOutputSchema.parse(jsonResponse);
 }

@@ -240,13 +240,13 @@ export function EditPersonaSheet({ persona, open, onOpenChange, onPersonaUpdate 
 
                     <div className="space-y-2">
                         <Label htmlFor="edit-name">Name</Label>
-                        <Input id="edit-name" name="name" value={formData.name} onChange={handleInputChange} required />
+                        <Input id="edit-name" name="name" value={formData.name} onChange={handleInputChange} required maxLength={100} />
                     </div>
 
                     <div className="grid grid-cols-2 gap-4">
                         <div className="space-y-2">
                             <Label htmlFor="edit-relation">Relationship</Label>
-                            <Input id="edit-relation" name="relation" value={formData.relation} onChange={handleInputChange} required />
+                            <Input id="edit-relation" name="relation" value={formData.relation} onChange={handleInputChange} required maxLength={50} />
                         </div>
                         <div className="space-y-2">
                             <Label htmlFor="edit-age">Age (Optional)</Label>
@@ -256,7 +256,7 @@ export function EditPersonaSheet({ persona, open, onOpenChange, onPersonaUpdate 
 
                     <div className="space-y-2">
                         <Label htmlFor="edit-traits">Traits</Label>
-                        <Textarea id="edit-traits" name="traits" value={formData.traits} onChange={handleInputChange} required rows={3} className="resize-none" />
+                        <Textarea id="edit-traits" name="traits" value={formData.traits} onChange={handleInputChange} required rows={3} className="resize-none" maxLength={2000} />
                         <p className="text-xs text-muted-foreground">
                         These details influence the persona's behavior.
                         </p>
@@ -264,17 +264,17 @@ export function EditPersonaSheet({ persona, open, onOpenChange, onPersonaUpdate 
 
                     <div className="space-y-2">
                         <Label htmlFor="edit-backstory">Backstory</Label>
-                        <Textarea id="edit-backstory" name="backstory" value={formData.backstory} onChange={handleInputChange} required rows={5} className="resize-none" />
+                        <Textarea id="edit-backstory" name="backstory" value={formData.backstory} onChange={handleInputChange} required rows={5} className="resize-none" maxLength={5000} />
                     </div>
 
                     <div className="space-y-2">
                         <Label htmlFor="edit-goals">Goals</Label>
-                        <Textarea id="edit-goals" name="goals" value={formData.goals} onChange={handleInputChange} required rows={3} className="resize-none" />
+                        <Textarea id="edit-goals" name="goals" value={formData.goals} onChange={handleInputChange} required rows={3} className="resize-none" maxLength={2000} />
                     </div>
 
                     <div className="space-y-2">
                         <Label htmlFor="edit-responseStyle">Response Style</Label>
-                        <Textarea id="edit-responseStyle" name="responseStyle" value={formData.responseStyle} onChange={handleInputChange} required rows={4} className="resize-none" />
+                        <Textarea id="edit-responseStyle" name="responseStyle" value={formData.responseStyle} onChange={handleInputChange} required rows={4} className="resize-none" maxLength={3000} />
                          <p className="text-xs text-muted-foreground">
                             Define how the persona communicates. This guides their tone, language, and personality in chat.
                         </p>

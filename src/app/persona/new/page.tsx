@@ -47,6 +47,18 @@ const GENERIC_MODERATION_ERROR_DETAILS = 'The generated content does not meet th
 
 const emptyStringAsUndefined = (val: string | number | undefined) => (val === '' || val === undefined ? undefined : Number(val));
 
+interface ValidatedPersonaData {
+  name: string;
+  relation: string;
+  age?: number;
+  traits: string;
+  backstory: string;
+  goals: string;
+  responseStyle: string;
+  minWpm: number;
+  maxWpm: number;
+}
+
 
 export default function NewPersonaPage() {
   const router = useRouter();
@@ -81,7 +93,7 @@ export default function NewPersonaPage() {
   // Avatar fallback dialog state
   const [showAvatarFallbackDialog, setShowAvatarFallbackDialog] = useState(false);
   const [avatarFallbackPrompt, setAvatarFallbackPrompt] = useState('');
-  const [pendingPersonaData, setPendingPersonaData] = useState<any>(null);
+  const [pendingPersonaData, setPendingPersonaData] = useState<ValidatedPersonaData | null>(null);
   const avatarUploadRef = useRef<HTMLInputElement>(null);
 
   const [userDetails, setUserDetails] = useState<UserDetails | null>(null);
@@ -155,7 +167,7 @@ export default function NewPersonaPage() {
       });
       
       const testMode = await isTestModeActive();
-      const moderationResult = await moderatePersonaContent({ ...result, age: result.age || undefined, isTestMode: testMode });
+      const moderationResult = await moderatePersonaContent({ name: result.name, relation: result.relation, age: result.age || undefined, traits: result.traits, backstory: result.backstory, goals: result.interests, responseStyle: result.communicationStyle, isTestMode: testMode });
 
       if (!moderationResult.isSafe) {
         throw new Error(GENERIC_MODERATION_ERROR);
@@ -176,10 +188,9 @@ export default function NewPersonaPage() {
       
       setFormKey(Date.now());
       setActiveTab('manual');
-      const modelInfo = result.modelUsed ? `Using ${result.modelUsed}${result.modelReason ? ` – ${result.modelReason}` : ''}.` : '';
       toast({
         title: 'Persona Cloned!',
-        description: `Successfully analyzed ${personNameForClone}'s chat. Review and create. ${modelInfo}`,
+        description: `Successfully analyzed ${personNameForClone}'s chat. Review and create.`,
       });
     } catch (err: any) {
       setError(err.message || 'Failed to analyze chat.');
@@ -319,7 +330,7 @@ export default function NewPersonaPage() {
   };
 
   // Helper function to create persona with a given avatar
-  const createPersonaWithAvatar = async (dataToValidate: any, avatarDataUri: string) => {
+  const createPersonaWithAvatar = async (dataToValidate: ValidatedPersonaData, avatarDataUri: string) => {
     const personaId = crypto.randomUUID();
     const now = Date.now();
     
@@ -477,6 +488,7 @@ export default function NewPersonaPage() {
                         onChange={handleInputChange}
                         placeholder="e.g., Captain Eva Rostova"
                         required
+                        maxLength={100}
                       />
                   </div>
                   <div className="grid grid-cols-2 gap-4">
@@ -490,6 +502,7 @@ export default function NewPersonaPage() {
                           onChange={handleInputChange}
                           placeholder="e.g., Best friend, mentor"
                           required
+                          maxLength={50}
                         />
                     </div>
                     <div className="space-y-2">
@@ -530,6 +543,7 @@ export default function NewPersonaPage() {
                         required
                         rows={3}
                         className="resize-none"
+                        maxLength={2000}
                       />
                       <p className="text-xs text-muted-foreground">
                         This will be used to generate the profile picture and influence their personality.
@@ -546,6 +560,7 @@ export default function NewPersonaPage() {
                         required
                         rows={5}
                         className="resize-none"
+                        maxLength={5000}
                       />
                       <p className="text-xs text-muted-foreground">
                         This provides context for the AI's knowledge and memories.
@@ -562,6 +577,7 @@ export default function NewPersonaPage() {
                         required
                         rows={3}
                         className="resize-none"
+                        maxLength={2000}
                       />
                       <p className="text-xs text-muted-foreground">
                         This defines the persona's motivations and drives conversations.
@@ -579,6 +595,7 @@ export default function NewPersonaPage() {
                         required
                         rows={4}
                         className="resize-none"
+                        maxLength={3000}
                       />
                        <p className="text-xs text-muted-foreground">
                           Define how the persona communicates. This guides their tone, language, and personality in chat.

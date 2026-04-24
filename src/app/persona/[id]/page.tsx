@@ -2,14 +2,11 @@
 
 'use client';
 
-import { useEffect, useState, useRef, FormEvent, useMemo, useCallback, memo } from 'react';
+import { useEffect, useState, useRef, FormEvent, useMemo, useCallback } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { useParams, useRouter, useSearchParams } from 'next/navigation';
-import { chatWithPersona } from '@/ai/flows/chat-with-persona';
-import { generateChatTitle } from '@/ai/flows/generate-chat-title';
-import { summarizeChat } from '@/ai/flows/summarize-chat';
-import type { Persona, UserDetails, ChatMessage, ChatSession, ChatSessionHeader, FileAttachment } from '@/lib/types';
+import { useParams, useRouter } from 'next/navigation';
+import type { Persona, ChatMessage, ChatSession, FileAttachment } from '@/lib/types';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
@@ -37,29 +34,20 @@ import {
 } from '@/components/ui/dialog';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { cn } from '@/lib/utils';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Skeleton } from '@/components/ui/skeleton';
 import { EditPersonaSheet } from '@/components/edit-persona-sheet';
-import { FormattedMessage } from '@/components/formatted-message';
 import { useToast } from '@/hooks/use-toast';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { AnimatedChatTitle } from '@/components/animated-chat-title';
-import { getPersona, savePersona, deletePersona, getUserDetails, getPersonaChats, getChatSession, saveChatSession, deleteChatSession, deleteAllPersonaChats, getPersonaChatsWithMessages } from '@/lib/db';
-import { isTestModeActive } from '@/lib/api-key-manager';
+import { savePersona, deletePersona, saveChatSession } from '@/lib/db';
+import { SUPPORTED_IMAGE_TYPES, SUPPORTED_VIDEO_TYPES, SUPPORTED_DOCUMENT_TYPES, SUPPORTED_AUDIO_TYPES, ALL_SUPPORTED_TYPES, MAX_FILE_SIZE, KEYBOARD_HEIGHT_THRESHOLD } from '@/lib/constants';
 import { MemoryItem } from '@/components/memory-item';
 import { MediaPreview } from '@/components/media-preview';
+import { ChatMessageItem } from './_components/ChatMessageItem';
+import { PersonaChatSkeleton } from './_components/PersonaChatSkeleton';
+import { TypingIndicator } from './_components/TypingIndicator';
+import { useChatSession } from './_hooks/useChatSession';
+import { useAIResponse } from './_hooks/useAIResponse';
 
-// Supported file types for Gemini API
-const SUPPORTED_IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
-const SUPPORTED_VIDEO_TYPES = ['video/mp4', 'video/webm', 'video/quicktime'];
-const SUPPORTED_DOCUMENT_TYPES = ['application/pdf', 'text/plain', 'text/csv', 'text/html', 'text/css', 'text/javascript', 'application/json', 'application/xml'];
-const SUPPORTED_AUDIO_TYPES = ['audio/mpeg', 'audio/wav', 'audio/ogg', 'audio/webm'];
-const ALL_SUPPORTED_TYPES = [...SUPPORTED_IMAGE_TYPES, ...SUPPORTED_VIDEO_TYPES, ...SUPPORTED_DOCUMENT_TYPES, ...SUPPORTED_AUDIO_TYPES];
-const MAX_FILE_SIZE = 20 * 1024 * 1024; // 20MB max file size
-
-// Constants for chat summarization
-const MIN_MESSAGES_FOR_SUMMARY = 7; // Minimum messages before creating a summary
-const SUMMARY_NEW_MESSAGES_THRESHOLD = 15; // Number of new messages since last summary to trigger re-summarization
 
 // Helper to find the last index of an element in an array.
 const findLastIndex = <T,>(
@@ -73,383 +61,63 @@ const findLastIndex = <T,>(
   return -1;
 };
 
-const ChatMessageItem = memo(function ChatMessageItem({
-  message,
-  isFirstInSequence,
-  isLastInSequence,
-  glowing,
-  isLatestUserMessage,
-  messageIndex,
-  onMessageClick,
-  onMediaClick,
-  showIgnoredStatus,
-}: {
-  message: ChatMessage;
-  isFirstInSequence: boolean;
-  isLastInSequence: boolean;
-  glowing: boolean;
-  isLatestUserMessage: boolean;
-  messageIndex: number;
-  onMessageClick: (index: number) => void;
-  onMediaClick: (src: string, alt: string, mimeType: string) => void;
-  showIgnoredStatus: boolean;
-}) {
-  const hasAttachments = message.attachments && message.attachments.length > 0;
-  const hasTextContent = message.content.trim().length > 0;
-
-  // Block context menu (right-click) and long-press on media
-  const handleMediaContextMenu = (e: React.MouseEvent | Event) => {
-    e.preventDefault();
-    return false;
-  };
-
-  // Helper function to get media corner styling based on message sequence and text content
-  const getMediaCornerStyles = () => {
-    if (message.role === 'assistant') {
-      // Left-aligned messages: adjust top-left and bottom-left corners
-      if (isFirstInSequence && isLastInSequence) return "rounded-tl-none";
-      if (isFirstInSequence || !isLastInSequence) return "rounded-tl-none rounded-bl-none";
-      return "rounded-tl-none rounded-bl-lg";
-    }
-    // User messages (right-aligned): adjust top-right and bottom-right corners
-    // If there's text content below the media, bottom-right should be pointy to connect with text bubble
-    if (hasTextContent) {
-      return "rounded-tr-none rounded-br-none";
-    }
-    // No text content below - use standard sequence-based styling
-    if (isFirstInSequence && isLastInSequence) return "rounded-tr-none";
-    if (isFirstInSequence || !isLastInSequence) return "rounded-tr-none rounded-br-none";
-    return "rounded-tr-none rounded-br-lg";
-  };
-  
-  return (
-    <div
-      className={cn(
-        "flex flex-col",
-        message.role === 'user' ? 'items-end' : 'items-start',
-        isFirstInSequence ? 'mt-4' : 'mt-1'
-      )}
-    >
-      {/* Attachment previews */}
-      {hasAttachments && (
-        <div className={cn(
-          "flex flex-wrap gap-2 max-w-[85%]",
-          message.role === 'user' ? 'justify-end' : 'justify-start',
-          hasTextContent && 'mb-1'
-        )}>
-          {message.attachments!.map((attachment, index) => {
-            const isImage = SUPPORTED_IMAGE_TYPES.includes(attachment.mimeType);
-            const isVideo = SUPPORTED_VIDEO_TYPES.includes(attachment.mimeType);
-            const isAudio = SUPPORTED_AUDIO_TYPES.includes(attachment.mimeType);
-            const mediaSrc = `data:${attachment.mimeType};base64,${attachment.data}`;
-            
-            if (isImage) {
-              return (
-                <div
-                  key={index}
-                  className={cn(
-                    "relative rounded-lg overflow-hidden max-w-[200px] cursor-pointer",
-                    getMediaCornerStyles(),
-                  )}
-                  onClick={() => onMediaClick(mediaSrc, attachment.name, attachment.mimeType)}
-                  onContextMenu={handleMediaContextMenu}
-                  onTouchStart={(e) => {
-                    // Prevent touch-hold context menu on mobile
-                    e.currentTarget.addEventListener('contextmenu', handleMediaContextMenu, { once: true });
-                  }}
-                >
-                  <img
-                    src={mediaSrc}
-                    alt={attachment.name}
-                    className={cn(
-                      "max-h-[200px] w-auto object-contain rounded-lg select-none pointer-events-none",
-                      getMediaCornerStyles(),
-                    )}
-                    draggable={false}
-                  />
-                </div>
-              );
-            }
-            
-            if (isVideo) {
-              return (
-                <div
-                  key={index}
-                  className={cn(
-                    "relative rounded-lg overflow-hidden max-w-[250px] cursor-pointer group",
-                    getMediaCornerStyles(),
-                  )}
-                  onClick={() => onMediaClick(mediaSrc, attachment.name, attachment.mimeType)}
-                  onContextMenu={handleMediaContextMenu}
-                  onTouchStart={(e) => {
-                    e.currentTarget.addEventListener('contextmenu', handleMediaContextMenu, { once: true });
-                  }}
-                >
-                  <video
-                    src={mediaSrc}
-                    className={cn(
-                      "max-h-[200px] w-auto rounded-lg select-none pointer-events-none",
-                      getMediaCornerStyles(),
-                    )}
-                    muted
-                    playsInline
-                  />
-                  {/* Play button overlay */}
-                  <div className="absolute inset-0 flex items-center justify-center bg-black/20 group-hover:bg-black/30 transition-colors">
-                    <div className="w-12 h-12 rounded-full bg-white/90 flex items-center justify-center">
-                      <Film className="h-6 w-6 text-black ml-0.5" />
-                    </div>
-                  </div>
-                </div>
-              );
-            }
-
-            if (isAudio) {
-              return (
-                <div
-                  key={index}
-                  className={cn(
-                    "flex items-center gap-2 rounded-lg px-3 py-2 cursor-pointer hover:opacity-80 transition-opacity",
-                    message.role === 'user' 
-                      ? 'bg-primary/80 text-primary-foreground' 
-                      : 'bg-secondary/80'
-                  )}
-                  onClick={() => onMediaClick(mediaSrc, attachment.name, attachment.mimeType)}
-                  onContextMenu={handleMediaContextMenu}
-                >
-                  <Music className="h-4 w-4" />
-                  <span className="text-sm truncate max-w-[150px]">{attachment.name}</span>
-                </div>
-              );
-            }
-            
-            // For document files, show a file indicator with click to preview
-            return (
-              <div
-                key={index}
-                className={cn(
-                  "flex items-center gap-2 rounded-lg px-3 py-2 cursor-pointer hover:opacity-80 transition-opacity",
-                  message.role === 'user' 
-                    ? 'bg-primary/80 text-primary-foreground' 
-                    : 'bg-secondary/80'
-                )}
-                onClick={() => onMediaClick(mediaSrc, attachment.name, attachment.mimeType)}
-                onContextMenu={handleMediaContextMenu}
-              >
-                <FileText className="h-4 w-4" />
-                <span className="text-sm truncate max-w-[150px]">{attachment.name}</span>
-              </div>
-            );
-          })}
-        </div>
-      )}
-      
-      {/* Only show text bubble if there's actual text content */}
-      {hasTextContent && (
-        <div 
-          className={cn(
-            "max-w-[85%] rounded-lg px-4 py-2.5 min-w-0 flex items-center overflow-hidden",
-            message.role === 'user'
-              ? 'bg-primary text-primary-foreground'
-              : 'bg-secondary',
-            glowing && 'animate-shine-once',
-            message.role === 'user' && !isLatestUserMessage && 'cursor-pointer',
-            message.role === 'assistant' && cn(
-              isFirstInSequence && !isLastInSequence && "rounded-tl-none rounded-bl-none",
-              isFirstInSequence && isLastInSequence && "rounded-tl-none",
-              !isFirstInSequence && !isLastInSequence && "rounded-tl-none rounded-bl-none",
-              !isFirstInSequence && isLastInSequence && "rounded-tl-none rounded-bl-lg",
-            ),
-            message.role === 'user' && cn(
-              isFirstInSequence && !isLastInSequence && "rounded-tr-none rounded-br-none",
-              isFirstInSequence && isLastInSequence && "rounded-tr-none",
-              !isFirstInSequence && !isLastInSequence && "rounded-tr-none rounded-br-none",
-              !isFirstInSequence && isLastInSequence && "rounded-tr-none rounded-br-lg",
-            ),
-          )}
-          onClick={(e) => {
-            if (message.role === 'user' && !isLatestUserMessage) {
-              e.stopPropagation();
-              onMessageClick(messageIndex);
-            }
-          }}
-          style={{
-            // Ensure all child elements are clickable for user messages that aren't latest
-            ...(message.role === 'user' && !isLatestUserMessage && {
-              pointerEvents: 'auto'
-            })
-          }}
-        >
-          <div 
-            className="min-w-0 w-full"
-            style={{
-              // Make the content area clickable but prevent text selection interference
-              ...(message.role === 'user' && !isLatestUserMessage && {
-                pointerEvents: 'none'
-              })
-            }}
-          >
-            <FormattedMessage content={message.content} />
-          </div>
-        </div>
-      )}
-       {message.role === 'user' && message.isIgnored && showIgnoredStatus && (
-          <div className="px-2 pt-1 text-xs text-red-500 dark:text-red-400 flex items-center gap-1">
-             Ignored
-          </div>
-        )}
-    </div>
-  );
-});
-
-function PersonaChatSkeleton() {
-  return (
-    <div className="flex h-full">
-      {/* Sidebar Skeleton */}
-      <div className="w-80 flex flex-col bg-card border-r hidden md:flex">
-        {/* Profile Section */}
-        <div className="pt-16 md:pt-0">
-          <div className="p-2 mx-2">
-            <div className="flex items-center gap-4">
-              <Skeleton className="h-14 w-14 rounded-full" />
-              <div className="flex-1 space-y-2">
-                <Skeleton className="h-5 w-32" />
-                <Skeleton className="h-4 w-24" />
-              </div>
-            </div>
-          </div>
-          
-          {/* Buttons */}
-          <div className="px-4 pb-2 pt-3">
-            <div className="flex gap-2">
-              <Skeleton className="h-10 flex-1" />
-              <Skeleton className="h-10 flex-1" />
-            </div>
-          </div>
-          
-          {/* Chat List */}
-          <div className="flex-1 px-4 pb-4">
-            <div className="space-y-1">
-              {Array.from({ length: 8 }).map((_, i) => (
-                <Skeleton key={i} className="h-10 w-full" />
-              ))}
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Main Chat Area Skeleton */}
-      <div className="flex-1 flex flex-col bg-background">
-        {/* Header */}
-        <header className="p-4 border-b flex items-center justify-between">
-          <Skeleton className="h-6 w-48" />
-          <div className="flex gap-2">
-            <Skeleton className="h-8 w-8" />
-            <Skeleton className="h-8 w-8" />
-          </div>
-        </header>
-        
-        {/* Messages Area */}
-        <div className="flex-1 p-4 space-y-4">
-          <div className="max-w-3xl mx-auto space-y-6">
-            {/* User message */}
-            <div className="flex justify-end">
-              <Skeleton className="h-12 w-64 rounded-2xl" />
-            </div>
-            {/* AI message */}
-            <div className="flex justify-start">
-              <Skeleton className="h-16 w-80 rounded-2xl" />
-            </div>
-            {/* User message */}
-            <div className="flex justify-end">
-              <Skeleton className="h-8 w-48 rounded-2xl" />
-            </div>
-          </div>
-        </div>
-        
-        {/* Input Area */}
-        <div className="p-4 border-t">
-          <div className="max-w-3xl mx-auto">
-            <Skeleton className="h-12 w-full rounded-lg" />
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-const TypingIndicator = memo(function TypingIndicator({ 
-  isFirstBubble, 
-  isTransitioning 
-}: { 
-  isFirstBubble: boolean;
-  isTransitioning?: boolean;
-}) {
-  return (
-    <div
-      className={cn(
-        "flex justify-start transition-all duration-200 ease-out",
-        isFirstBubble ? 'mt-4' : 'mt-1',
-        isTransitioning && "opacity-0 scale-95"
-      )}
-    >
-      <div className={cn(
-        "flex h-11 items-center justify-center rounded-lg bg-secondary px-4 transition-all duration-200 ease-out",
-        "rounded-tl-none rounded-br-lg",
-        isTransitioning && "scale-98"
-      )}>
-        <div className={cn(
-          "flex items-center justify-center space-x-1.5 transition-opacity duration-200",
-          isTransitioning && "opacity-0"
-        )}>
-          <div className="w-2 h-2 rounded-full bg-muted-foreground animate-typing-dot-1"></div>
-          <div className="w-2 h-2 rounded-full bg-muted-foreground animate-typing-dot-2"></div>
-          <div className="w-2 h-2 rounded-full bg-muted-foreground animate-typing-dot-3"></div>
-        </div>
-      </div>
-    </div>
-  );
-});
-
 export default function PersonaChatPage() {
   const router = useRouter();
   const params = useParams();
-  const searchParams = useSearchParams();
   const { id } = params;
   const { toast } = useToast();
   const isMobile = useIsMobile();
 
   const [persona, setPersona] = useState<Persona | null | undefined>(undefined);
-  const [userDetails, setUserDetails] = useState<UserDetails>({ name: '', about: '' });
   
-  // Separate state for chat headers (sidebar) and active chat (with messages)
-  const [chatHeaders, setChatHeaders] = useState<ChatSessionHeader[]>([]);
-  const [activeChat, setActiveChat] = useState<ChatSession | null>(null);
-  const [activeChatId, setActiveChatId] = useState<string | null>(null);
-  
-  const [input, setInput] = useState('');
-  const [error, setError] = useState<string | null>(null);
-  const [isAiResponding, setIsAiResponding] = useState(false);
-  const [isAiTyping, setIsAiTyping] = useState(false);
-  const [isTypingTransitioning, setIsTypingTransitioning] = useState(false);
+  const {
+    chatHeaders,
+    setChatHeaders,
+    activeChat,
+    setActiveChat,
+    activeChatId,
+    activeChatRef,
+    activeChatIdRef,
+    isDeletingRef,
+    messagesSinceLastResponseRef,
+    responseTimerRef,
+    sortedChats,
+    handleNewChat,
+    handleConfirmDeleteChat,
+    handleClearAllChats,
+    handleSummarizeChat,
+    chatToDelete,
+    setChatToDelete,
+    isDeleteDialogOpen,
+    setIsDeleteDialogOpen,
+    isClearAllDialogOpen,
+    setIsClearAllDialogOpen,
+    isSidebarOpen,
+    setIsSidebarOpen,
+    isDeleting,
+    setIsDeleting,
+    textareaRef,
+    userDetails,
+    userDetailsRef,
+  } = useChatSession({
+    personaId: typeof id === 'string' ? id : undefined,
+    persona,
+    setPersona,
+    isMobile,
+    toast,
+  });
 
-  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [input, setInput] = useState('');
+
   const [isManagementDialogOpen, setIsManagementDialogOpen] = useState(false);
   const [isMemoryDialogOpen, setIsMemoryDialogOpen] = useState(false);
-  const [isClearAllDialogOpen, setIsClearAllDialogOpen] = useState(false);
-  const [chatToDelete, setChatToDelete] = useState<ChatSessionHeader | null>(null);
   const [isEditSheetOpen, setIsEditSheetOpen] = useState(false);
-  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
-  const [isDeleting, setIsDeleting] = useState(false);
 
-  const [glowingMessageIndex, setGlowingMessageIndex] = useState<number | null>(null);
-  const [isMemoryButtonGlowing, setIsMemoryButtonGlowing] = useState(false);
-  const [clickedMessageIndex, setClickedMessageIndex] = useState<number | null>(null);
-
-  const [touchStartX, setTouchStartX] = useState<number | null>(null);
-  const [touchMoveX, setTouchMoveX] = useState<number | null>(null);
-  const [touchStartY, setTouchStartY] = useState<number | null>(null);
-  const [lastTouchY, setLastTouchY] = useState<number | null>(null);
+  const touchStartXRef = useRef<number | null>(null);
+  const touchMoveXRef = useRef<number | null>(null);
+  const touchStartYRef = useRef<number | null>(null);
+  const lastTouchYRef = useRef<number | null>(null);
+  const [sidebarSwipeOffset, setSidebarSwipeOffset] = useState(0);
   const sidebarRef = useRef<HTMLDivElement>(null);
 
   // File attachment state
@@ -465,37 +133,7 @@ export default function PersonaChatPage() {
   });
 
   const scrollAreaRef = useRef<HTMLDivElement>(null);
-  const textareaRef = useRef<HTMLTextAreaElement>(null);
   const formRef = useRef<HTMLFormElement>(null);
-
-  const personaRef = useRef(persona);
-  const activeChatRef = useRef(activeChat);
-  const isAiRespondingRef = useRef(isAiResponding);
-  const activeChatIdRef = useRef(activeChatId);
-  const userDetailsRef = useRef(userDetails);
-  const messagesSinceLastResponseRef = useRef<ChatMessage[]>([]);
-  const responseTimerRef = useRef<NodeJS.Timeout | null>(null);
-  const isDeletingRef = useRef(false);
-
-  useEffect(() => {
-    personaRef.current = persona;
-  }, [persona]);
-
-  useEffect(() => {
-    activeChatRef.current = activeChat;
-  }, [activeChat]);
-
-  useEffect(() => {
-    isAiRespondingRef.current = isAiResponding;
-  }, [isAiResponding]);
-
-  useEffect(() => {
-    activeChatIdRef.current = activeChatId;
-  }, [activeChatId]);
-
-  useEffect(() => {
-    userDetailsRef.current = userDetails;
-  }, [userDetails]);
 
   // File handling functions
   const handleFileSelect = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -581,265 +219,6 @@ export default function PersonaChatPage() {
     if (SUPPORTED_VIDEO_TYPES.includes(mimeType)) return Film;
     return FileText;
   }, []);
-  
-  const handleSummarizeChat = useCallback(async (chatId: string) => {
-    const currentPersona = personaRef.current;
-    const currentChat = activeChatRef.current;
-    if (!currentPersona) return;
-
-    // Get the chat to summarize - either from activeChat if it matches, or fetch it
-    let chatToSummarize = currentChat?.id === chatId ? currentChat : null;
-    if (!chatToSummarize) {
-      chatToSummarize = await getChatSession(chatId) || null;
-    }
-
-    if (!chatToSummarize) return;
-    
-    // Check if chat needs summarization:
-    // 1. Has enough messages for meaningful summary
-    // 2. Either has no summary OR has enough new messages since last summary
-    const currentMessageCount = chatToSummarize.messages.length;
-    const lastSummarizedAt = chatToSummarize.lastSummarizedAtMessageCount || 0;
-    const newMessagesSinceSummary = currentMessageCount - lastSummarizedAt;
-    
-    const needsSummary = currentMessageCount >= MIN_MESSAGES_FOR_SUMMARY && (
-      !chatToSummarize.summary || 
-      newMessagesSinceSummary >= SUMMARY_NEW_MESSAGES_THRESHOLD
-    );
-    
-    if (needsSummary) {
-        try {
-            console.log(`Summarizing chat: ${chatToSummarize.title} (${currentMessageCount} messages, ${newMessagesSinceSummary} new since last summary)`);
-            const result = await summarizeChat({ 
-              chatHistory: chatToSummarize.messages,
-              existingSummary: chatToSummarize.summary,
-              lastSummarizedAtMessageCount: lastSummarizedAt,
-            });
-            
-            // Update the chat with new summary and message count
-            const updatedChat: ChatSession = {
-              ...chatToSummarize,
-              summary: result.summary,
-              lastSummarizedAtMessageCount: currentMessageCount,
-            };
-            
-            // Save to database
-            await saveChatSession(updatedChat);
-            
-            // Update local state if this is the active chat
-            if (activeChatRef.current?.id === chatId) {
-              setActiveChat(updatedChat);
-            }
-            
-            // Update chat headers
-            setChatHeaders(prev => prev.map(h => 
-              h.id === chatId 
-                ? { ...h, summary: result.summary, lastSummarizedAtMessageCount: currentMessageCount }
-                : h
-            ));
-            
-            console.log(`Summary ${chatToSummarize.summary ? 'updated' : 'saved'} for chat: ${chatToSummarize.title}`);
-        } catch (e) {
-            console.error("Failed to summarize chat:", e);
-        }
-    }
-  }, []);
-
-  const triggerAIResponse = useCallback(async () => {
-    if (responseTimerRef.current) clearTimeout(responseTimerRef.current);
-    const personaNow = personaRef.current;
-    const chatIdNow = activeChatIdRef.current;
-    const currentChatNow = activeChatRef.current;
-    if (!personaNow || !chatIdNow || !currentChatNow) return;
-  
-    const messagesForTurn = [...messagesSinceLastResponseRef.current];
-    if (messagesForTurn.length === 0) return;
-  
-    setIsAiResponding(true);
-    setError(null);
-    messagesSinceLastResponseRef.current = [];
-  
-    const historyEndIndex = currentChatNow.messages.length - messagesForTurn.length;
-    const chatHistoryForAI = currentChatNow.messages.slice(0, historyEndIndex);
-    const userMessageContents = messagesForTurn.map(m => m.content);
-    // Collect attachments from the current turn's messages
-    const attachmentsForTurn = messagesForTurn.flatMap(m => m.attachments || []);
-    const isNewChat = chatHistoryForAI.length === 0;
-  
-    const now = new Date();
-    const currentDateTime = now.toLocaleString('en-US', {
-      weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', hour: 'numeric', minute: '2-digit', hour12: true,
-    });
-    const currentDateForMemory = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
-  
-    try {
-      // Get all chats for context (excluding current chat)
-      const allChatsForContext = await getPersonaChatsWithMessages(personaNow.id);
-      const filteredChats = allChatsForContext.filter(c => c.id !== chatIdNow);
-      const testMode = await isTestModeActive();
-  
-      const res = await chatWithPersona({
-        persona: personaNow, userDetails: userDetailsRef.current, chatHistory: chatHistoryForAI, userMessages: userMessageContents, currentDateTime, currentDateForMemory, allChats: filteredChats, activeChatId: chatIdNow, isTestMode: testMode, attachments: attachmentsForTurn.length > 0 ? attachmentsForTurn : undefined,
-      });
-      
-      // Handle ignore logic first
-      if (res.shouldIgnore) {
-        const currentChat = activeChatRef.current;
-        if (currentChat) {
-          const lastUserMessageIndex = findLastIndex(currentChat.messages || [], msg => msg.role === 'user');
-          const updatedChat: ChatSession = {
-            ...currentChat,
-            messages: currentChat.messages.map((m, idx) => 
-              idx === lastUserMessageIndex ? { ...m, isIgnored: true } : m
-            ),
-          };
-          setActiveChat(updatedChat);
-          await saveChatSession(updatedChat);
-        }
-        
-        // Update persona ignore state
-        const updatedPersona = {
-          ...personaNow,
-          ignoredState: {
-            isIgnored: true,
-            reason: res.ignoreReason || 'User was being disruptive.',
-            chatId: chatIdNow,
-          }
-        };
-        setPersona(updatedPersona);
-        await savePersona(updatedPersona);
-        
-        setClickedMessageIndex(null);
-        setIsAiResponding(false);
-        return; // Stop further processing
-      }
-
-      // Handle memory updates
-      let memoryWasUpdated = false;
-      if ((res.newMemories?.length || 0) > 0 || (res.removedMemories?.length || 0) > 0) {
-        memoryWasUpdated = true;
-        let finalMemories = personaNow.memories || [];
-        const memoriesToDelete = new Set(res.removedMemories || []);
-        finalMemories = finalMemories.filter(mem => !memoriesToDelete.has(mem));
-        const memoriesToAdd = res.newMemories || [];
-        finalMemories = [...finalMemories, ...memoriesToAdd];
-
-        const updatedPersona = {
-          ...personaNow,
-          memories: finalMemories,
-          ignoredState: personaNow.ignoredState?.isIgnored ? null : personaNow.ignoredState
-        };
-        setPersona(updatedPersona);
-        await savePersona(updatedPersona);
-
-        const currentChat = activeChatRef.current;
-        if (currentChat) {
-          setGlowingMessageIndex(currentChat.messages.length - 1);
-          setTimeout(() => setGlowingMessageIndex(null), 1500);
-        }
-
-        if (!isMobile) {
-          setIsMemoryButtonGlowing(true);
-          setTimeout(() => setIsMemoryButtonGlowing(false), 1500);
-        }
-      } else if (personaNow.ignoredState?.isIgnored) {
-        // Clear ignore state if it was previously set
-        const updatedPersona = {
-          ...personaNow,
-          ignoredState: null
-        };
-        setPersona(updatedPersona);
-        await savePersona(updatedPersona);
-      }
-
-      // Hide ignored status for previous messages after marking current message as ignored
-      setClickedMessageIndex(null);
-  
-      if (isNewChat && res.response && res.response[0]) {
-        generateChatTitle({ userMessage: userMessageContents[0], assistantResponse: res.response[0] })
-          .then(async titleResult => {
-            if (titleResult.title) {
-              const currentChat = activeChatRef.current;
-              if (currentChat && currentChat.id === chatIdNow) {
-                const updatedChat: ChatSession = { ...currentChat, title: titleResult.title };
-                setActiveChat(updatedChat);
-                await saveChatSession(updatedChat);
-                
-                // Update chat headers
-                setChatHeaders(prev => prev.map(h =>
-                  h.id === chatIdNow ? { ...h, title: titleResult.title } : h
-                ));
-              }
-            }
-          });
-      }
-
-      if (res.response && res.response.length > 0) {
-        for (let i = 0; i < res.response.length; i++) {
-          const messageContent = res.response[i];
-          
-          // Start typing for this message
-          setIsAiTyping(true);
-          
-          const { minWpm, maxWpm } = personaRef.current!;
-          const wpm = Math.floor(Math.random() * (maxWpm - minWpm + 1)) + minWpm;
-          const words = messageContent.split(/\s+/).filter(Boolean).length;
-          const typingTimeMs = (words / wpm) * 60 * 1000;
-          const delay = Math.max(900, Math.min(typingTimeMs, 4000));
-          await new Promise(resolve => setTimeout(resolve, delay));
-          
-          // Smooth transition from typing to message
-          setIsTypingTransitioning(true);
-          await new Promise(resolve => setTimeout(resolve, 200));
-          setIsAiTyping(false);
-          await new Promise(resolve => setTimeout(resolve, 100));
-          setIsTypingTransitioning(false);
-          
-          // Add the actual message to state
-          const currentChat = activeChatRef.current;
-          if (currentChat && currentChat.id === chatIdNow) {
-            const newAssistantMessage: ChatMessage = { role: 'assistant', content: messageContent };
-            const updatedChat: ChatSession = {
-              ...currentChat,
-              messages: [...currentChat.messages, newAssistantMessage],
-              updatedAt: Date.now(),
-            };
-            setActiveChat(updatedChat);
-            
-            // Update chat headers with new updatedAt
-            setChatHeaders(prev => prev.map(h =>
-              h.id === chatIdNow ? { ...h, updatedAt: updatedChat.updatedAt } : h
-            ));
-            
-            // Save to database
-            saveChatSession(updatedChat).catch(err => {
-              console.error('Failed to save chat:', err);
-            });
-          }
-        }
-      }
-    } catch (err: any) {
-      console.error(err);
-      setError(err.message || 'An unknown error occurred.');
-    } finally {
-        // Don't set isAiTyping to false here since it's handled per message
-        if (messagesSinceLastResponseRef.current.length > 0) {
-            triggerAIResponse();
-        } else {
-            setIsAiResponding(false);
-        }
-    }
-  }, [isMobile]);
-
-  const startResponseTimer = useCallback(() => {
-    if (responseTimerRef.current) clearTimeout(responseTimerRef.current);
-    const delay = Math.random() * (5000 - 2500) + 2500; // Random between 2.5 and 5 seconds
-    responseTimerRef.current = setTimeout(() => {
-      if (!isAiRespondingRef.current) {
-        triggerAIResponse();
-      }
-    }, delay);
-  }, [triggerAIResponse]);
   
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
@@ -927,282 +306,50 @@ export default function PersonaChatPage() {
   
     messagesSinceLastResponseRef.current.push(userMessage);
 
-    if (isAiRespondingRef.current) {
+    if (isAiResponding) {
       return;
     }
     startResponseTimer();
   };
 
-  useEffect(() => {
-    async function loadPageData() {
-      if (!id || typeof id !== 'string') {
-        setPersona(null);
-        return;
-      }
-      // Load persona metadata and chat headers separately
-      const [p, ud, headers] = await Promise.all([
-        getPersona(id),
-        getUserDetails(),
-        getPersonaChats(id),
-      ]);
-      setPersona(p || null);
-      setUserDetails(ud);
-      setChatHeaders(headers);
-      
-      if (!isMobile) {
-        setIsSidebarOpen(true);
-      } else {
-        setIsSidebarOpen(false);
-      }
-    }
-    loadPageData();
-  }, [id, isMobile]);
-
-  const handleNewChat = useCallback(async () => {
-    if (!persona) return;
-    
-    if (isMobile) {
-      setIsSidebarOpen(false);
-    }
-
-    // Check if there's already an empty "New Chat"
-    const existingNewChat = chatHeaders.find(c => c.title === 'New Chat');
-    if (existingNewChat) {
-      // Load the chat to check if it's empty
-      const fullChat = await getChatSession(existingNewChat.id);
-      if (fullChat && fullChat.messages.length === 0) {
-        router.push(`/persona/${persona.id}?chat=${existingNewChat.id}`, { scroll: false });
-        return;
-      }
-    }
-
-    const now = Date.now();
-    const newChat: ChatSession = {
-      id: crypto.randomUUID(),
-      personaId: persona.id,
-      title: 'New Chat',
-      messages: [],
-      createdAt: now,
-      updatedAt: now,
-    };
-    
-    // Save new chat to database
-    await saveChatSession(newChat);
-    
-    // Update chat headers
-    const newHeader: ChatSessionHeader = {
-      id: newChat.id,
-      personaId: newChat.personaId,
-      title: newChat.title,
-      createdAt: newChat.createdAt,
-      updatedAt: newChat.updatedAt,
-    };
-    setChatHeaders(prev => [newHeader, ...prev]);
-    
-    router.push(`/persona/${persona.id}?chat=${newChat.id}`, { scroll: false });
-  }, [persona, chatHeaders, router, isMobile]);
-  
-  const sortedChats = useMemo(() => {
-    return [...chatHeaders].sort((a, b) => (b.updatedAt || b.createdAt) - (a.updatedAt || a.createdAt));
-  }, [chatHeaders]);
-
-  const prevActiveChatIdRef = useRef<string | null>();
-
-  useEffect(() => {
-    // Function to clean up empty "New Chat" sessions when navigating away
-    const handleCleanup = async (chatIdToClean: string | null | undefined) => {
-        if (!chatIdToClean) return;
-
-        // Check if it's an empty new chat by looking at the active chat or fetching it
-        const chatToCheck = activeChatRef.current?.id === chatIdToClean 
-          ? activeChatRef.current 
-          : await getChatSession(chatIdToClean);
-        
-        if (chatToCheck && chatToCheck.title === 'New Chat' && chatToCheck.messages.length === 0 && chatHeaders.length > 1) {
-          // Delete empty chat from database
-          await deleteChatSession(chatIdToClean);
-          // Update chat headers
-          setChatHeaders(prev => prev.filter(h => h.id !== chatIdToClean));
-        }
-    };
-    
-    // When activeChatId changes, handle summarization and cleanup for the previous chat
-    const previousChatId = prevActiveChatIdRef.current;
-    if (previousChatId && previousChatId !== activeChatId) {
-        handleSummarizeChat(previousChatId);
-        messagesSinceLastResponseRef.current = [];
-        if (responseTimerRef.current) clearTimeout(responseTimerRef.current);
-        handleCleanup(previousChatId);
-        // Reset clicked message state when switching chats
-        setClickedMessageIndex(null);
-    }
-    
-    prevActiveChatIdRef.current = activeChatId;
-
-    return () => {
-      // This cleanup runs when the component unmounts (page reload/navigation)
-      if (isDeletingRef.current) return;
-      
-      const lastActiveChat = prevActiveChatIdRef.current;
-      if (lastActiveChat) {
-          handleSummarizeChat(lastActiveChat);
-      }
-      if (responseTimerRef.current) clearTimeout(responseTimerRef.current);
-    }
-  }, [activeChatId, handleSummarizeChat, chatHeaders.length]);
-  
-  // Effect for loading active chat when activeChatId changes
-  useEffect(() => {
-    async function loadActiveChat() {
-      if (!activeChatId) {
-        setActiveChat(null);
-        return;
-      }
-      
-      const chat = await getChatSession(activeChatId);
-      setActiveChat(chat || null);
-    }
-    loadActiveChat();
-  }, [activeChatId]);
-  
-  // Separate effect for handling URL-based chat selection
-  useEffect(() => {
-    if (!persona) return;
-    
-    const chatIdFromQuery = searchParams.get('chat');
-    
-    if (chatIdFromQuery) {
-        // Check if the chat from the URL exists in our chat headers
-        const chatExists = chatHeaders.some(c => c.id === chatIdFromQuery);
-        
-        if (chatExists) {
-            // Valid chat ID in URL, use it
-            if (activeChatId !== chatIdFromQuery) {
-                setActiveChatId(chatIdFromQuery);
-            }
-        } else {
-            // Invalid chat ID in URL, redirect to create new chat
-            router.replace(`/persona/${persona.id}`, { scroll: false });
-        }
-    }
-  }, [persona, chatHeaders, searchParams, router, activeChatId]);
-
-  // Separate effect for handling new chat creation when no chat ID in URL
-  useEffect(() => {
-    if (!persona) return;
-    
-    const chatIdFromQuery = searchParams.get('chat');
-    
-    // Only run this logic when there's no chat ID in URL
-    if (!chatIdFromQuery) {
-        // Check if we already have a "New Chat" header
-        const existingNewChatHeader = chatHeaders.find(c => c.title === 'New Chat');
-        
-        if (existingNewChatHeader) {
-            // Check if it's empty by loading it
-            getChatSession(existingNewChatHeader.id).then(chat => {
-              if (chat && chat.messages.length === 0) {
-                // Use existing empty new chat
-                if (activeChatId !== existingNewChatHeader.id) {
-                    setActiveChatId(existingNewChatHeader.id);
-                    router.replace(`/persona/${persona.id}?chat=${existingNewChatHeader.id}`, { scroll: false });
-                }
-              } else {
-                // Create a new chat since the existing one has messages
-                createNewChat();
-              }
-            });
-        } else {
-            // Create a new chat
-            createNewChat();
-        }
-        
-        async function createNewChat() {
-          const now = Date.now();
-          const newChatSession: ChatSession = {
-              id: crypto.randomUUID(),
-              personaId: persona!.id,
-              title: 'New Chat',
-              messages: [],
-              createdAt: now,
-              updatedAt: now,
-          };
-          
-          await saveChatSession(newChatSession);
-          
-          const newHeader: ChatSessionHeader = {
-            id: newChatSession.id,
-            personaId: newChatSession.personaId,
-            title: newChatSession.title,
-            createdAt: newChatSession.createdAt,
-            updatedAt: newChatSession.updatedAt,
-          };
-          setChatHeaders(prev => [newHeader, ...prev]);
-          setActiveChatId(newChatSession.id);
-          router.replace(`/persona/${persona!.id}?chat=${newChatSession.id}`, { scroll: false });
-        }
-    }
-  }, [persona?.id, chatHeaders, searchParams, router, activeChatId]);
-
-  // Separate effect for cleaning up empty chats when navigating to existing ones
-  useEffect(() => {
-    if (!persona || !activeChatId) return;
-    
-    const chatIdFromQuery = searchParams.get('chat');
-    
-    // Only cleanup when we have a valid chat ID in URL and it matches activeChatId
-    if (chatIdFromQuery && chatIdFromQuery === activeChatId) {
-        // Find empty "New Chat" headers that aren't the active chat
-        const emptyNewChatHeaders = chatHeaders.filter(c => 
-            c.title === 'New Chat' && 
-            c.id !== activeChatId
-        );
-        
-        // Check each one and delete if empty using Promise.all
-        const cleanupEmptyChats = async () => {
-          const chatIds = await Promise.all(
-            emptyNewChatHeaders.map(async header => {
-              const chat = await getChatSession(header.id);
-              if (chat && chat.messages.length === 0) {
-                await deleteChatSession(header.id);
-                return header.id;
-              }
-              return null;
-            })
-          );
-          
-          const deletedIds = chatIds.filter((id): id is string => id !== null);
-          if (deletedIds.length > 0) {
-            setChatHeaders(prev => prev.filter(h => !deletedIds.includes(h.id)));
-          }
-        };
-        
-        cleanupEmptyChats();
-    }
-  }, [activeChatId, persona, chatHeaders, searchParams]);
-
-  // Auto-focus input on new chats
-  useEffect(() => {
-    if (activeChat && activeChat.messages.length === 0 && textareaRef.current) {
-      setTimeout(() => textareaRef.current?.focus(), 100);
-    }
-  }, [activeChat?.id, activeChat?.messages.length]);
-
   const messagesToDisplay = useMemo(() => {
       const messages = activeChat?.messages || [];
-      console.log('Messages to display:', messages.length, 'for chat:', activeChatId);
       return messages;
   }, [activeChat, activeChatId]);
+
+  const {
+    isAiResponding,
+    isAiTyping,
+    isTypingTransitioning,
+    error,
+    setError,
+    glowingMessageIndex,
+    isMemoryButtonGlowing,
+    setIsMemoryButtonGlowing,
+    clickedMessageIndex,
+    setClickedMessageIndex,
+    triggerAIResponse,
+    startResponseTimer,
+    handleMessageClick,
+  } = useAIResponse({
+    persona,
+    setPersona,
+    activeChat,
+    setActiveChat,
+    activeChatIdRef,
+    activeChatRef,
+    userDetailsRef,
+    messagesSinceLastResponseRef,
+    responseTimerRef,
+    setChatHeaders,
+    isMobile,
+    messagesToDisplayLength: messagesToDisplay.length,
+  });
 
   // Performance optimization: Memoize latest user message index calculation
   const latestUserMessageIndex = useMemo(() => {
     return findLastIndex(messagesToDisplay, msg => msg.role === 'user');
   }, [messagesToDisplay]);
-
-  // Reset clicked message state when messages change
-  useEffect(() => {
-    setClickedMessageIndex(null);
-  }, [messagesToDisplay.length]);
 
   useEffect(() => {
     if (scrollAreaRef.current) {
@@ -1245,72 +392,6 @@ export default function PersonaChatPage() {
       startResponseTimer();
     }
   };
-
-  const handleConfirmDeleteChat = useCallback(async () => {
-    if (!persona || !chatToDelete) return;
-
-    // Check if the chat being deleted is the one that caused the ignoring
-    const shouldResetIgnoreState = persona.ignoredState?.isIgnored && 
-                                   persona.ignoredState?.chatId === chatToDelete.id;
-
-    // Delete chat from database
-    await deleteChatSession(chatToDelete.id);
-    
-    // Update chat headers
-    setChatHeaders(prev => prev.filter(h => h.id !== chatToDelete.id));
-    
-    // Reset ignore state if this chat caused the ignoring
-    if (shouldResetIgnoreState) {
-      const updatedPersona = {
-        ...persona,
-        ignoredState: {
-          isIgnored: false,
-          reason: undefined,
-          chatId: undefined,
-        }
-      };
-      setPersona(updatedPersona);
-      await savePersona(updatedPersona);
-    }
-
-    if (activeChatId === chatToDelete.id) {
-      setActiveChat(null);
-      router.replace(`/persona/${id}`);
-    }
-    
-    setIsDeleteDialogOpen(false);
-    setChatToDelete(null);
-  }, [id, activeChatId, persona, chatToDelete, router]);
-
-  const handleClearAllChats = useCallback(async () => {
-    if (!persona) return;
-
-    // Delete all chats from database
-    await deleteAllPersonaChats(persona.id);
-    
-    // Clear chat headers
-    setChatHeaders([]);
-    setActiveChat(null);
-    
-    // Update persona ignore state
-    const updatedPersona = { 
-      ...persona, 
-      // Always reset ignore state when clearing all chats
-      ignoredState: {
-        isIgnored: false,
-        reason: undefined,
-        chatId: undefined,
-      }
-    };
-    setPersona(updatedPersona);
-    await savePersona(updatedPersona);
-
-    setIsClearAllDialogOpen(false);
-    toast({
-      title: 'Chat History Cleared',
-      description: `All chats for ${persona.name} have been deleted.`,
-    });
-  }, [persona, toast]);
 
   const handleDeletePersona = async () => {
     if (!id || typeof id !== 'string') return;
@@ -1376,10 +457,6 @@ export default function PersonaChatPage() {
       setIsMemoryDialogOpen(open);
   }, []);
 
-  const handleMessageClick = useCallback((messageIndex: number) => {
-    setClickedMessageIndex(prev => prev === messageIndex ? null : messageIndex);
-  }, []);
-
   // Handle media click to open preview
   const handleMediaClick = useCallback((src: string, alt: string, mimeType: string) => {
     setMediaPreview({ src, alt, mimeType, isOpen: true });
@@ -1401,27 +478,30 @@ export default function PersonaChatPage() {
 
   const handleTouchStart = useCallback((e: React.TouchEvent<HTMLDivElement>) => {
     if (!isMobile || !isSidebarOpen) return;
-    setTouchMoveX(null);
-    setTouchStartX(e.targetTouches[0].clientX);
+    touchMoveXRef.current = null;
+    touchStartXRef.current = e.targetTouches[0].clientX;
+    setSidebarSwipeOffset(0);
   }, [isMobile, isSidebarOpen]);
 
   const handleTouchMove = useCallback((e: React.TouchEvent<HTMLDivElement>) => {
-    if (touchStartX === null) return;
+    if (touchStartXRef.current === null) return;
     const currentX = e.targetTouches[0].clientX;
-    const deltaX = currentX - touchStartX;
+    const deltaX = currentX - touchStartXRef.current;
     if (deltaX < 0) { // Only track left swipes (closing)
-      setTouchMoveX(currentX);
+      touchMoveXRef.current = currentX;
+      setSidebarSwipeOffset(Math.min(0, deltaX));
     } else {
-      setTouchMoveX(touchStartX); // Prevent swiping right
+      touchMoveXRef.current = touchStartXRef.current; // Prevent swiping right
+      setSidebarSwipeOffset(0);
     }
-  }, [touchStartX]);
+  }, []);
 
   const handleTouchEnd = useCallback(() => {
-    if (touchStartX === null) return;
+    if (touchStartXRef.current === null) return;
     
     let shouldClose = false;
-    if (touchMoveX !== null) {
-      const deltaX = touchMoveX - touchStartX;
+    if (touchMoveXRef.current !== null) {
+      const deltaX = touchMoveXRef.current - touchStartXRef.current;
       const sidebarWidth = sidebarRef.current?.offsetWidth || 320;
       
       if (deltaX < -(sidebarWidth / 3)) { // Swiped more than 1/3
@@ -1434,15 +514,17 @@ export default function PersonaChatPage() {
     }
 
     // Reset touch state
-    setTouchStartX(null);
-    setTouchMoveX(null);
-  }, [touchStartX, touchMoveX]);
+    touchStartXRef.current = null;
+    touchMoveXRef.current = null;
+    setSidebarSwipeOffset(0);
+  }, []);
 
   // Simple auto-scroll to bottom when mobile keyboard opens
   useEffect(() => {
     if (!isMobile || typeof window.visualViewport === 'undefined') return;
 
     const visualViewport = window.visualViewport;
+    if (!visualViewport) return;
     let previousHeight = visualViewport.height;
     
     const handleViewportChange = () => {
@@ -1450,7 +532,7 @@ export default function PersonaChatPage() {
       const heightDifference = previousHeight - currentHeight;
       
       // If keyboard opened (height decreased significantly)
-      if (heightDifference > 150) {
+      if (heightDifference > KEYBOARD_HEIGHT_THRESHOLD) {
         if (scrollAreaRef.current) {
           const scrollContainer = scrollAreaRef.current.querySelector('[data-radix-scroll-area-viewport]');
           if (scrollContainer) {
@@ -1479,14 +561,14 @@ export default function PersonaChatPage() {
 
     const handleTouchStart = (e: TouchEvent) => {
       const touch = e.touches[0];
-      setTouchStartY(touch.clientY);
-      setLastTouchY(touch.clientY);
+      touchStartYRef.current = touch.clientY;
+      lastTouchYRef.current = touch.clientY;
     };
 
     const handleTouchMove = (e: TouchEvent) => {
       const keyboardHeight = window.innerHeight - (window.visualViewport?.height || window.innerHeight);
       
-      if (keyboardHeight > 150) { // Keyboard is open
+      if (keyboardHeight > KEYBOARD_HEIGHT_THRESHOLD) { // Keyboard is open
         const target = e.target as Element;
         const scrollArea = scrollAreaRef.current?.querySelector('[data-radix-scroll-area-viewport]');
         
@@ -1501,8 +583,8 @@ export default function PersonaChatPage() {
         if (scrollArea && scrollArea.contains(target)) {
           const touch = e.touches[0];
           const currentY = touch.clientY;
-          const deltaY = lastTouchY ? currentY - lastTouchY : 0;
-          setLastTouchY(currentY);
+          const deltaY = lastTouchYRef.current ? currentY - lastTouchYRef.current : 0;
+          lastTouchYRef.current = currentY;
           
           const scrollTop = scrollArea.scrollTop;
           const scrollHeight = scrollArea.scrollHeight;
@@ -1523,14 +605,14 @@ export default function PersonaChatPage() {
     };
 
     const handleTouchEnd = () => {
-      setTouchStartY(null);
-      setLastTouchY(null);
+      touchStartYRef.current = null;
+      lastTouchYRef.current = null;
     };
 
     const handleWheel = (e: WheelEvent) => {
       const keyboardHeight = window.innerHeight - (window.visualViewport?.height || window.innerHeight);
       
-      if (keyboardHeight > 150) {
+      if (keyboardHeight > KEYBOARD_HEIGHT_THRESHOLD) {
         const target = e.target as Element;
         const scrollArea = scrollAreaRef.current?.querySelector('[data-radix-scroll-area-viewport]');
         
@@ -1557,7 +639,7 @@ export default function PersonaChatPage() {
       const keyboardHeight = window.innerHeight - (window.visualViewport?.height || window.innerHeight);
       
       // Prevent any document-level scrolling when keyboard is open
-      if (keyboardHeight > 150 && (e.target === document || e.target === document.body || e.target === document.documentElement)) {
+      if (keyboardHeight > KEYBOARD_HEIGHT_THRESHOLD && (e.target === document || e.target === document.body || e.target === document.documentElement)) {
         e.preventDefault();
         e.stopPropagation();
       }
@@ -1577,7 +659,7 @@ export default function PersonaChatPage() {
       document.removeEventListener('wheel', handleWheel, true);
       document.removeEventListener('scroll', handleScroll, true);
     };
-  }, [isMobile, lastTouchY]);
+  }, [isMobile]);
 
   useEffect(() => {
     let timeoutId: NodeJS.Timeout | null = null;
@@ -1651,11 +733,8 @@ export default function PersonaChatPage() {
 
   let swipeTransform: React.CSSProperties = {};
   let transitionClass = 'transition-transform duration-300 ease-in-out';
-  
-  if (isMobile && touchStartX !== null && touchMoveX !== null) {
-    const deltaX = touchMoveX - touchStartX;
-    const transformX = Math.min(0, deltaX);
-    swipeTransform = { transform: `translateX(${transformX}px)`, transition: 'none' };
+  if (isMobile && sidebarSwipeOffset < 0) {
+    swipeTransform = { transform: `translateX(${sidebarSwipeOffset}px)`, transition: 'none' };
     transitionClass = '';
   }
 
@@ -1687,7 +766,7 @@ export default function PersonaChatPage() {
               transitionClass,
               "flex flex-col bg-card/80 backdrop-blur-sm",
               "fixed bottom-0 left-0 top-0 z-30 w-80 border-r border-t-0 md:static md:bottom-auto md:top-auto md:h-auto md:w-auto md:transform-none md:transition-all",
-              (touchStartX === null) && (isSidebarOpen ? "translate-x-0" : "-translate-x-full"),
+              (sidebarSwipeOffset === 0) && (isSidebarOpen ? "translate-x-0" : "-translate-x-full"),
               isSidebarOpen ? "md:w-80" : "md:w-0 md:p-0 md:opacity-0 md:border-r-0",
               !isSidebarOpen && "md:overflow-hidden"
           )}>
@@ -1808,7 +887,7 @@ export default function PersonaChatPage() {
             </div>
             
             <div className="flex-1 min-h-0 px-4 pb-4">
-                <ScrollArea className="h-full" type="never">
+                <ScrollArea className="h-full" type="hover">
                   <div className="space-y-1">
                     {sortedChats.length > 0 ? (
                       sortedChats.map(chat => (

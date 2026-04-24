@@ -6,6 +6,7 @@
  */
 
 import { callGeminiApi } from '@/lib/api-key-manager';
+import { GEMINI_IMAGE_MODEL } from '@/lib/constants';
 import { z } from 'zod';
 
 export const GeneratePersonaProfilePictureInputSchema = z.object({
@@ -118,7 +119,7 @@ export async function generatePersonaProfilePicture(input: GeneratePersonaProfil
 
   try {
     // Use Nano Banana (Gemini 2.5 Flash Image) for image generation
-    const response = await callGeminiApi<any>('gemini-2.5-flash-image:generateContent', requestBody);
+    const response = await callGeminiApi<any>(`${GEMINI_IMAGE_MODEL}:generateContent`, requestBody);
 
     // The model returns image data in an 'inlineData' part.
     const imagePart = response.candidates?.[0]?.content?.parts?.find(

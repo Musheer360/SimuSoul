@@ -3,10 +3,16 @@
 
 import { getApiKeys } from '@/lib/db';
 
-const GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/';
+import { GEMINI_API_URL } from '@/lib/constants';
 const TEST_MODE_SUFFIX = '_TEST_MODE_360';
 
 let userKeyIndex = 0;
+
+function getNextKeyIndex(keysLength: number): number {
+  const idx = userKeyIndex % keysLength;
+  userKeyIndex = (userKeyIndex + 1) % keysLength;
+  return idx;
+}
 
 /**
  * Checks if the application is in "test mode" based on the stored API keys.
@@ -23,16 +29,6 @@ export async function isTestModeActive(): Promise<boolean> {
 
   // All valid keys must have the suffix for test mode to be active.
   return validKeys.every(key => key.endsWith(TEST_MODE_SUFFIX));
-}
-
-function getRoundRobinUserKey(customKeys: string[]): string {
-  if (userKeyIndex >= customKeys.length) {
-    userKeyIndex = 0;
-  }
-  const key = customKeys[userKeyIndex];
-  userKeyIndex = (userKeyIndex + 1) % customKeys.length;
-  // Strip the suffix before returning the key for use.
-  return key.replace(TEST_MODE_SUFFIX, '');
 }
 
 /**
@@ -72,9 +68,12 @@ export async function callGeminiApi<T>(
   let lastError: Error | null = null;
   const attempts = validKeys.length;
 
+  const startIndex = getNextKeyIndex(validKeys.length);
+
   for (let i = 0; i < attempts; i++) {
-    const keyToTry = getRoundRobinUserKey(validKeys);
-    const url = `${GEMINI_API_URL}${model}?key=${keyToTry}`;
+    const keyIndex = (startIndex + i) % validKeys.length;
+    const keyToTry = validKeys[keyIndex].replace(TEST_MODE_SUFFIX, '');
+    const url = `${GEMINI_API_URL}${model}`;
 
     // Retry logic for 503 errors
     const maxApiRetries = 3;
@@ -84,6 +83,7 @@ export async function callGeminiApi<T>(
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
+            'x-goog-api-key': keyToTry,
           },
           body: JSON.stringify(body),
         });
@@ -115,7 +115,7 @@ export async function callGeminiApi<T>(
       }
     }
     
-    console.warn(`API key ending in ...${keyToTry.slice(-4)} failed. Retrying with next key.`);
+    console.warn('API key failed. Retrying with next key.');
   }
   
   throw new Error(`All provided API keys failed. Last error: ${lastError?.message || 'Unknown error'}`);

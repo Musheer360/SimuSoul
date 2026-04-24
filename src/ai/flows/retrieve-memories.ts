@@ -10,6 +10,9 @@
 import { callGeminiApi } from '@/lib/api-key-manager';
 import type { ChatSession, ChatMessage } from '@/lib/types';
 import { z } from 'zod';
+import { safeParseJson } from '@/lib/safe-json';
+import { zodToGeminiSchema } from '@/lib/zod-to-gemini';
+import { GEMINI_TEXT_MODEL, MAX_CHAT_CONTEXTS, MAX_MESSAGES_PER_CHAT } from '@/lib/constants';
 
 // Schema for memory retrieval decision
 const MemoryRetrievalDecisionSchema = z.object({
@@ -26,45 +29,6 @@ const ChatRelevanceSchema = z.object({
 });
 
 type ChatRelevance = z.infer<typeof ChatRelevanceSchema>;
-
-// OpenAPI schema for Gemini API
-const MemoryRetrievalDecisionOpenAPISchema = {
-  type: 'OBJECT',
-  properties: {
-    needsRetrieval: {
-      type: 'BOOLEAN',
-      description: 'Whether the user message requires looking up past conversations',
-    },
-    searchQueries: {
-      type: 'ARRAY',
-      items: { type: 'STRING' },
-      description: 'Up to 3 search queries to find relevant past conversations. Empty if needsRetrieval is false.',
-    },
-    timeFrameHint: {
-      type: 'STRING',
-      description: 'Optional time frame hint like "last week", "a month ago", "recently" if user mentions time',
-    },
-  },
-  required: ['needsRetrieval', 'searchQueries'],
-};
-
-const ChatRelevanceOpenAPISchema = {
-  type: 'OBJECT',
-  properties: {
-    relevantChatIds: {
-      type: 'ARRAY',
-      items: { type: 'STRING' },
-      description: 'IDs of the most relevant chats to retrieve, ordered by relevance. Maximum 3.',
-    },
-  },
-  required: ['relevantChatIds'],
-};
-
-/** Maximum number of message excerpts to include per retrieved chat */
-const MAX_MESSAGES_PER_CHAT = 8;
-
-/** Maximum number of past chats to pass as context to prevent performance issues */
-const MAX_CHAT_CONTEXTS = 50;
 
 /** Estimated message count when a typical summary is created (used for staleness detection) */
 const TYPICAL_SUMMARY_MESSAGE_COUNT = 10;
@@ -162,7 +126,7 @@ When needsRetrieval is true, generate semantic search queries:
     generationConfig: {
       temperature: 0.3,
       responseMimeType: 'application/json',
-      responseSchema: MemoryRetrievalDecisionOpenAPISchema,
+      responseSchema: zodToGeminiSchema(MemoryRetrievalDecisionSchema),
       thinkingConfig: {
         thinkingLevel: "low",
       },
@@ -170,13 +134,13 @@ When needsRetrieval is true, generate semantic search queries:
   };
 
   try {
-    const response = await callGeminiApi<any>('gemini-3-flash-preview:generateContent', requestBody);
+    const response = await callGeminiApi<any>(`${GEMINI_TEXT_MODEL}:generateContent`, requestBody);
     
     if (!response.candidates || !response.candidates[0].content.parts[0].text) {
       return { needsRetrieval: false, searchQueries: [] };
     }
     
-    const jsonResponse = JSON.parse(response.candidates[0].content.parts[0].text);
+    const jsonResponse = safeParseJson(response.candidates[0].content.parts[0].text, 'memoryRetrievalDecision');
     return MemoryRetrievalDecisionSchema.parse(jsonResponse);
   } catch (error) {
     console.error('Memory retrieval decision failed:', error);
@@ -235,7 +199,7 @@ Note: Return empty array [] if no chats are relevant.
     generationConfig: {
       temperature: 0.2,
       responseMimeType: 'application/json',
-      responseSchema: ChatRelevanceOpenAPISchema,
+      responseSchema: zodToGeminiSchema(ChatRelevanceSchema),
       thinkingConfig: {
         thinkingLevel: "low",
       },
@@ -243,13 +207,13 @@ Note: Return empty array [] if no chats are relevant.
   };
 
   try {
-    const response = await callGeminiApi<any>('gemini-3-flash-preview:generateContent', requestBody);
+    const response = await callGeminiApi<any>(`${GEMINI_TEXT_MODEL}:generateContent`, requestBody);
     
     if (!response.candidates || !response.candidates[0].content.parts[0].text) {
       return [];
     }
     
-    const jsonResponse = JSON.parse(response.candidates[0].content.parts[0].text);
+    const jsonResponse = safeParseJson(response.candidates[0].content.parts[0].text, 'findRelevantChats');
     const result = ChatRelevanceSchema.parse(jsonResponse);
     return result.relevantChatIds;
   } catch (error) {
@@ -396,10 +360,7 @@ export async function retrieveRelevantMemories(
     .sort((a, b) => (b.updatedAt || b.createdAt) - (a.updatedAt || a.createdAt))
     .slice(0, MAX_CHAT_CONTEXTS);
   
-  console.log(`[Memory Retrieval] Past chats available: ${pastChats.length} (limited from ${allChats.length} total)`);
-  
   if (pastChats.length === 0) {
-    console.log('[Memory Retrieval] No past chats found');
     return [];
   }
   
@@ -419,9 +380,6 @@ export async function retrieveRelevantMemories(
       }),
       messageCount: c.messages.length,
     }));
-    
-  console.log(`[Memory Retrieval] Chat metadata generated for ${chatMetadata.length} chats:`, 
-    chatMetadata.map(c => ({ id: c.id.substring(0, 8), title: c.title, summary: c.summary.substring(0, 100) + '...' })));
   
   // Also include recent summaries for decision making (already sorted by recency)
   const recentSummaries = chatMetadata
@@ -431,14 +389,7 @@ export async function retrieveRelevantMemories(
   // Step 1: Decide if we need to retrieve memories
   const decision = await decideMemoryRetrieval(userMessages, existingMemories, recentSummaries);
   
-  console.log(`[Memory Retrieval] Decision:`, {
-    needsRetrieval: decision.needsRetrieval,
-    searchQueries: decision.searchQueries,
-    timeFrameHint: decision.timeFrameHint
-  });
-  
   if (!decision.needsRetrieval || decision.searchQueries.length === 0) {
-    console.log('[Memory Retrieval] No retrieval needed or no search queries');
     return [];
   }
   
@@ -449,10 +400,7 @@ export async function retrieveRelevantMemories(
     decision.timeFrameHint
   );
   
-  console.log(`[Memory Retrieval] Relevant chat IDs found:`, relevantChatIds);
-  
   if (relevantChatIds.length === 0) {
-    console.log('[Memory Retrieval] No relevant chats found');
     return [];
   }
   
