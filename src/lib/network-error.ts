@@ -4,10 +4,10 @@ export function normalizeProviderNetworkError(error: unknown, provider: string):
   if (error instanceof Error) {
     const isNetworkFailure =
       error instanceof TypeError &&
-      /failed to fetch|network ?error|network request failed|load failed/i.test(error.message);
+      /failed to fetch|network\s*error|network request failed|load failed/i.test(error.message);
     if (isNetworkFailure) {
       return new Error(
-        `${provider} request failed to reach the API. Check your network/CORS settings and try again.`
+        `${provider} request failed to reach the API. Check your network or browser restrictions and try again.`
       );
     }
     return error;
