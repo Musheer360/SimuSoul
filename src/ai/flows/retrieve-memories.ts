@@ -7,7 +7,7 @@
  * based on the user's current message, enabling better long-term memory recall.
  */
 
-import { callGeminiApi } from '@/lib/api-key-manager';
+import { callLLM } from '@/lib/llm-router';
 import type { ChatSession, ChatMessage } from '@/lib/types';
 import { z } from 'zod';
 import { safeParseJson } from '@/lib/safe-json';
@@ -134,7 +134,7 @@ When needsRetrieval is true, generate semantic search queries:
   };
 
   try {
-    const response = await callGeminiApi<any>(`${GEMINI_TEXT_MODEL}:generateContent`, requestBody);
+    const response = await callLLM<any>(`${GEMINI_TEXT_MODEL}:generateContent`, requestBody);
     
     if (!response.candidates || !response.candidates[0].content.parts[0].text) {
       return { needsRetrieval: false, searchQueries: [] };
@@ -207,7 +207,7 @@ Note: Return empty array [] if no chats are relevant.
   };
 
   try {
-    const response = await callGeminiApi<any>(`${GEMINI_TEXT_MODEL}:generateContent`, requestBody);
+    const response = await callLLM<any>(`${GEMINI_TEXT_MODEL}:generateContent`, requestBody);
     
     if (!response.candidates || !response.candidates[0].content.parts[0].text) {
       return [];

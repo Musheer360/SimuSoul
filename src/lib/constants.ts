@@ -28,3 +28,9 @@ export const GEMINI_IMAGE_MODEL = 'gemini-2.5-flash-image';
 // Memory retrieval limits
 export const MAX_CHAT_CONTEXTS = 50;
 export const MAX_MESSAGES_PER_CHAT = 8;
+
+// Groq API
+export const GROQ_API_URL = 'https://api.groq.com/openai/v1/chat/completions';
+export const GROQ_TEXT_MODEL = 'meta-llama/llama-4-scout-17b-16e-instruct';
+export const GROQ_MAX_BASE64_SIZE = 4 * 1024 * 1024; // 4MB base64 limit for Groq
+export const GROQ_MAX_IMAGES_PER_REQUEST = 5;

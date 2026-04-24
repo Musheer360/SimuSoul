@@ -91,4 +91,5 @@ export interface UserDetails {
 
 export interface ApiKeys {
   gemini: string[];
+  groq: string[];
 }

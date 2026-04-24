@@ -6,7 +6,7 @@
  * Enhanced with agentic memory retrieval system for better long-term memory recall.
  */
 
-import { callGeminiApi } from '@/lib/api-key-manager';
+import { callLLM } from '@/lib/llm-router';
 import type { ChatMessage, Persona, UserDetails, ChatSession, FileAttachment } from '@/lib/types';
 import { generateTimeAwarenessPrompt } from '@/lib/time-awareness';
 import { retrieveRelevantMemories, formatRetrievedMemoriesForPrompt } from './retrieve-memories';
@@ -324,7 +324,7 @@ export async function chatWithPersona(
     ],
   };
 
-  const response = await callGeminiApi<any>(`${GEMINI_TEXT_MODEL}:generateContent`, requestBody);
+  const response = await callLLM<any>(`${GEMINI_TEXT_MODEL}:generateContent`, requestBody, { attachments: payload.attachments, context: 'chatWithPersona' });
 
   if (!response.candidates || !response.candidates[0].content.parts[0].text) {
     console.warn("AI returned no response text. This could be due to a safety filter or model error. Suppressing output for this turn.");

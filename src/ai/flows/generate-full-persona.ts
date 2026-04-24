@@ -5,7 +5,7 @@
  * @fileOverview This file defines a client-side function for generating a full persona from a prompt.
  */
 
-import { callGeminiApi } from '@/lib/api-key-manager';
+import { callLLM } from '@/lib/llm-router';
 import { z } from 'zod';
 import { safeParseJson } from '@/lib/safe-json';
 import { zodToGeminiSchema } from '@/lib/zod-to-gemini';
@@ -141,7 +141,7 @@ Generate a complete, multi-dimensional persona now.`;
     ],
   };
 
-  const response = await callGeminiApi<any>(`${GEMINI_TEXT_MODEL}:generateContent`, requestBody);
+  const response = await callLLM<any>(`${GEMINI_TEXT_MODEL}:generateContent`, requestBody);
   
   if (!response.candidates || !response.candidates[0].content.parts[0].text) {
     throw new Error('Invalid response from AI model for persona generation.');

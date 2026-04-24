@@ -6,7 +6,7 @@
  * Supports both initial summarization and incremental updates to existing summaries.
  */
 
-import { callGeminiApi } from '@/lib/api-key-manager';
+import { callLLM } from '@/lib/llm-router';
 import { safeParseJson } from '@/lib/safe-json';
 import { zodToGeminiSchema } from '@/lib/zod-to-gemini';
 import { GEMINI_TEXT_MODEL, MIN_MESSAGES_FOR_SUMMARY } from '@/lib/constants';
@@ -114,7 +114,7 @@ ${input.chatHistory.map(msg => `${msg.role}: ${msg.content}`).join('\n')}
     },
   };
 
-  const response = await callGeminiApi<any>(`${GEMINI_TEXT_MODEL}:generateContent`, requestBody);
+  const response = await callLLM<any>(`${GEMINI_TEXT_MODEL}:generateContent`, requestBody);
   
   if (!response.candidates || !response.candidates[0].content.parts[0].text) {
     throw new Error('Invalid response from AI model for summary generation.');

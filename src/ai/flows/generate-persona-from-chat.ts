@@ -1,6 +1,6 @@
 'use client';
 
-import { callGeminiApi } from '@/lib/api-key-manager';
+import { callLLM } from '@/lib/llm-router';
 import { safeParseJson } from '@/lib/safe-json';
 import { GEMINI_TEXT_MODEL } from '@/lib/constants';
 import { z } from 'zod';
@@ -223,13 +223,13 @@ ${userContext}
 
   let response;
   try {
-    response = await callGeminiApi<any>(`${GEMINI_TEXT_MODEL}:generateContent`, requestBody);
+    response = await callLLM<any>(`${GEMINI_TEXT_MODEL}:generateContent`, requestBody);
   } catch (error) {
     // If thinking config is not supported, retry without it
     if (isThinkingConfigUnsupported(error)) {
       console.log('Thinking config not supported, retrying without it...');
       const { thinkingConfig, ...restGenerationConfig } = requestBody.generationConfig;
-      response = await callGeminiApi<any>(`${GEMINI_TEXT_MODEL}:generateContent`, {
+      response = await callLLM<any>(`${GEMINI_TEXT_MODEL}:generateContent`, {
         ...requestBody,
         generationConfig: restGenerationConfig,
       });

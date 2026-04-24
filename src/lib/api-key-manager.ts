@@ -20,15 +20,10 @@ function getNextKeyIndex(keysLength: number): number {
  * @returns {Promise<boolean>} A promise that resolves to true if test mode is active, false otherwise.
  */
 export async function isTestModeActive(): Promise<boolean> {
-  const { gemini: customKeys } = await getApiKeys();
-  const validKeys = customKeys?.filter(Boolean) || [];
-
-  if (validKeys.length === 0) {
-    return false; // No keys, no test mode.
-  }
-
-  // All valid keys must have the suffix for test mode to be active.
-  return validKeys.every(key => key.endsWith(TEST_MODE_SUFFIX));
+  const apiKeys = await getApiKeys();
+  const allKeys = [...(apiKeys.gemini?.filter(Boolean) || []), ...(apiKeys.groq?.filter(Boolean) || [])];
+  if (allKeys.length === 0) return false;
+  return allKeys.every(key => key.endsWith(TEST_MODE_SUFFIX));
 }
 
 /**

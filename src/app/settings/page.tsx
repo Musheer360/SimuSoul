@@ -29,7 +29,7 @@ export default function SettingsPage() {
   const { toast } = useToast();
   const router = useRouter();
   const [userDetails, setUserDetails] = useState<UserDetails>({ name: '', about: '' });
-  const [apiKeys, setApiKeys] = useState<ApiKeys>({ gemini: [''] });
+  const [apiKeys, setApiKeys] = useState<ApiKeys>({ gemini: [''], groq: [''] });
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [isClearing, setIsClearing] = useState(false);
@@ -39,7 +39,7 @@ export default function SettingsPage() {
       setIsLoading(true);
       const [details, keys] = await Promise.all([getUserDetails(), getApiKeys()]);
       setUserDetails(details);
-      setApiKeys(keys.gemini && keys.gemini.length > 0 ? keys : { gemini: [''] });
+      setApiKeys({ gemini: keys.gemini?.length > 0 ? keys.gemini : [''], groq: keys.groq?.length > 0 ? keys.groq : [''] });
       setIsLoading(false);
     }
     loadSettings();
@@ -49,38 +49,38 @@ export default function SettingsPage() {
     setUserDetails(prev => ({ ...prev, [e.target.name]: e.target.value }));
   };
 
-  const handleApiKeyChange = (index: number, value: string) => {
-    const newKeys = [...apiKeys.gemini];
-    newKeys[index] = value;
-    setApiKeys({ gemini: newKeys });
+  const handleApiKeyChange = (provider: 'gemini' | 'groq', index: number, value: string) => {
+    setApiKeys(prev => {
+      const newKeys = [...prev[provider]];
+      newKeys[index] = value;
+      return { ...prev, [provider]: newKeys };
+    });
   };
   
-  const handleAddKey = () => {
-    if (apiKeys.gemini.length >= 5) {
+  const handleAddKey = (provider: 'gemini' | 'groq') => {
+    const keys = apiKeys[provider];
+    if (keys.length >= 5) {
       toast({ variant: 'destructive', title: 'Limit Reached', description: 'You can add a maximum of 5 API keys.' });
       return;
     }
-    if (apiKeys.gemini[apiKeys.gemini.length - 1].trim() === '') {
+    if (keys[keys.length - 1].trim() === '') {
       toast({ variant: 'destructive', title: 'Empty Field', description: 'Please fill in the current API key before adding a new one.' });
       return;
     }
-    setApiKeys({ gemini: [...apiKeys.gemini, ''] });
+    setApiKeys(prev => ({ ...prev, [provider]: [...prev[provider], ''] }));
   };
 
-  const handleRemoveKey = (index: number) => {
-    const newKeys = apiKeys.gemini.filter((_, i) => i !== index);
-    if (newKeys.length === 0) {
-      setApiKeys({ gemini: [''] });
-    } else {
-      setApiKeys({ gemini: newKeys });
-    }
+  const handleRemoveKey = (provider: 'gemini' | 'groq', index: number) => {
+    const newKeys = apiKeys[provider].filter((_, i) => i !== index);
+    setApiKeys(prev => ({ ...prev, [provider]: newKeys.length === 0 ? [''] : newKeys }));
   };
 
   const handleSave = async () => {
     setIsSaving(true);
     try {
-      const keysToSave = {
+      const keysToSave: ApiKeys = {
         gemini: apiKeys.gemini.map(k => k.trim()).filter(Boolean),
+        groq: apiKeys.groq.map(k => k.trim()).filter(Boolean),
       };
       await Promise.all([saveUserDetails(userDetails), saveApiKeys(keysToSave)]);
       toast({
@@ -167,37 +167,68 @@ export default function SettingsPage() {
 
             <div className="space-y-4">
               <h3 className="font-semibold font-headline text-xl text-foreground">API Keys</h3>
+              <p className="text-sm text-muted-foreground">Add keys for one or both providers. Groq is used as the primary provider when available, with Gemini as fallback.</p>
+              
               <div className="space-y-3">
-                {apiKeys.gemini.map((key, index) => (
-                  <div key={index} className="flex items-center gap-2">
-                    <Label htmlFor={`gemini-${index}`} className="sr-only">
-                      Gemini API Key {index + 1}
-                    </Label>
+                <Label className="text-sm font-medium">Groq API Keys (Recommended)</Label>
+                {apiKeys.groq.map((key, index) => (
+                  <div key={`groq-${index}`} className="flex items-center gap-2">
+                    <Label htmlFor={`groq-${index}`} className="sr-only">Groq API Key {index + 1}</Label>
                     <Input
-                      id={`gemini-${index}`}
-                      name="gemini"
+                      id={`groq-${index}`}
                       type="password"
                       value={key}
-                      onChange={(e) => handleApiKeyChange(index, e.target.value)}
+                      onChange={(e) => handleApiKeyChange('groq', index, e.target.value)}
+                      placeholder={`Enter Groq key ${index + 1}`}
+                      className="flex-grow"
+                    />
+                    {apiKeys.groq.length > 1 && (
+                      <Button variant="ghost" size="icon" onClick={() => handleRemoveKey('groq', index)} aria-label={`Remove Groq key ${index + 1}`}>
+                        <Trash2 className="h-4 w-4 text-muted-foreground" />
+                      </Button>
+                    )}
+                  </div>
+                ))}
+                {apiKeys.groq.length < 5 && (
+                  <Button variant="outline" onClick={() => handleAddKey('groq')} className="w-full justify-start text-muted-foreground">
+                    <PlusCircle className="mr-2 h-4 w-4" /> Add another Groq key
+                  </Button>
+                )}
+                <p className="text-xs text-muted-foreground pt-1">
+                  Get your free API key from <a href="https://console.groq.com/keys" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">Groq Console</a>. Faster inference with generous free tier limits.
+                </p>
+              </div>
+
+              <Separator />
+
+              <div className="space-y-3">
+                <Label className="text-sm font-medium">Gemini API Keys</Label>
+                {apiKeys.gemini.map((key, index) => (
+                  <div key={`gemini-${index}`} className="flex items-center gap-2">
+                    <Label htmlFor={`gemini-${index}`} className="sr-only">Gemini API Key {index + 1}</Label>
+                    <Input
+                      id={`gemini-${index}`}
+                      type="password"
+                      value={key}
+                      onChange={(e) => handleApiKeyChange('gemini', index, e.target.value)}
                       placeholder={`Enter Gemini key ${index + 1}`}
                       className="flex-grow"
                     />
                     {apiKeys.gemini.length > 1 && (
-                       <Button variant="ghost" size="icon" onClick={() => handleRemoveKey(index)} aria-label={`Remove key ${index + 1}`}>
-                         <Trash2 className="h-4 w-4 text-muted-foreground" />
-                       </Button>
+                      <Button variant="ghost" size="icon" onClick={() => handleRemoveKey('gemini', index)} aria-label={`Remove Gemini key ${index + 1}`}>
+                        <Trash2 className="h-4 w-4 text-muted-foreground" />
+                      </Button>
                     )}
                   </div>
                 ))}
                 {apiKeys.gemini.length < 5 && (
-                  <Button variant="outline" onClick={handleAddKey} className="w-full justify-start text-muted-foreground">
-                    <PlusCircle className="mr-2 h-4 w-4" />
-                    Add another API key
+                  <Button variant="outline" onClick={() => handleAddKey('gemini')} className="w-full justify-start text-muted-foreground">
+                    <PlusCircle className="mr-2 h-4 w-4" /> Add another Gemini key
                   </Button>
                 )}
-                 <p className="text-xs text-muted-foreground pt-1">
-                   Get your free API key from <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">Google AI Studio</a>. Keys are stored locally on your device.
-                 </p>
+                <p className="text-xs text-muted-foreground pt-1">
+                  Get your free API key from <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">Google AI Studio</a>. Required for profile picture generation.
+                </p>
               </div>
             </div>
 

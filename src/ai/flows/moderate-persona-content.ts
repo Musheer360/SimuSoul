@@ -5,7 +5,7 @@
  * @fileOverview This file defines a client-side function for moderating persona content.
  */
 
-import { callGeminiApi } from '@/lib/api-key-manager';
+import { callLLM } from '@/lib/llm-router';
 import { z } from 'zod';
 import { safeParseJson } from '@/lib/safe-json';
 import { zodToGeminiSchema } from '@/lib/zod-to-gemini';
@@ -101,7 +101,7 @@ Set isSafe to true unless there is a CLEAR, EXPLICIT violation.
   };
 
   try {
-    const response = await callGeminiApi<any>(`${GEMINI_TEXT_MODEL}:generateContent`, requestBody);
+    const response = await callLLM<any>(`${GEMINI_TEXT_MODEL}:generateContent`, requestBody);
     
     if (!response.candidates || !response.candidates[0].content.parts[0].text) {
       return { isSafe: false, reason: 'Content could not be verified by the moderation service.' };
