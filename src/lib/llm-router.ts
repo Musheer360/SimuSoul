@@ -4,25 +4,11 @@ import { getApiKeys } from '@/lib/db';
 import { callGeminiApi } from '@/lib/api-key-manager';
 import { safeParseJson } from '@/lib/safe-json';
 import { GROQ_API_URL, GROQ_TEXT_MODEL, GROQ_MAX_BASE64_SIZE, GROQ_MAX_IMAGES_PER_REQUEST, SUPPORTED_IMAGE_TYPES } from '@/lib/constants';
+import { normalizeProviderNetworkError } from '@/lib/network-error';
 import type { FileAttachment } from '@/lib/types';
 
 const TEST_MODE_SUFFIX = '_TEST_MODE_360';
 let groqKeyIndex = 0;
-
-function normalizeProviderError(error: unknown, provider: 'Groq' | 'Gemini'): Error {
-  if (error instanceof Error) {
-    const isNetworkFailure =
-      error instanceof TypeError &&
-      /failed to fetch|network ?error|network request failed|load failed/i.test(error.message);
-    if (isNetworkFailure) {
-      return new Error(
-        `${provider} request failed to reach the API. Check your network/CORS settings and try again.`
-      );
-    }
-    return error;
-  }
-  return new Error(`${provider} request failed with an unknown error.`);
-}
 
 interface LLMCallOptions {
   /** Gemini model string, e.g. 'gemini-3-flash-preview:generateContent' */
@@ -150,7 +136,7 @@ async function callGroqApi(body: Record<string, any>): Promise<string> {
         if (!text) throw new Error('Groq returned empty response');
         return text;
       } catch (error: any) {
-        const normalizedError = normalizeProviderError(error, 'Groq');
+        const normalizedError = normalizeProviderNetworkError(error, 'Groq');
         if (
           retry === maxRetries - 1 ||
           (!normalizedError.message?.includes('429') && !normalizedError.message?.includes('503'))
