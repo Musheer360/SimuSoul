@@ -4,6 +4,7 @@ import { getApiKeys } from '@/lib/db';
 import { callGeminiApi } from '@/lib/api-key-manager';
 import { safeParseJson } from '@/lib/safe-json';
 import { GROQ_API_URL, GROQ_TEXT_MODEL, GROQ_MAX_BASE64_SIZE, GROQ_MAX_IMAGES_PER_REQUEST, SUPPORTED_IMAGE_TYPES } from '@/lib/constants';
+import { isLikelyNetworkFailure, normalizeProviderNetworkError } from '@/lib/network-error';
 import type { FileAttachment } from '@/lib/types';
 
 const TEST_MODE_SUFFIX = '_TEST_MODE_360';
@@ -135,8 +136,14 @@ async function callGroqApi(body: Record<string, any>): Promise<string> {
         if (!text) throw new Error('Groq returned empty response');
         return text;
       } catch (error: any) {
-        if (retry === maxRetries - 1 || (!error.message?.includes('429') && !error.message?.includes('503'))) {
-          lastError = error;
+        const rawMessage = error?.message || '';
+        const isRetryableError =
+          rawMessage.includes('429') ||
+          rawMessage.includes('503') ||
+          isLikelyNetworkFailure(error);
+        const normalizedError = normalizeProviderNetworkError(error, 'Groq');
+        if (retry === maxRetries - 1 || !isRetryableError) {
+          lastError = normalizedError;
           break;
         }
       }
