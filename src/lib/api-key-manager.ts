@@ -4,7 +4,7 @@
 import { getApiKeys } from '@/lib/db';
 
 import { GEMINI_API_URL } from '@/lib/constants';
-import { normalizeProviderNetworkError } from '@/lib/network-error';
+import { isLikelyNetworkFailure, normalizeProviderNetworkError } from '@/lib/network-error';
 const TEST_MODE_SUFFIX = '_TEST_MODE_360';
 
 let userKeyIndex = 0;
@@ -103,9 +103,11 @@ export async function callGeminiApi<T>(
 
         return await response.json();
       } catch (error: any) {
+        const rawMessage = error?.message || '';
+        const isRetryableError = rawMessage.includes('503') || isLikelyNetworkFailure(error);
         const normalizedError = normalizeProviderNetworkError(error, 'Gemini');
         // If it's the last retry or not a 503 error, save and break
-        if (retry === maxApiRetries - 1 || !normalizedError.message?.includes('503')) {
+        if (retry === maxApiRetries - 1 || !isRetryableError) {
           lastError = normalizedError;
           break;
         }
