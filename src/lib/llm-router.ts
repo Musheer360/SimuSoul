@@ -9,6 +9,21 @@ import type { FileAttachment } from '@/lib/types';
 const TEST_MODE_SUFFIX = '_TEST_MODE_360';
 let groqKeyIndex = 0;
 
+function normalizeProviderError(error: unknown, provider: 'Groq' | 'Gemini'): Error {
+  if (error instanceof Error) {
+    const isNetworkFailure =
+      error instanceof TypeError &&
+      /failed to fetch|network ?error|network request failed|load failed/i.test(error.message);
+    if (isNetworkFailure) {
+      return new Error(
+        `${provider} request failed to reach the API. Check your network/CORS settings and try again.`
+      );
+    }
+    return error;
+  }
+  return new Error(`${provider} request failed with an unknown error.`);
+}
+
 interface LLMCallOptions {
   /** Gemini model string, e.g. 'gemini-3-flash-preview:generateContent' */
   geminiModel: string;
@@ -135,8 +150,12 @@ async function callGroqApi(body: Record<string, any>): Promise<string> {
         if (!text) throw new Error('Groq returned empty response');
         return text;
       } catch (error: any) {
-        if (retry === maxRetries - 1 || (!error.message?.includes('429') && !error.message?.includes('503'))) {
-          lastError = error;
+        const normalizedError = normalizeProviderError(error, 'Groq');
+        if (
+          retry === maxRetries - 1 ||
+          (!normalizedError.message?.includes('429') && !normalizedError.message?.includes('503'))
+        ) {
+          lastError = normalizedError;
           break;
         }
       }

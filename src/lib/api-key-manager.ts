@@ -8,6 +8,19 @@ const TEST_MODE_SUFFIX = '_TEST_MODE_360';
 
 let userKeyIndex = 0;
 
+function normalizeGeminiError(error: unknown): Error {
+  if (error instanceof Error) {
+    const isNetworkFailure =
+      error instanceof TypeError &&
+      /failed to fetch|network ?error|network request failed|load failed/i.test(error.message);
+    if (isNetworkFailure) {
+      return new Error('Gemini request failed to reach the API. Check your network/CORS settings and try again.');
+    }
+    return error;
+  }
+  return new Error('Gemini request failed with an unknown error.');
+}
+
 function getNextKeyIndex(keysLength: number): number {
   const idx = userKeyIndex % keysLength;
   userKeyIndex = (userKeyIndex + 1) % keysLength;
@@ -102,9 +115,10 @@ export async function callGeminiApi<T>(
 
         return await response.json();
       } catch (error: any) {
+        const normalizedError = normalizeGeminiError(error);
         // If it's the last retry or not a 503 error, save and break
-        if (retry === maxApiRetries - 1 || !error.message?.includes('503')) {
-          lastError = error;
+        if (retry === maxApiRetries - 1 || !normalizedError.message?.includes('503')) {
+          lastError = normalizedError;
           break;
         }
       }
