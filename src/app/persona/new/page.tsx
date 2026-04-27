@@ -309,10 +309,10 @@ export default function NewPersonaPage() {
       await createPersonaWithAvatar(dataToValidate, compressedDataUri);
 
     } catch (err: any) {
-      // Check if this is a quota error - show fallback dialog
-      if (err instanceof ImageGenerationQuotaError) {
+      // Show fallback dialog for any avatar generation failure (quota, missing key, etc.)
+      if (err instanceof ImageGenerationQuotaError || err?.message?.includes('API key') || err?.message?.includes('profile picture') || err?.message?.includes('image')) {
         setPendingPersonaData(dataToValidate);
-        setAvatarFallbackPrompt(err.prompt);
+        setAvatarFallbackPrompt(err instanceof ImageGenerationQuotaError ? err.prompt : buildProfilePicturePrompt({ personaName: dataToValidate.name, personaTraits: dataToValidate.traits, personaBackstory: dataToValidate.backstory }));
         setShowAvatarFallbackDialog(true);
         setIsCreating(false);
         return;

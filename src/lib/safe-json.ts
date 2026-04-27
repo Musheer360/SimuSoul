@@ -26,14 +26,12 @@ export function safeParseJson<T>(text: string, context: string): T {
 
 /**
  * Convert UPPER_CASE, SCREAMING_SNAKE_CASE, or PascalCase keys to camelCase.
- * Only normalizes top-level keys — nested objects are left as-is.
+ * Coerces non-primitive values to strings when they look like they should be strings
+ * (handles Groq returning objects/arrays for fields that schemas expect as strings).
  */
 function normalizeKeys(obj: Record<string, any>): Record<string, any> {
   const result: Record<string, any> = {};
   for (const [key, value] of Object.entries(obj)) {
-    // SCREAMING_SNAKE_CASE → camelCase (e.g. RESPONSE_STYLE → responseStyle)
-    // UPPERCASE → lowercase (e.g. NAME → name)
-    // Already camelCase → unchanged
     let camelKey: string;
     if (key.includes('_')) {
       camelKey = key.toLowerCase().replace(/_([a-z])/g, (_, c) => c.toUpperCase());
@@ -42,7 +40,13 @@ function normalizeKeys(obj: Record<string, any>): Record<string, any> {
     } else {
       camelKey = key.charAt(0).toLowerCase() + key.slice(1);
     }
-    result[camelKey] = value;
+    // Coerce non-array objects to string (Groq sometimes returns {tone: "casual"} instead of "casual tone")
+    // But preserve arrays (e.g. response: ["msg1", "msg2"] is intentional)
+    if (value && typeof value === 'object' && !Array.isArray(value)) {
+      result[camelKey] = Object.entries(value).map(([k, v]) => `${k}: ${v}`).join(', ');
+    } else {
+      result[camelKey] = value;
+    }
   }
   return result;
 }
