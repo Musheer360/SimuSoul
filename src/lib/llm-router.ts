@@ -80,6 +80,8 @@ function translateToOpenAI(body: Record<string, any>): Record<string, any> {
     if (gc.topP !== undefined) result.top_p = gc.topP;
     if (gc.responseMimeType === 'application/json') {
       result.response_format = { type: 'json_object' };
+      // Groq requires the word "json" in messages when using json response format
+      messages.unshift({ role: 'system', content: 'Respond with valid JSON only.' });
     }
     // Groq doesn't support responseSchema enforcement — we rely on Zod validation
     // Groq doesn't support thinkingConfig — skip
