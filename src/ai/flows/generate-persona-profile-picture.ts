@@ -10,7 +10,6 @@ import { z } from 'zod';
 import { sanitizeForPrompt } from '@/lib/utils';
 import { callLLM } from '@/lib/llm-router';
 import { safeParseJson } from '@/lib/safe-json';
-import { GEMINI_TEXT_MODEL } from '@/lib/constants';
 
 export const GeneratePersonaProfilePictureInputSchema = z.object({
   personaName: z.string(),
@@ -63,7 +62,7 @@ End with: "digital art portrait, high quality, detailed face, sharp focus, studi
   };
 
   try {
-    const response = await callLLM<any>(`${GEMINI_TEXT_MODEL}:generateContent`, requestBody);
+    const response = await callLLM<any>('generateContent', requestBody);
     const text = response.candidates?.[0]?.content?.parts?.[0]?.text;
     if (text) {
       const parsed = safeParseJson<{ prompt: string }>(text, 'imagePrompt');
