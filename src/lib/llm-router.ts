@@ -80,8 +80,19 @@ function translateToOpenAI(body: Record<string, any>): Record<string, any> {
     if (gc.topP !== undefined) result.top_p = gc.topP;
     if (gc.responseMimeType === 'application/json') {
       result.response_format = { type: 'json_object' };
-      // Groq requires the word "json" in messages when using json response format
-      messages.unshift({ role: 'system', content: 'Respond with valid JSON only.' });
+      // Groq requires the word "json" in messages when using json response format.
+      // Include schema hint so Groq uses correct field names and types.
+      let schemaHint = 'Respond with valid JSON only. Use lowercase camelCase keys.';
+      if (gc.responseSchema || body.generationConfig?.responseSchema) {
+        const schema = gc.responseSchema || body.generationConfig?.responseSchema;
+        if (schema?.properties) {
+          const fields = Object.entries(schema.properties)
+            .map(([k, v]: [string, any]) => `${k}: ${(v as any).type?.toLowerCase() || 'string'}`)
+            .join(', ');
+          schemaHint += ` Required JSON fields: { ${fields} }. All string fields must be plain strings, not arrays.`;
+        }
+      }
+      messages.unshift({ role: 'system', content: schemaHint });
     }
     // Groq doesn't support responseSchema enforcement — we rely on Zod validation
     // Groq doesn't support thinkingConfig — skip
