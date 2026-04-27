@@ -14,7 +14,7 @@ const CodeBlock = memo(function CodeBlock({ language, code }: { language: string
     navigator.clipboard.writeText(code).then(() => {
       setIsCopied(true);
       setTimeout(() => setIsCopied(false), 2000);
-    });
+    }).catch(() => {});
   };
   return (
     <div className="relative rounded-md bg-[#0d1117] overflow-x-auto">

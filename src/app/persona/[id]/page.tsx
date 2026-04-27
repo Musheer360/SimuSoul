@@ -33,13 +33,13 @@ import {
   DialogTrigger,
 } from '@/components/ui/dialog';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { cn } from '@/lib/utils';
+import { cn, findLastIndex } from '@/lib/utils';
 import { EditPersonaSheet } from '@/components/edit-persona-sheet';
 import { useToast } from '@/hooks/use-toast';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { AnimatedChatTitle } from '@/components/animated-chat-title';
 import { savePersona, deletePersona, saveChatSession } from '@/lib/db';
-import { SUPPORTED_IMAGE_TYPES, SUPPORTED_VIDEO_TYPES, SUPPORTED_DOCUMENT_TYPES, SUPPORTED_AUDIO_TYPES, ALL_SUPPORTED_TYPES, MAX_FILE_SIZE, KEYBOARD_HEIGHT_THRESHOLD } from '@/lib/constants';
+import { SUPPORTED_IMAGE_TYPES, SUPPORTED_VIDEO_TYPES, SUPPORTED_DOCUMENT_TYPES, SUPPORTED_AUDIO_TYPES, MAX_FILE_SIZE, KEYBOARD_HEIGHT_THRESHOLD } from '@/lib/constants';
 import { MemoryItem } from '@/components/memory-item';
 import { MediaPreview } from '@/components/media-preview';
 import { ChatMessageItem } from './_components/ChatMessageItem';
@@ -48,18 +48,6 @@ import { TypingIndicator } from './_components/TypingIndicator';
 import { useChatSession } from './_hooks/useChatSession';
 import { useAIResponse } from './_hooks/useAIResponse';
 
-
-// Helper to find the last index of an element in an array.
-const findLastIndex = <T,>(
-  array: T[],
-  predicate: (value: T, index: number, obj: T[]) => boolean
-): number => {
-  let l = array.length;
-  while (l--) {
-    if (predicate(array[l], l, array)) return l;
-  }
-  return -1;
-};
 
 export default function PersonaChatPage() {
   const router = useRouter();
@@ -144,11 +132,11 @@ export default function PersonaChatPage() {
 
     for (const file of Array.from(files)) {
       // Validate file type
-      if (!ALL_SUPPORTED_TYPES.includes(file.type)) {
+      if (!SUPPORTED_IMAGE_TYPES.includes(file.type)) {
         toast({
           variant: 'destructive',
           title: 'Unsupported file type',
-          description: `${file.name} is not a supported file type. Supported types: images, videos, PDFs, and text files.`,
+          description: `${file.name} is not a supported file type. Supported types: JPEG, PNG, GIF, and WebP images.`,
         });
         continue;
       }
@@ -315,7 +303,7 @@ export default function PersonaChatPage() {
   const messagesToDisplay = useMemo(() => {
       const messages = activeChat?.messages || [];
       return messages;
-  }, [activeChat, activeChatId]);
+  }, [activeChat]);
 
   const {
     isAiResponding,
@@ -363,11 +351,6 @@ export default function PersonaChatPage() {
     }
   }, [messagesToDisplay, isAiTyping]);
   
-  const handleMobileInputFocus = useCallback(() => {
-    // This function can be used for other focus-related logic if needed in the future.
-    // The main keyboard persistence logic is now handled in handleSubmit.
-  }, []);
-
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (isMobile) {
       return;
@@ -375,7 +358,7 @@ export default function PersonaChatPage() {
 
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
-      if (input.trim()) {
+      if (input.trim() || pendingAttachments.length > 0) {
         formRef.current?.requestSubmit();
       }
     }
@@ -910,6 +893,7 @@ export default function PersonaChatPage() {
                             <Button
                               variant="ghost"
                               className="h-7 w-7 shrink-0 p-0 text-muted-foreground hover:bg-transparent hover:text-destructive focus-visible:ring-0 focus-visible:ring-offset-0 transition-opacity md:opacity-0 group-hover:opacity-100"
+                              aria-label={`Delete chat ${chat.title}`}
                               onClick={(e) => { 
                                 e.preventDefault(); 
                                 e.stopPropagation();
@@ -945,13 +929,13 @@ export default function PersonaChatPage() {
                     <div className="flex-1 md:hidden">
                     </div>
                     <div className="md:hidden">
-                        <Button variant="ghost" size="icon" onClick={() => setIsSidebarOpen(!isSidebarOpen)}>
+                        <Button variant="ghost" size="icon" onClick={() => setIsSidebarOpen(!isSidebarOpen)} aria-label="Toggle chat sidebar">
                             <PanelLeft className="h-5 w-5" />
                         </Button>
                     </div>
                 </div>
                  <div className="hidden items-center gap-2 md:flex">
-                    <Button variant="ghost" size="icon" onClick={() => setIsSidebarOpen(!isSidebarOpen)}>
+                    <Button variant="ghost" size="icon" onClick={() => setIsSidebarOpen(!isSidebarOpen)} aria-label="Toggle chat sidebar">
                         <PanelLeft className="h-5 w-5" />
                     </Button>
                 </div>
@@ -1057,6 +1041,7 @@ export default function PersonaChatPage() {
                                         type="button"
                                         onClick={() => removeAttachment(index)}
                                         className="absolute right-1 top-1/2 -translate-y-1/2 rounded-full p-1 hover:bg-destructive/20 text-muted-foreground hover:text-destructive"
+                                        aria-label={`Remove ${attachment.name}`}
                                       >
                                         <X className="h-4 w-4" />
                                       </button>
@@ -1076,7 +1061,7 @@ export default function PersonaChatPage() {
                               ref={fileInputRef}
                               type="file"
                               multiple
-                              accept={ALL_SUPPORTED_TYPES.join(',')}
+                              accept={SUPPORTED_IMAGE_TYPES.join(',')}
                               onChange={handleFileSelect}
                               className="hidden"
                             />
@@ -1089,6 +1074,7 @@ export default function PersonaChatPage() {
                               onClick={() => fileInputRef.current?.click()}
                               className="h-10 w-10 flex-shrink-0 text-muted-foreground hover:text-foreground"
                               title="Attach file"
+                              aria-label="Attach file"
                             >
                               <Paperclip className="h-5 w-5" />
                             </Button>
@@ -1097,7 +1083,6 @@ export default function PersonaChatPage() {
                                 ref={textareaRef}
                                 value={input}
                                 onChange={handleInputChange}
-                                onFocus={handleMobileInputFocus}
                                 onKeyDown={handleKeyDown}
                                 rows={1}
                                 placeholder={`Message ${persona.name}...`}
@@ -1108,6 +1093,7 @@ export default function PersonaChatPage() {
                                 size="icon"
                                 disabled={!input.trim() && pendingAttachments.length === 0}
                                 className="h-10 w-10 rounded-md flex-shrink-0"
+                                aria-label="Send message"
                             >
                                 <Send className="h-5 w-5" />
                             </Button>

@@ -13,6 +13,7 @@ import { retrieveRelevantMemories, formatRetrievedMemoriesForPrompt } from './re
 import { z } from 'zod';
 import { safeParseJson } from '@/lib/safe-json';
 import { zodToJsonSchema } from '@/lib/zod-to-json-schema';
+import { sanitizeForPrompt } from '@/lib/utils';
 
 // Instruction template for attachment context
 const ATTACHMENT_CONTEXT_TEMPLATE = (fileNames: string) => 
@@ -72,11 +73,6 @@ const ChatWithPersonaOutputSchema = z.object({
   ignoreReason: z.string().optional().describe('If you decide to start ignoring the user, provide a brief, internal reason why (e.g., "User was rude," "User pushed boundaries"). Empty if not ignoring.'),
 });
 export type ChatWithPersonaOutput = z.infer<typeof ChatWithPersonaOutputSchema>;
-
-/** Strip XML-like tags from user input to prevent prompt injection */
-function sanitizeForPrompt(text: string): string {
-  return text.replace(/<\/?[a-zA-Z_][^>]*>/g, '');
-}
 
 function buildChatPrompt(input: ChatWithPersonaInput, persona: Persona): string {
     const userIdentifier = input.userDetails?.name?.split(' ')[0] || 'the user';
@@ -308,19 +304,6 @@ export async function chatWithPersona(
         thinkingLevel: "low",
       },
     },
-    safetySettings: isTestMode
-      ? [
-          { category: 'HARM_CATEGORY_HATE_SPEECH', threshold: 'BLOCK_NONE' },
-          { category: 'HARM_CATEGORY_DANGEROUS_CONTENT', threshold: 'BLOCK_NONE' },
-          { category: 'HARM_CATEGORY_HARASSMENT', threshold: 'BLOCK_NONE' },
-          { category: 'HARM_CATEGORY_SEXUALLY_EXPLICIT', threshold: 'BLOCK_NONE' },
-        ]
-      : [
-        { category: 'HARM_CATEGORY_HATE_SPEECH', threshold: 'BLOCK_ONLY_HIGH' },
-        { category: 'HARM_CATEGORY_DANGEROUS_CONTENT', threshold: 'BLOCK_ONLY_HIGH' },
-        { category: 'HARM_CATEGORY_HARASSMENT', threshold: 'BLOCK_ONLY_HIGH' },
-        { category: 'HARM_CATEGORY_SEXUALLY_EXPLICIT', threshold: 'BLOCK_ONLY_HIGH' },
-    ],
   };
 
   const response = await callLLM<any>('generateContent', requestBody, { attachments: payload.attachments, context: 'chatWithPersona' });

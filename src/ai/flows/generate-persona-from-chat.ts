@@ -2,6 +2,7 @@
 
 import { callLLM } from '@/lib/llm-router';
 import { safeParseJson } from '@/lib/safe-json';
+import { sanitizeForPrompt } from '@/lib/utils';
 import { z } from 'zod';
 
 export const GeneratePersonaFromChatInputSchema = z.object({
@@ -64,36 +65,6 @@ function parseWhatsAppChat(chatContent: string, personName: string): string[] {
   }
   
   return personMessages;
-}
-
-type LLMApiError = { status?: number; code?: string; message?: string };
-
-function isLLMApiError(error: unknown): error is LLMApiError {
-  if (!error || typeof error !== 'object') return false;
-  const candidate = error as Partial<LLMApiError>;
-  return (
-    typeof candidate.message === 'string' ||
-    typeof candidate.status === 'number' ||
-    typeof candidate.code === 'string'
-  );
-}
-
-function getLLMErrorDetails(error: LLMApiError) {
-  const rawCode = (error.code || '').toString();
-  return {
-    status: error.status,
-    rawCode,
-    normalizedCode: rawCode.toUpperCase(),
-    message: (error.message || '').toLowerCase(),
-  };
-}
-
-function isThinkingConfigUnsupported(error: unknown): boolean {
-  if (!isLLMApiError(error)) return false;
-  const { message } = getLLMErrorDetails(error);
-  const mentionsThinkingConfig = /thinking[_\s]?config/.test(message);
-  const mentionsUnsupportedField = message.includes('unknown field "thinkingconfig"') || message.includes('unknown field "thinking config"') || message.includes('unsupported field "thinkingconfig"');
-  return mentionsThinkingConfig || mentionsUnsupportedField;
 }
 
 export async function generatePersonaFromChat(input: GeneratePersonaFromChatInput): Promise<GeneratePersonaFromChatOutput> {
@@ -159,8 +130,8 @@ UNIQUE MARKERS:
 • Professional/hobby terminology
 </analysis_framework>
 
-<messages person="${personName.toUpperCase()}">
-${messageSample}
+<messages person="${sanitizeForPrompt(personName.toUpperCase())}">
+${sanitizeForPrompt(messageSample)}
 </messages>
 
 <metadata>
@@ -220,22 +191,7 @@ ${userContext}
     },
   };
 
-  let response;
-  try {
-    response = await callLLM<any>('generateContent', requestBody);
-  } catch (error) {
-    // If thinking config is not supported, retry without it
-    if (isThinkingConfigUnsupported(error)) {
-      console.log('Thinking config not supported, retrying without it...');
-      const { thinkingConfig, ...restGenerationConfig } = requestBody.generationConfig;
-      response = await callLLM<any>('generateContent', {
-        ...requestBody,
-        generationConfig: restGenerationConfig,
-      });
-    } else {
-      throw error;
-    }
-  }
+  const response = await callLLM<any>('generateContent', requestBody);
   
   const textContent = response.candidates?.[0]?.content?.parts?.[0]?.text;
   

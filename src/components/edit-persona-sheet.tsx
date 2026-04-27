@@ -26,11 +26,10 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Loader2, Save, RefreshCw, Upload } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { ScrollArea } from './ui/scroll-area';
-import { isTestModeActive } from '@/lib/api-key-manager';
-import { compressImage } from '@/lib/utils';
+import { isTestModeActive } from '@/lib/llm-router';
+import { compressImage, emptyStringAsUndefined } from '@/lib/utils';
 
 const GENERIC_MODERATION_ERROR = 'This content does not meet the safety guidelines. Please modify it and try again.';
-const emptyStringAsUndefined = (val: string | number | undefined | null) => (val === '' || val === undefined || val === null ? undefined : Number(val));
 
 interface EditPersonaSheetProps {
   persona: Persona;

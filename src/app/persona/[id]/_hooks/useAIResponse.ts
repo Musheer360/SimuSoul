@@ -5,20 +5,9 @@ import { chatWithPersona } from '@/ai/flows/chat-with-persona';
 import { generateChatTitle } from '@/ai/flows/generate-chat-title';
 import type { Persona, ChatMessage, ChatSession, UserDetails, ChatSessionHeader } from '@/lib/types';
 import { savePersona, saveChatSession, getPersonaChatsWithMessages } from '@/lib/db';
-import { isTestModeActive } from '@/lib/api-key-manager';
+import { isTestModeActive } from '@/lib/llm-router';
+import { findLastIndex } from '@/lib/utils';
 import { MIN_TYPING_DELAY_MS, MAX_TYPING_DELAY_MS, RESPONSE_TIMER_MIN_MS, RESPONSE_TIMER_MAX_MS } from '@/lib/constants';
-
-// Helper to find the last index of an element in an array.
-const findLastIndex = <T,>(
-  array: T[],
-  predicate: (value: T, index: number, obj: T[]) => boolean
-): number => {
-  let l = array.length;
-  while (l--) {
-    if (predicate(array[l], l, array)) return l;
-  }
-  return -1;
-};
 
 interface UseAIResponseParams {
   persona: Persona | null | undefined;

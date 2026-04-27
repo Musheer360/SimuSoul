@@ -9,6 +9,7 @@ import { callLLM } from '@/lib/llm-router';
 import { z } from 'zod';
 import { safeParseJson } from '@/lib/safe-json';
 import { zodToJsonSchema } from '@/lib/zod-to-json-schema';
+import { sanitizeForPrompt } from '@/lib/utils';
 
 export const ModeratePersonaContentInputSchema = z.object({
   name: z.string(),
@@ -58,8 +59,8 @@ MINOR SAFETY:
 </policies>
 
 <persona_content>
-Name: ${input.name}
-Relationship: ${input.relation}`;
+Name: ${sanitizeForPrompt(input.name)}
+Relationship: ${sanitizeForPrompt(input.relation)}`;
 
   if (input.age) {
     promptText += `
@@ -67,10 +68,10 @@ Age: ${input.age}`;
   }
 
   promptText += `
-Traits: ${input.traits}
-Backstory: ${input.backstory}
-Goals: ${input.goals}
-Response Style: ${input.responseStyle}
+Traits: ${sanitizeForPrompt(input.traits)}
+Backstory: ${sanitizeForPrompt(input.backstory)}
+Goals: ${sanitizeForPrompt(input.goals)}
+Response Style: ${sanitizeForPrompt(input.responseStyle)}
 </persona_content>
 
 <output_format>
@@ -91,12 +92,6 @@ Set isSafe to true unless there is a CLEAR, EXPLICIT violation.
         thinkingLevel: "low",
       },
     },
-     safetySettings: [
-        { category: 'HARM_CATEGORY_HATE_SPEECH', threshold: 'BLOCK_ONLY_HIGH' },
-        { category: 'HARM_CATEGORY_DANGEROUS_CONTENT', threshold: 'BLOCK_ONLY_HIGH' },
-        { category: 'HARM_CATEGORY_HARASSMENT', threshold: 'BLOCK_ONLY_HIGH' },
-        { category: 'HARM_CATEGORY_SEXUALLY_EXPLICIT', threshold: 'BLOCK_ONLY_HIGH' },
-    ],
   };
 
   try {

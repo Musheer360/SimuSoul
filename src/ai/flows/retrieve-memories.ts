@@ -12,6 +12,7 @@ import type { ChatSession, ChatMessage } from '@/lib/types';
 import { z } from 'zod';
 import { safeParseJson } from '@/lib/safe-json';
 import { zodToJsonSchema } from '@/lib/zod-to-json-schema';
+import { sanitizeForPrompt } from '@/lib/utils';
 import { MAX_CHAT_CONTEXTS, MAX_MESSAGES_PER_CHAT } from '@/lib/constants';
 
 // Schema for memory retrieval decision
@@ -79,7 +80,7 @@ You are an intelligent memory retrieval system. Your task is to analyze user mes
 
 <input>
 User message(s):
-${userMessages.map(m => `"${m}"`).join('\n')}
+${userMessages.map(m => `"${sanitizeForPrompt(m)}"`).join('\n')}
 
 Current memories about user:
 ${existingMemories.length > 0 ? existingMemories.map(m => `• ${m}`).join('\n') : 'No memories yet'}

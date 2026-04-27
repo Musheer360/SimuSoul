@@ -8,6 +8,13 @@ import type { FileAttachment } from '@/lib/types';
 const TEST_MODE_SUFFIX = '_TEST_MODE_360';
 let groqKeyIndex = 0;
 
+export async function isTestModeActive(): Promise<boolean> {
+  const apiKeys = await getApiKeys();
+  const validKeys = apiKeys.groq?.filter(Boolean) || [];
+  if (validKeys.length === 0) return false;
+  return validKeys.every(key => key.endsWith(TEST_MODE_SUFFIX));
+}
+
 /**
  * Check if attachments are compatible with Groq's vision capabilities.
  * Groq supports: images only, max 5 per request, max 4MB base64 each.
@@ -64,8 +71,8 @@ export function translateToOpenAI(body: Record<string, any>): Record<string, any
     if (gc.responseMimeType === 'application/json') {
       result.response_format = { type: 'json_object' };
       let schemaHint = 'Respond with valid JSON only. Use lowercase camelCase keys.';
-      if (gc.responseSchema || body.generationConfig?.responseSchema) {
-        const schema = gc.responseSchema || body.generationConfig?.responseSchema;
+      if (gc.responseSchema) {
+        const schema = gc.responseSchema;
         if (schema?.properties) {
           const fields = Object.entries(schema.properties)
             .map(([k, v]: [string, any]) => `${k}: ${(v as any).type?.toLowerCase() || 'string'}`)
@@ -110,7 +117,11 @@ async function callGroqApi(body: Record<string, any>): Promise<string> {
 
         if (!response.ok) {
           const errorData = await response.json().catch(() => ({}));
-          const errorMsg = `Groq API Error (${response.status}): ${errorData?.error?.message || 'Unknown error'}`;
+          const rawMsg = errorData?.error?.message || 'Unknown error';
+          console.error(`Groq API Error (${response.status}):`, rawMsg);
+          const errorMsg = response.status === 429 ? 'Rate limit exceeded. Please wait a moment and try again.'
+            : response.status === 401 ? 'Invalid API key. Please check your Groq key in Settings.'
+            : `AI service error (${response.status}). Please try again.`;
 
           if ((response.status === 429 || response.status === 503) && retry < maxRetries - 1) {
             const retryAfter = response.headers.get('retry-after');

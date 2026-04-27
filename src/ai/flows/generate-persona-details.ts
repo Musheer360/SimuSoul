@@ -9,6 +9,7 @@ import { callLLM } from '@/lib/llm-router';
 import { z } from 'zod';
 import { safeParseJson } from '@/lib/safe-json';
 import { zodToJsonSchema } from '@/lib/zod-to-json-schema';
+import { sanitizeForPrompt } from '@/lib/utils';
 
 export const GeneratePersonaDetailsInputSchema = z.object({
   personaName: z.string(),
@@ -56,8 +57,8 @@ ${contentRestrictions}
 ${userContext}
 
 <character_info>
-Name: "${input.personaName}"
-Relationship: "${input.personaRelation}" to ${userIdentifier}
+Name: "${sanitizeForPrompt(input.personaName)}"
+Relationship: "${sanitizeForPrompt(input.personaRelation)}" to ${userIdentifier}
 </character_info>
 
 <character_recognition>
@@ -118,19 +119,6 @@ Generate detailed, authentic character elements now.`;
         thinkingLevel: "medium",
       },
     },
-    safetySettings: isTestMode
-      ? [
-          { category: 'HARM_CATEGORY_HATE_SPEECH', threshold: 'BLOCK_NONE' },
-          { category: 'HARM_CATEGORY_DANGEROUS_CONTENT', threshold: 'BLOCK_NONE' },
-          { category: 'HARM_CATEGORY_HARASSMENT', threshold: 'BLOCK_NONE' },
-          { category: 'HARM_CATEGORY_SEXUALLY_EXPLICIT', threshold: 'BLOCK_NONE' },
-        ]
-      : [
-        { category: 'HARM_CATEGORY_HATE_SPEECH', threshold: 'BLOCK_ONLY_HIGH' },
-        { category: 'HARM_CATEGORY_DANGEROUS_CONTENT', threshold: 'BLOCK_ONLY_HIGH' },
-        { category: 'HARM_CATEGORY_HARASSMENT', threshold: 'BLOCK_ONLY_HIGH' },
-        { category: 'HARM_CATEGORY_SEXUALLY_EXPLICIT', threshold: 'BLOCK_ONLY_HIGH' },
-    ],
   };
 
   const response = await callLLM<any>('generateContent', requestBody);

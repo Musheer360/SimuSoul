@@ -5,6 +5,25 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
 }
 
+/** Strip XML-like tags from user input to prevent prompt injection */
+export function sanitizeForPrompt(text: string): string {
+  return text.replace(/<\/?[a-zA-Z_][^>]*>/g, '');
+}
+
+export const findLastIndex = <T,>(
+  array: T[],
+  predicate: (value: T, index: number, obj: T[]) => boolean
+): number => {
+  let l = array.length;
+  while (l--) {
+    if (predicate(array[l], l, array)) return l;
+  }
+  return -1;
+};
+
+export const emptyStringAsUndefined = (val: string | number | undefined | null) =>
+  (val === '' || val === undefined || val === null ? undefined : Number(val));
+
 /**
  * Compresses an image data URI to reduce file size.
  * Scales the image to a max dimension of 1024px and converts to JPEG.

@@ -38,8 +38,10 @@ export class ImageGenerationQuotaError extends Error {
 /**
  * Builds a concise image generation prompt optimized for FLUX.
  */
+import { sanitizeForPrompt } from '@/lib/utils';
+
 export function buildProfilePicturePrompt(input: GeneratePersonaProfilePictureInput): string {
-  return `Semi-realistic digital portrait painting of ${input.personaName}. ${input.personaTraits}. ${input.personaBackstory.substring(0, 200)}. Style: modern concept art, expressive lighting, painterly background. Aspect: portrait headshot.`;
+  return `Semi-realistic digital portrait painting of ${sanitizeForPrompt(input.personaName)}. ${sanitizeForPrompt(input.personaTraits)}. ${sanitizeForPrompt(input.personaBackstory.substring(0, 200))}. Style: modern concept art, expressive lighting, painterly background. Aspect: portrait headshot.`;
 }
 
 /**
@@ -100,7 +102,10 @@ export async function generatePersonaProfilePicture(input: GeneratePersonaProfil
 
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
-      const errorMsg = errorData?.error?.message || `Together AI Error (${response.status})`;
+      console.error('Together AI error:', response.status, errorData?.error?.message);
+      const errorMsg = (response.status === 429 || response.status === 402)
+        ? 'Image generation quota exceeded. Please try again later.'
+        : `Image generation failed (${response.status}). Please try again.`;
       if (response.status === 429 || response.status === 402) {
         throw new ImageGenerationQuotaError(errorMsg, prompt);
       }

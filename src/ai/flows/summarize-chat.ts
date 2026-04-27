@@ -9,6 +9,7 @@
 import { callLLM } from '@/lib/llm-router';
 import { safeParseJson } from '@/lib/safe-json';
 import { zodToJsonSchema } from '@/lib/zod-to-json-schema';
+import { sanitizeForPrompt } from '@/lib/utils';
 import { MIN_MESSAGES_FOR_SUMMARY } from '@/lib/constants';
 import type { ChatMessage } from '@/lib/types';
 import { z } from 'zod';
@@ -61,7 +62,7 @@ ${input.existingSummary}
 </previous_summary>
 
 <new_messages>
-${newMessages.map(msg => `${msg.role}: ${msg.content}`).join('\n')}
+${newMessages.map(msg => `${msg.role}: ${sanitizeForPrompt(msg.content)}`).join('\n')}
 </new_messages>
 
 <requirements>
@@ -85,7 +86,7 @@ You are a conversation summarizer. Create concise summaries for long-term memory
 </system>
 
 <conversation>
-${input.chatHistory.map(msg => `${msg.role}: ${msg.content}`).join('\n')}
+${input.chatHistory.map(msg => `${msg.role}: ${sanitizeForPrompt(msg.content)}`).join('\n')}
 </conversation>
 
 <requirements>

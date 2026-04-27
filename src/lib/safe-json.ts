@@ -20,7 +20,8 @@ export function safeParseJson<T>(text: string, context: string): T {
     }
     return parsed as T;
   } catch (e) {
-    throw new Error(`Failed to parse AI response as JSON (${context}): ${(e as Error).message}. Raw text: ${text.substring(0, 200)}...`);
+    console.error(`[safeParseJson] Failed (${context}):`, (e as Error).message, 'Raw:', text.substring(0, 200));
+    throw new Error('Failed to process AI response. Please try again.');
   }
 }
 

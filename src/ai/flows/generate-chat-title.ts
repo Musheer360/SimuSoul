@@ -8,6 +8,7 @@
 import { callLLM } from '@/lib/llm-router';
 import { safeParseJson } from '@/lib/safe-json';
 import { zodToJsonSchema } from '@/lib/zod-to-json-schema';
+import { sanitizeForPrompt } from '@/lib/utils';
 import { z } from 'zod';
 
 export const GenerateChatTitleInputSchema = z.object({
@@ -29,8 +30,8 @@ You are a chat title generator. Create short, descriptive titles.
 </system>
 
 <context>
-User's first message: "${input.userMessage}"
-AI's first response: "${input.assistantResponse}"
+User's first message: "${sanitizeForPrompt(input.userMessage)}"
+AI's first response: "${sanitizeForPrompt(input.assistantResponse)}"
 </context>
 
 <requirements>

@@ -38,14 +38,12 @@ import {
 import { Loader2, Sparkles, Wand2, Upload, Copy, ImageIcon, User } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { savePersona, getUserDetails, saveChatSession } from '@/lib/db';
-import { isTestModeActive } from '@/lib/api-key-manager';
-import { compressImage } from '@/lib/utils';
+import { isTestModeActive } from '@/lib/llm-router';
+import { compressImage, emptyStringAsUndefined } from '@/lib/utils';
 
 const GENERIC_MODERATION_ERROR = 'This content does not meet the safety guidelines. Please modify it and try again.';
 const GENERIC_MODERATION_ERROR_PROMPT = 'The generated content does not meet the safety guidelines. Please try a different prompt.';
 const GENERIC_MODERATION_ERROR_DETAILS = 'The generated content does not meet the safety guidelines. Please modify your inputs and try again.';
-
-const emptyStringAsUndefined = (val: string | number | undefined) => (val === '' || val === undefined ? undefined : Number(val));
 
 interface ValidatedPersonaData {
   name: string;

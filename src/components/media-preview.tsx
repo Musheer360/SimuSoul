@@ -309,7 +309,7 @@ export function MediaPreview({ src, alt, mimeType, isOpen, onClose }: MediaPrevi
       {/* Close button */}
       <button
         onClick={onClose}
-        className="absolute top-4 right-4 z-[101] p-2 rounded-full bg-black/50 hover:bg-black/70 text-white transition-colors"
+        className="absolute top-4 right-4 z-[101] p-2 rounded-full bg-black/50 hover:bg-black/70 text-white transition-colors focus-visible:ring-2 focus-visible:ring-white"
         aria-label="Close preview"
       >
         <X className="h-6 w-6" />
