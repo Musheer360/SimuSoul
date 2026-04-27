@@ -1,12 +1,11 @@
 'use client';
 
 /**
- * @fileOverview Generates persona profile pictures using Together AI's FLUX.1 model.
+ * @fileOverview Generates persona profile pictures using Pollinations.ai (free, no API key needed).
  */
 
-import { getApiKeys } from '@/lib/db';
-import { TOGETHER_API_URL, TOGETHER_IMAGE_MODEL } from '@/lib/constants';
 import { z } from 'zod';
+import { sanitizeForPrompt } from '@/lib/utils';
 
 export const GeneratePersonaProfilePictureInputSchema = z.object({
   personaName: z.string(),
@@ -20,14 +19,8 @@ export const GeneratePersonaProfilePictureOutputSchema = z.object({
 });
 export type GeneratePersonaProfilePictureOutput = z.infer<typeof GeneratePersonaProfilePictureOutputSchema>;
 
-/**
- * Custom error class for image generation quota/rate limit errors.
- * Allows the UI to detect when image generation fails due to API limits
- * and offer fallback options like manual upload.
- */
 export class ImageGenerationQuotaError extends Error {
   public readonly prompt: string;
-
   constructor(message: string, prompt: string) {
     super(message);
     this.name = 'ImageGenerationQuotaError';
@@ -35,94 +28,59 @@ export class ImageGenerationQuotaError extends Error {
   }
 }
 
-/**
- * Builds a concise image generation prompt optimized for FLUX.
- */
-import { sanitizeForPrompt } from '@/lib/utils';
-
 export function buildProfilePicturePrompt(input: GeneratePersonaProfilePictureInput): string {
-  return `Semi-realistic digital portrait painting of ${sanitizeForPrompt(input.personaName)}. ${sanitizeForPrompt(input.personaTraits)}. ${sanitizeForPrompt(input.personaBackstory.substring(0, 200))}. Style: modern concept art, expressive lighting, painterly background. Aspect: portrait headshot.`;
+  return `Semi-realistic digital portrait painting of ${sanitizeForPrompt(input.personaName)}. ${sanitizeForPrompt(input.personaTraits)}. ${sanitizeForPrompt(input.personaBackstory.substring(0, 200))}. Style: modern concept art, expressive lighting, painterly background. Portrait headshot.`;
 }
 
-/**
- * Generates an initials-based placeholder avatar as a data URI.
- * Used as a fallback when image generation fails.
- */
 export function generatePlaceholderAvatar(name: string): string {
-  const initials = name
-    .split(' ')
-    .map(word => word.charAt(0).toUpperCase())
-    .slice(0, 2)
-    .join('');
-
+  const initials = name.split(' ').map(w => w.charAt(0).toUpperCase()).slice(0, 2).join('');
   let hash = 0;
-  for (let i = 0; i < name.length; i++) {
-    hash = name.charCodeAt(i) + ((hash << 5) - hash);
-  }
+  for (let i = 0; i < name.length; i++) hash = name.charCodeAt(i) + ((hash << 5) - hash);
   const hue = Math.abs(hash % 360);
-  const saturation = 50 + Math.abs((hash >> 8) % 20);
-  const lightness = 75 + Math.abs((hash >> 16) % 10);
-  const bgColor = `hsl(${hue}, ${saturation}%, ${lightness}%)`;
-  const textColor = `hsl(${hue}, ${saturation}%, 25%)`;
-
+  const sat = 50 + Math.abs((hash >> 8) % 20);
+  const lit = 75 + Math.abs((hash >> 16) % 10);
   const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256" viewBox="0 0 256 256">
-    <rect width="256" height="256" fill="${bgColor}"/>
-    <text x="128" y="128" font-family="system-ui, -apple-system, sans-serif" font-size="96" font-weight="600" fill="${textColor}" text-anchor="middle" dominant-baseline="central">${initials}</text>
+    <rect width="256" height="256" fill="hsl(${hue}, ${sat}%, ${lit}%)"/>
+    <text x="128" y="128" font-family="system-ui, -apple-system, sans-serif" font-size="96" font-weight="600" fill="hsl(${hue}, ${sat}%, 25%)" text-anchor="middle" dominant-baseline="central">${initials}</text>
   </svg>`;
-
   return `data:image/svg+xml;base64,${btoa(svg)}`;
 }
 
+/**
+ * Generate a profile picture using Pollinations.ai — completely free, no API key needed.
+ * Fetches the image as a blob and converts to a data URI.
+ */
 export async function generatePersonaProfilePicture(input: GeneratePersonaProfilePictureInput): Promise<GeneratePersonaProfilePictureOutput> {
   const prompt = buildProfilePicturePrompt(input);
-  const apiKeys = await getApiKeys();
-  const togetherKey = apiKeys.togetherAi?.trim();
-
-  if (!togetherKey) {
-    throw new ImageGenerationQuotaError('No Together AI key configured. Add one in Settings for avatar generation.', prompt);
-  }
+  const encodedPrompt = encodeURIComponent(prompt);
+  const seed = Math.floor(Math.random() * 1000000);
+  const url = `https://image.pollinations.ai/prompt/${encodedPrompt}?width=512&height=680&seed=${seed}&nologo=true&model=flux`;
 
   try {
-    const response = await fetch(TOGETHER_API_URL, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${togetherKey}`,
-      },
-      body: JSON.stringify({
-        model: TOGETHER_IMAGE_MODEL,
-        prompt,
-        width: 512,
-        height: 680,
-        steps: 4,
-        n: 1,
-        response_format: 'b64_json',
-      }),
-    });
+    const response = await fetch(url);
 
     if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}));
-      console.error('Together AI error:', response.status, errorData?.error?.message);
-      if (response.status === 401) {
-        throw new Error('Invalid Together AI key. Please check your key in Settings \u2014 get one free at api.together.ai.');
-      }
-      if (response.status === 429 || response.status === 402) {
-        throw new ImageGenerationQuotaError('Image generation quota exceeded. Please try again later.', prompt);
+      if (response.status === 429) {
+        throw new ImageGenerationQuotaError('Image generation rate limited. Please try again in a moment.', prompt);
       }
       throw new Error(`Image generation failed (${response.status}). Please try again.`);
     }
 
-    const data = await response.json();
-    const b64 = data.data?.[0]?.b64_json;
-    if (!b64) throw new Error('No image data returned by Together AI.');
+    const blob = await response.blob();
+    if (!blob.size || !blob.type.startsWith('image/')) {
+      throw new Error('Invalid image data received.');
+    }
 
-    return { profilePictureDataUri: `data:image/png;base64,${b64}` };
+    const dataUri = await new Promise<string>((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result as string);
+      reader.onerror = () => reject(new Error('Failed to read image data.'));
+      reader.readAsDataURL(blob);
+    });
+
+    return { profilePictureDataUri: dataUri };
   } catch (error: any) {
     if (error instanceof ImageGenerationQuotaError) throw error;
-    const msg = error?.message || '';
-    if (msg.includes('429') || msg.includes('quota') || msg.includes('rate limit') || msg.includes('billing')) {
-      throw new ImageGenerationQuotaError(msg, prompt);
-    }
     throw error;
   }
 }

@@ -1,6 +1,5 @@
-// Together AI (image generation)
-export const TOGETHER_API_URL = 'https://api.together.xyz/v1/images/generations';
-export const TOGETHER_IMAGE_MODEL = 'black-forest-labs/FLUX.1-schnell-Free';
+// Pollinations.ai (free image generation — no API key needed)
+export const POLLINATIONS_IMAGE_URL = 'https://image.pollinations.ai/prompt/';
 
 // Supported file types
 export const SUPPORTED_IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];

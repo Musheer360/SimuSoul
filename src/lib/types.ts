@@ -91,5 +91,4 @@ export interface UserDetails {
 
 export interface ApiKeys {
   groq: string[];
-  togetherAi: string;
 }
