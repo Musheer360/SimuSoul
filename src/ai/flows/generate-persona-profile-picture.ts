@@ -103,15 +103,13 @@ export async function generatePersonaProfilePicture(input: GeneratePersonaProfil
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
       console.error('Together AI error:', response.status, errorData?.error?.message);
-      const errorMsg = response.status === 401
-        ? 'Invalid Together AI key. Please check your key in Settings — get one free at api.together.ai.'
-        : (response.status === 429 || response.status === 402)
-        ? 'Image generation quota exceeded. Please try again later.'
-        : `Image generation failed (${response.status}). Please try again.`;
-      if (response.status === 429 || response.status === 402 || response.status === 401) {
-        throw new ImageGenerationQuotaError(errorMsg, prompt);
+      if (response.status === 401) {
+        throw new Error('Invalid Together AI key. Please check your key in Settings \u2014 get one free at api.together.ai.');
       }
-      throw new Error(errorMsg);
+      if (response.status === 429 || response.status === 402) {
+        throw new ImageGenerationQuotaError('Image generation quota exceeded. Please try again later.', prompt);
+      }
+      throw new Error(`Image generation failed (${response.status}). Please try again.`);
     }
 
     const data = await response.json();
