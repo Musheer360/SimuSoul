@@ -1,8 +1,6 @@
 'use client';
 
 import { getApiKeys } from '@/lib/db';
-import { callGeminiApi } from '@/lib/api-key-manager';
-import { safeParseJson } from '@/lib/safe-json';
 import { GROQ_API_URL, GROQ_TEXT_MODEL, GROQ_MAX_BASE64_SIZE, GROQ_MAX_IMAGES_PER_REQUEST, SUPPORTED_IMAGE_TYPES } from '@/lib/constants';
 import { isLikelyNetworkFailure, normalizeProviderNetworkError } from '@/lib/network-error';
 import type { FileAttachment } from '@/lib/types';
@@ -10,37 +8,25 @@ import type { FileAttachment } from '@/lib/types';
 const TEST_MODE_SUFFIX = '_TEST_MODE_360';
 let groqKeyIndex = 0;
 
-interface LLMCallOptions {
-  /** Gemini model string, e.g. 'gemini-3-flash-preview:generateContent' */
-  geminiModel: string;
-  /** The Gemini-format request body */
-  body: Record<string, any>;
-  /** Optional attachments to check for Groq compatibility */
-  attachments?: FileAttachment[];
-  /** Context label for error messages */
-  context?: string;
-}
-
 /**
  * Check if attachments are compatible with Groq's vision capabilities.
  * Groq supports: images only, max 5 per request, max 4MB base64 each.
  */
-function attachmentsCompatibleWithGroq(attachments?: FileAttachment[]): boolean {
+export function attachmentsCompatibleWithGroq(attachments?: FileAttachment[]): boolean {
   if (!attachments || attachments.length === 0) return true;
   if (attachments.length > GROQ_MAX_IMAGES_PER_REQUEST) return false;
   return attachments.every(a =>
     SUPPORTED_IMAGE_TYPES.includes(a.mimeType) &&
-    a.data.length * 0.75 <= GROQ_MAX_BASE64_SIZE // base64 string length * 0.75 ≈ byte size
+    a.data.length * 0.75 <= GROQ_MAX_BASE64_SIZE
   );
 }
 
 /**
- * Translate a Gemini-format request body into OpenAI chat completions format for Groq.
+ * Translate a legacy-format request body into OpenAI chat completions format for Groq.
  */
-function translateToOpenAI(body: Record<string, any>): Record<string, any> {
+export function translateToOpenAI(body: Record<string, any>): Record<string, any> {
   const messages: any[] = [];
 
-  // Gemini uses contents[].parts[] — convert to OpenAI messages[]
   if (body.contents) {
     for (const content of body.contents) {
       const role = content.role || 'user';
@@ -51,7 +37,6 @@ function translateToOpenAI(body: Record<string, any>): Record<string, any> {
         if (part.text) {
           openAIParts.push({ type: 'text', text: part.text });
         } else if (part.inlineData) {
-          // Convert Gemini inlineData to OpenAI image_url format
           openAIParts.push({
             type: 'image_url',
             image_url: { url: `data:${part.inlineData.mimeType};base64,${part.inlineData.data}` }
@@ -59,7 +44,6 @@ function translateToOpenAI(body: Record<string, any>): Record<string, any> {
         }
       }
 
-      // If only one text part, simplify to string content
       if (openAIParts.length === 1 && openAIParts[0].type === 'text') {
         messages.push({ role, content: openAIParts[0].text });
       } else {
@@ -73,15 +57,12 @@ function translateToOpenAI(body: Record<string, any>): Record<string, any> {
     messages,
   };
 
-  // Translate generation config
   const gc = body.generationConfig;
   if (gc) {
     if (gc.temperature !== undefined) result.temperature = gc.temperature;
     if (gc.topP !== undefined) result.top_p = gc.topP;
     if (gc.responseMimeType === 'application/json') {
       result.response_format = { type: 'json_object' };
-      // Groq requires the word "json" in messages when using json response format.
-      // Include schema hint so Groq uses correct field names and types.
       let schemaHint = 'Respond with valid JSON only. Use lowercase camelCase keys.';
       if (gc.responseSchema || body.generationConfig?.responseSchema) {
         const schema = gc.responseSchema || body.generationConfig?.responseSchema;
@@ -94,8 +75,6 @@ function translateToOpenAI(body: Record<string, any>): Record<string, any> {
       }
       messages.unshift({ role: 'system', content: schemaHint });
     }
-    // Groq doesn't support responseSchema enforcement — we rely on Zod validation
-    // Groq doesn't support thinkingConfig — skip
   }
 
   return result;
@@ -107,7 +86,7 @@ function translateToOpenAI(body: Record<string, any>): Record<string, any> {
 async function callGroqApi(body: Record<string, any>): Promise<string> {
   const apiKeys = await getApiKeys();
   const validKeys = apiKeys.groq?.filter(Boolean) || [];
-  if (validKeys.length === 0) throw new Error('NO_GROQ_KEYS');
+  if (validKeys.length === 0) throw new Error('No API keys configured. Please add your Groq API key in Settings.');
 
   let lastError: Error | null = null;
   const startIndex = groqKeyIndex % validKeys.length;
@@ -133,7 +112,6 @@ async function callGroqApi(body: Record<string, any>): Promise<string> {
           const errorData = await response.json().catch(() => ({}));
           const errorMsg = `Groq API Error (${response.status}): ${errorData?.error?.message || 'Unknown error'}`;
 
-          // Retry on 429 (rate limit) and 503 with backoff
           if ((response.status === 429 || response.status === 503) && retry < maxRetries - 1) {
             const retryAfter = response.headers.get('retry-after');
             const delay = retryAfter ? parseInt(retryAfter) * 1000 : Math.pow(2, retry) * 1000;
@@ -168,55 +146,24 @@ async function callGroqApi(body: Record<string, any>): Promise<string> {
 }
 
 /**
- * Unified LLM caller. Routes to Groq (preferred) or Gemini (fallback).
- * 
- * For text-only and small-image requests: tries Groq first, falls back to Gemini.
- * For large files, video, audio, documents: goes directly to Gemini.
- * 
- * Returns the raw Gemini-format response when using Gemini,
- * or a Gemini-compatible wrapper when using Groq.
+ * Unified LLM caller. Routes to Groq only.
+ * Returns a legacy-compatible response wrapper for API compatibility.
  */
 export async function callLLM<T>(
-  geminiModel: string,
+  _model: string, // kept for API compat, ignored
   body: Record<string, any>,
   options?: { attachments?: FileAttachment[]; context?: string }
 ): Promise<T> {
-  const apiKeys = await getApiKeys();
-  const hasGroqKeys = (apiKeys.groq?.filter(Boolean) || []).length > 0;
-  const hasGeminiKeys = (apiKeys.gemini?.filter(Boolean) || []).length > 0;
-  const groqCompatible = attachmentsCompatibleWithGroq(options?.attachments);
-
-  // Try Groq first if available and compatible
-  if (hasGroqKeys && groqCompatible) {
-    try {
-      const openAIBody = translateToOpenAI(body);
-      const responseText = await callGroqApi(openAIBody);
-
-      // Wrap in Gemini-compatible response format so callers don't need to change
-      return {
-        candidates: [{
-          content: {
-            parts: [{ text: responseText }]
-          }
-        }]
-      } as T;
-    } catch (error: any) {
-      // If no Gemini keys to fall back to, throw
-      if (!hasGeminiKeys) {
-        if (error.message === 'NO_GROQ_KEYS') {
-          throw new Error('No API key provided. Please add your Groq or Gemini API key in the settings page.');
-        }
-        throw error;
-      }
-      // Fall through to Gemini
-      console.warn('Groq failed, falling back to Gemini:', error.message);
-    }
+  if (!attachmentsCompatibleWithGroq(options?.attachments)) {
+    throw new Error(
+      'Attachments include unsupported file types (video, audio, or files too large for Groq). ' +
+      'Only images under 4MB are supported.'
+    );
   }
 
-  // Gemini fallback (or primary if no Groq keys)
-  if (hasGeminiKeys) {
-    return callGeminiApi<T>(geminiModel, body);
-  }
-
-  throw new Error('No API key provided. Please add your Groq or Gemini API key in the settings page to use the application.');
+  const openAIBody = translateToOpenAI(body);
+  const responseText = await callGroqApi(openAIBody);
+  return {
+    candidates: [{ content: { parts: [{ text: responseText }] } }]
+  } as T;
 }

@@ -12,8 +12,7 @@ import { generateTimeAwarenessPrompt } from '@/lib/time-awareness';
 import { retrieveRelevantMemories, formatRetrievedMemoriesForPrompt } from './retrieve-memories';
 import { z } from 'zod';
 import { safeParseJson } from '@/lib/safe-json';
-import { zodToGeminiSchema } from '@/lib/zod-to-gemini';
-import { GEMINI_TEXT_MODEL } from '@/lib/constants';
+import { zodToJsonSchema } from '@/lib/zod-to-json-schema';
 
 // Instruction template for attachment context
 const ATTACHMENT_CONTEXT_TEMPLATE = (fileNames: string) => 
@@ -303,7 +302,7 @@ export async function chatWithPersona(
       topK: 40,
       topP: 0.95,
       responseMimeType: 'application/json',
-      responseSchema: zodToGeminiSchema(ChatWithPersonaOutputSchema),
+      responseSchema: zodToJsonSchema(ChatWithPersonaOutputSchema),
       // Low thinking for fast, natural chat responses
       thinkingConfig: {
         thinkingLevel: "low",
@@ -324,7 +323,7 @@ export async function chatWithPersona(
     ],
   };
 
-  const response = await callLLM<any>(`${GEMINI_TEXT_MODEL}:generateContent`, requestBody, { attachments: payload.attachments, context: 'chatWithPersona' });
+  const response = await callLLM<any>('generateContent', requestBody, { attachments: payload.attachments, context: 'chatWithPersona' });
 
   if (!response.candidates || !response.candidates[0].content.parts[0].text) {
     console.warn("AI returned no response text. This could be due to a safety filter or model error. Suppressing output for this turn.");

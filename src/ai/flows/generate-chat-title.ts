@@ -7,8 +7,7 @@
 
 import { callLLM } from '@/lib/llm-router';
 import { safeParseJson } from '@/lib/safe-json';
-import { zodToGeminiSchema } from '@/lib/zod-to-gemini';
-import { GEMINI_TEXT_MODEL } from '@/lib/constants';
+import { zodToJsonSchema } from '@/lib/zod-to-json-schema';
 import { z } from 'zod';
 
 export const GenerateChatTitleInputSchema = z.object({
@@ -49,14 +48,14 @@ Maximum 4-5 words. Be descriptive but concise.
     generationConfig: {
       temperature: 0.7,
       responseMimeType: 'application/json',
-      responseSchema: zodToGeminiSchema(GenerateChatTitleOutputSchema),
+      responseSchema: zodToJsonSchema(GenerateChatTitleOutputSchema),
       thinkingConfig: {
         thinkingLevel: "low",
       },
     },
   };
 
-  const response = await callLLM<any>(`${GEMINI_TEXT_MODEL}:generateContent`, requestBody);
+  const response = await callLLM<any>('generateContent', requestBody);
   
   if (!response.candidates || !response.candidates[0].content.parts[0].text) {
     throw new Error('Invalid response from AI model for title generation.');

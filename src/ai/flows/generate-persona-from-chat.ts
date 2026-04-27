@@ -2,7 +2,6 @@
 
 import { callLLM } from '@/lib/llm-router';
 import { safeParseJson } from '@/lib/safe-json';
-import { GEMINI_TEXT_MODEL } from '@/lib/constants';
 import { z } from 'zod';
 
 export const GeneratePersonaFromChatInputSchema = z.object({
@@ -67,11 +66,11 @@ function parseWhatsAppChat(chatContent: string, personName: string): string[] {
   return personMessages;
 }
 
-type GeminiApiError = { status?: number; code?: string; message?: string };
+type LLMApiError = { status?: number; code?: string; message?: string };
 
-function isGeminiApiError(error: unknown): error is GeminiApiError {
+function isLLMApiError(error: unknown): error is LLMApiError {
   if (!error || typeof error !== 'object') return false;
-  const candidate = error as Partial<GeminiApiError>;
+  const candidate = error as Partial<LLMApiError>;
   return (
     typeof candidate.message === 'string' ||
     typeof candidate.status === 'number' ||
@@ -79,7 +78,7 @@ function isGeminiApiError(error: unknown): error is GeminiApiError {
   );
 }
 
-function getGeminiErrorDetails(error: GeminiApiError) {
+function getLLMErrorDetails(error: LLMApiError) {
   const rawCode = (error.code || '').toString();
   return {
     status: error.status,
@@ -90,8 +89,8 @@ function getGeminiErrorDetails(error: GeminiApiError) {
 }
 
 function isThinkingConfigUnsupported(error: unknown): boolean {
-  if (!isGeminiApiError(error)) return false;
-  const { message } = getGeminiErrorDetails(error);
+  if (!isLLMApiError(error)) return false;
+  const { message } = getLLMErrorDetails(error);
   const mentionsThinkingConfig = /thinking[_\s]?config/.test(message);
   const mentionsUnsupportedField = message.includes('unknown field "thinkingconfig"') || message.includes('unknown field "thinking config"') || message.includes('unsupported field "thinkingconfig"');
   return mentionsThinkingConfig || mentionsUnsupportedField;
@@ -223,13 +222,13 @@ ${userContext}
 
   let response;
   try {
-    response = await callLLM<any>(`${GEMINI_TEXT_MODEL}:generateContent`, requestBody);
+    response = await callLLM<any>('generateContent', requestBody);
   } catch (error) {
     // If thinking config is not supported, retry without it
     if (isThinkingConfigUnsupported(error)) {
       console.log('Thinking config not supported, retrying without it...');
       const { thinkingConfig, ...restGenerationConfig } = requestBody.generationConfig;
-      response = await callLLM<any>(`${GEMINI_TEXT_MODEL}:generateContent`, {
+      response = await callLLM<any>('generateContent', {
         ...requestBody,
         generationConfig: restGenerationConfig,
       });

@@ -33,7 +33,7 @@ It focuses on realism through:
 
 4. **Configure app**
    - Local user profile settings
-   - Multiple Gemini API keys with failover
+   - Multiple Groq API keys with failover
    - Full local data reset
 
 ---
@@ -129,7 +129,7 @@ Then those results are mapped into editable persona fields.
 ## Avatar generation + fallbacks
 
 Default behavior:
-- AI profile picture generation (Gemini image endpoint), then client-side compression.
+- AI profile picture generation (Together AI FLUX endpoint), then client-side compression.
 
 If quota/rate limit blocks image generation, the UI provides fallback paths:
 1. upload custom image
@@ -170,7 +170,7 @@ Validation:
 - max file size: **20MB**
 - unsupported types are rejected
 
-Attachments are embedded as base64 and passed to Gemini inline data parts.
+Attachments are embedded as base64 and passed to the LLM as inline data parts.
 
 ### Media preview modal
 
@@ -196,7 +196,7 @@ Chat prompt policy adds deflection behavior for forbidden topics and escalation 
 
 If all stored API keys end with `_TEST_MODE_360`, the app enters test mode:
 - moderation relaxes/short-circuits in multiple flows
-- Gemini safety thresholds are lowered/disabled in relevant calls
+- Safety thresholds are relaxed in relevant calls
 
 ---
 
@@ -220,7 +220,7 @@ No backend database is required for core usage.
 
 ## API key management and failover
 
-Users enter Gemini API keys in Settings (up to 5).
+Users enter Groq API keys in Settings (up to 5).
 
 Request strategy:
 - keys are used in round-robin order
@@ -238,7 +238,7 @@ If no keys are configured, features requiring AI return a clear setup error.
 - **UI:** React 18, Tailwind CSS, Radix UI, Lucide icons
 - **Theming:** `next-themes` (dark default)
 - **Storage:** IndexedDB via `idb`
-- **AI/validation:** Google Gemini API + `zod`
+- **AI/validation:** Groq API (Llama) + Together AI (FLUX) + `zod`
 - **Markdown/code rendering:** `react-markdown`, `remark-gfm`, `react-syntax-highlighter`, `prismjs`
 
 ---
@@ -273,7 +273,7 @@ http://localhost:3000
 ```
 
 Then:
-- add at least one Gemini API key in **Settings**
+- add at least one Groq API key in **Settings**
 - accept terms on first launch
 - create your first persona
 

@@ -1,12 +1,11 @@
-
 'use client';
 
 /**
- * @fileOverview This file defines a client-side function for generating a persona profile picture.
+ * @fileOverview Generates persona profile pictures using Together AI's FLUX.1 model.
  */
 
-import { callGeminiApi } from '@/lib/api-key-manager';
-import { GEMINI_IMAGE_MODEL } from '@/lib/constants';
+import { getApiKeys } from '@/lib/db';
+import { TOGETHER_API_URL, TOGETHER_IMAGE_MODEL } from '@/lib/constants';
 import { z } from 'zod';
 
 export const GeneratePersonaProfilePictureInputSchema = z.object({
@@ -23,12 +22,12 @@ export type GeneratePersonaProfilePictureOutput = z.infer<typeof GeneratePersona
 
 /**
  * Custom error class for image generation quota/rate limit errors.
- * This allows the UI to detect when image generation fails due to API limits
+ * Allows the UI to detect when image generation fails due to API limits
  * and offer fallback options like manual upload.
  */
 export class ImageGenerationQuotaError extends Error {
   public readonly prompt: string;
-  
+
   constructor(message: string, prompt: string) {
     super(message);
     this.name = 'ImageGenerationQuotaError';
@@ -37,38 +36,10 @@ export class ImageGenerationQuotaError extends Error {
 }
 
 /**
- * Builds the image generation prompt for a persona profile picture.
- * Exported so it can be displayed to users for manual image generation.
+ * Builds a concise image generation prompt optimized for FLUX.
  */
 export function buildProfilePicturePrompt(input: GeneratePersonaProfilePictureInput): string {
-  return `<system>
-You are an expert art director specializing in character portraits for social media.
-</system>
-
-<style_requirements>
-• Art Style: Semi-realistic, digitally painted portrait (modern concept art aesthetic)
-• AVOID: Photorealism - image must look like a digital painting
-• Authenticity: Unique and real-feeling despite being illustrated
-• Lighting: Natural or dramatic, complementing character mood
-• Background: Simple, painterly, or contextually relevant
-</style_requirements>
-
-<style_guidance>
-• Professional/serious persona → Clean, well-composed painted headshot
-• Casual/artistic/adventurous → Dynamic portrait with expressive pose or interesting lighting
-</style_guidance>
-
-<character_details>
-Name: ${input.personaName}
-
-Traits and Vibe:
-${input.personaTraits}
-
-Backstory Context:
-${input.personaBackstory}
-</character_details>
-
-Generate a high-quality profile picture portrait that captures this character's essence.`;
+  return `Semi-realistic digital portrait painting of ${input.personaName}. ${input.personaTraits}. ${input.personaBackstory.substring(0, 200)}. Style: modern concept art, expressive lighting, painterly background. Aspect: portrait headshot.`;
 }
 
 /**
@@ -81,79 +52,72 @@ export function generatePlaceholderAvatar(name: string): string {
     .map(word => word.charAt(0).toUpperCase())
     .slice(0, 2)
     .join('');
-  
-  // Generate a random pastel color based on the name
+
   let hash = 0;
   for (let i = 0; i < name.length; i++) {
     hash = name.charCodeAt(i) + ((hash << 5) - hash);
   }
   const hue = Math.abs(hash % 360);
-  // Pastel colors: high lightness (75-85%), moderate saturation (50-70%)
-  const saturation = 50 + Math.abs((hash >> 8) % 20); // 50-70%
-  const lightness = 75 + Math.abs((hash >> 16) % 10); // 75-85%
+  const saturation = 50 + Math.abs((hash >> 8) % 20);
+  const lightness = 75 + Math.abs((hash >> 16) % 10);
   const bgColor = `hsl(${hue}, ${saturation}%, ${lightness}%)`;
-  // Darker text color for contrast on pastel backgrounds
   const textColor = `hsl(${hue}, ${saturation}%, 25%)`;
-  
-  // Use dominant-baseline="central" for proper vertical centering
+
   const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256" viewBox="0 0 256 256">
     <rect width="256" height="256" fill="${bgColor}"/>
     <text x="128" y="128" font-family="system-ui, -apple-system, sans-serif" font-size="96" font-weight="600" fill="${textColor}" text-anchor="middle" dominant-baseline="central">${initials}</text>
   </svg>`;
-  
+
   return `data:image/svg+xml;base64,${btoa(svg)}`;
 }
 
 export async function generatePersonaProfilePicture(input: GeneratePersonaProfilePictureInput): Promise<GeneratePersonaProfilePictureOutput> {
   const prompt = buildProfilePicturePrompt(input);
+  const apiKeys = await getApiKeys();
+  const togetherKey = apiKeys.togetherAi?.trim();
 
-  const requestBody = {
-    contents: [{ parts: [{ text: prompt }] }],
-    generationConfig: {
-      responseModalities: ['IMAGE'],
-      imageConfig: {
-        aspectRatio: '3:4',
-      },
-    },
-  };
+  if (!togetherKey) {
+    throw new ImageGenerationQuotaError('No Together AI key configured. Add one in Settings for avatar generation.', prompt);
+  }
 
   try {
-    // Use Nano Banana (Gemini 2.5 Flash Image) for image generation
-    const response = await callGeminiApi<any>(`${GEMINI_IMAGE_MODEL}:generateContent`, requestBody);
+    const response = await fetch(TOGETHER_API_URL, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${togetherKey}`,
+      },
+      body: JSON.stringify({
+        model: TOGETHER_IMAGE_MODEL,
+        prompt,
+        width: 512,
+        height: 680,
+        steps: 4,
+        n: 1,
+        response_format: 'b64_json',
+      }),
+    });
 
-    // The model returns image data in an 'inlineData' part.
-    const imagePart = response.candidates?.[0]?.content?.parts?.find(
-      (part: any) => part.inlineData
-    );
-
-    const imageData = imagePart?.inlineData;
-
-    if (imageData?.data && imageData?.mimeType) {
-      const dataUri = `data:${imageData.mimeType};base64,${imageData.data}`;
-      return { profilePictureDataUri: dataUri };
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      const errorMsg = errorData?.error?.message || `Together AI Error (${response.status})`;
+      if (response.status === 429 || response.status === 402) {
+        throw new ImageGenerationQuotaError(errorMsg, prompt);
+      }
+      throw new Error(errorMsg);
     }
 
-    // If image generation fails, the API might return a text explanation.
-    const textPart = response.candidates?.[0]?.content?.parts?.find((part: any) => part.text)?.text;
-    const reason = textPart ? `API Error: ${textPart}` : 'No image data was generated by the API.';
-    
-    console.error("Image generation failed. Full API response:", response);
-    throw new Error(reason);
+    const data = await response.json();
+    const b64 = data.data?.[0]?.b64_json;
+    if (!b64) throw new Error('No image data returned by Together AI.');
+
+    return { profilePictureDataUri: `data:image/png;base64,${b64}` };
   } catch (error: any) {
-    // Check if this is a quota/rate limit error (429) or billing issue
-    const errorMessage = error?.message || '';
-    const isQuotaError = 
-      errorMessage.includes('429') || 
-      errorMessage.includes('quota') || 
-      errorMessage.includes('rate limit') ||
-      errorMessage.includes('billing') ||
-      errorMessage.includes('exceeded');
-    
-    if (isQuotaError) {
-      throw new ImageGenerationQuotaError(errorMessage, prompt);
+    if (error instanceof ImageGenerationQuotaError) throw error;
+    const msg = error?.message || '';
+    if (msg.includes('429') || msg.includes('quota') || msg.includes('rate limit') || msg.includes('billing')) {
+      throw new ImageGenerationQuotaError(msg, prompt);
     }
-    
-    // Re-throw other errors as-is
     throw error;
   }
 }

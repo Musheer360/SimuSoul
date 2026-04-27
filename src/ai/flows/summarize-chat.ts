@@ -8,8 +8,8 @@
 
 import { callLLM } from '@/lib/llm-router';
 import { safeParseJson } from '@/lib/safe-json';
-import { zodToGeminiSchema } from '@/lib/zod-to-gemini';
-import { GEMINI_TEXT_MODEL, MIN_MESSAGES_FOR_SUMMARY } from '@/lib/constants';
+import { zodToJsonSchema } from '@/lib/zod-to-json-schema';
+import { MIN_MESSAGES_FOR_SUMMARY } from '@/lib/constants';
 import type { ChatMessage } from '@/lib/types';
 import { z } from 'zod';
 
@@ -107,14 +107,14 @@ ${input.chatHistory.map(msg => `${msg.role}: ${msg.content}`).join('\n')}
     generationConfig: {
       temperature: 0.5,
       responseMimeType: 'application/json',
-      responseSchema: zodToGeminiSchema(SummarizeChatOutputSchema),
+      responseSchema: zodToJsonSchema(SummarizeChatOutputSchema),
       thinkingConfig: {
         thinkingLevel: "low",
       },
     },
   };
 
-  const response = await callLLM<any>(`${GEMINI_TEXT_MODEL}:generateContent`, requestBody);
+  const response = await callLLM<any>('generateContent', requestBody);
   
   if (!response.candidates || !response.candidates[0].content.parts[0].text) {
     throw new Error('Invalid response from AI model for summary generation.');

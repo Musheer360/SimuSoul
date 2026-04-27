@@ -214,15 +214,15 @@ export async function saveUserDetails(details: UserDetails): Promise<void> {
 const API_KEYS_KEY = 'userApiKeys';
 
 export async function getApiKeys(): Promise<ApiKeys> {
-    if (!dbPromise) return { gemini: [], groq: [] };
+    if (!dbPromise) return { groq: [], togetherAi: '' };
     
     try {
         const db = await dbPromise;
-        return (await db.get(API_KEYS_STORE, API_KEYS_KEY)) || { gemini: [], groq: [] };
+        return (await db.get(API_KEYS_STORE, API_KEYS_KEY)) || { groq: [], togetherAi: '' };
     } catch (error) {
         console.warn('Failed to retrieve API keys from database:', error);
         // Return empty keys to trigger the "no API key" error message
-        return { gemini: [], groq: [] };
+        return { groq: [], togetherAi: '' };
     }
 }
 

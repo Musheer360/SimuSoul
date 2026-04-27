@@ -11,8 +11,8 @@ import { callLLM } from '@/lib/llm-router';
 import type { ChatSession, ChatMessage } from '@/lib/types';
 import { z } from 'zod';
 import { safeParseJson } from '@/lib/safe-json';
-import { zodToGeminiSchema } from '@/lib/zod-to-gemini';
-import { GEMINI_TEXT_MODEL, MAX_CHAT_CONTEXTS, MAX_MESSAGES_PER_CHAT } from '@/lib/constants';
+import { zodToJsonSchema } from '@/lib/zod-to-json-schema';
+import { MAX_CHAT_CONTEXTS, MAX_MESSAGES_PER_CHAT } from '@/lib/constants';
 
 // Schema for memory retrieval decision
 const MemoryRetrievalDecisionSchema = z.object({
@@ -126,7 +126,7 @@ When needsRetrieval is true, generate semantic search queries:
     generationConfig: {
       temperature: 0.3,
       responseMimeType: 'application/json',
-      responseSchema: zodToGeminiSchema(MemoryRetrievalDecisionSchema),
+      responseSchema: zodToJsonSchema(MemoryRetrievalDecisionSchema),
       thinkingConfig: {
         thinkingLevel: "low",
       },
@@ -134,7 +134,7 @@ When needsRetrieval is true, generate semantic search queries:
   };
 
   try {
-    const response = await callLLM<any>(`${GEMINI_TEXT_MODEL}:generateContent`, requestBody);
+    const response = await callLLM<any>('generateContent', requestBody);
     
     if (!response.candidates || !response.candidates[0].content.parts[0].text) {
       return { needsRetrieval: false, searchQueries: [] };
@@ -199,7 +199,7 @@ Note: Return empty array [] if no chats are relevant.
     generationConfig: {
       temperature: 0.2,
       responseMimeType: 'application/json',
-      responseSchema: zodToGeminiSchema(ChatRelevanceSchema),
+      responseSchema: zodToJsonSchema(ChatRelevanceSchema),
       thinkingConfig: {
         thinkingLevel: "low",
       },
@@ -207,7 +207,7 @@ Note: Return empty array [] if no chats are relevant.
   };
 
   try {
-    const response = await callLLM<any>(`${GEMINI_TEXT_MODEL}:generateContent`, requestBody);
+    const response = await callLLM<any>('generateContent', requestBody);
     
     if (!response.candidates || !response.candidates[0].content.parts[0].text) {
       return [];

@@ -1,6 +1,8 @@
-export const GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/';
+// Together AI (image generation)
+export const TOGETHER_API_URL = 'https://api.together.xyz/v1/images/generations';
+export const TOGETHER_IMAGE_MODEL = 'black-forest-labs/FLUX.1-schnell-Free';
 
-// Supported file types for Gemini API
+// Supported file types
 export const SUPPORTED_IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
 export const SUPPORTED_VIDEO_TYPES = ['video/mp4', 'video/webm', 'video/quicktime'];
 export const SUPPORTED_DOCUMENT_TYPES = ['application/pdf', 'text/plain', 'text/csv', 'text/html', 'text/css', 'text/javascript', 'application/json', 'application/xml'];
@@ -20,10 +22,6 @@ export const RESPONSE_TIMER_MAX_MS = 5000;
 
 // Mobile keyboard detection
 export const KEYBOARD_HEIGHT_THRESHOLD = 150;
-
-// Gemini model identifiers
-export const GEMINI_TEXT_MODEL = 'gemini-3-flash-preview';
-export const GEMINI_IMAGE_MODEL = 'gemini-2.5-flash-image';
 
 // Memory retrieval limits
 export const MAX_CHAT_CONTEXTS = 50;

@@ -1,21 +1,21 @@
 import { z } from 'zod';
 
-type GeminiSchemaType = 'STRING' | 'NUMBER' | 'BOOLEAN' | 'ARRAY' | 'OBJECT';
+type JsonSchemaType = 'STRING' | 'NUMBER' | 'BOOLEAN' | 'ARRAY' | 'OBJECT';
 
-interface GeminiSchema {
-  type: GeminiSchemaType;
+interface JsonSchema {
+  type: JsonSchemaType;
   description?: string;
-  items?: GeminiSchema;
-  properties?: Record<string, GeminiSchema>;
+  items?: JsonSchema;
+  properties?: Record<string, JsonSchema>;
   required?: string[];
   nullable?: boolean;
 }
 
 /**
- * Convert a Zod object schema to a Gemini API responseSchema.
+ * Convert a Zod object schema to a JSON responseSchema for LLM structured output.
  * Supports: string, number, boolean, array, object, optional, nullable.
  */
-export function zodToGeminiSchema(schema: z.ZodTypeAny): GeminiSchema {
+export function zodToJsonSchema(schema: z.ZodTypeAny): JsonSchema {
   if (schema instanceof z.ZodString) {
     return { type: 'STRING', ...(schema.description ? { description: schema.description } : {}) };
   }
@@ -28,25 +28,25 @@ export function zodToGeminiSchema(schema: z.ZodTypeAny): GeminiSchema {
   if (schema instanceof z.ZodArray) {
     return {
       type: 'ARRAY',
-      items: zodToGeminiSchema(schema.element),
+      items: zodToJsonSchema(schema.element),
       ...(schema.description ? { description: schema.description } : {}),
     };
   }
   if (schema instanceof z.ZodOptional) {
-    return zodToGeminiSchema(schema.unwrap());
+    return zodToJsonSchema(schema.unwrap());
   }
   if (schema instanceof z.ZodNullable) {
-    return { ...zodToGeminiSchema(schema.unwrap()), nullable: true };
+    return { ...zodToJsonSchema(schema.unwrap()), nullable: true };
   }
   if (schema instanceof z.ZodEnum) {
     return { type: 'STRING', ...(schema.description ? { description: schema.description } : {}) };
   }
   if (schema instanceof z.ZodObject) {
     const shape = schema.shape;
-    const properties: Record<string, GeminiSchema> = {};
+    const properties: Record<string, JsonSchema> = {};
     const required: string[] = [];
     for (const [key, value] of Object.entries(shape)) {
-      properties[key] = zodToGeminiSchema(value as z.ZodTypeAny);
+      properties[key] = zodToJsonSchema(value as z.ZodTypeAny);
       if (!(value instanceof z.ZodOptional)) {
         required.push(key);
       }

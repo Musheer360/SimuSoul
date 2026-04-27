@@ -36,7 +36,7 @@ export default function AboutPage() {
               </p>
               <ul className="list-disc pl-5 space-y-2">
                 <li><strong>Local Data Storage:</strong> All persona data, chat messages, and user settings are stored exclusively in your web browser's IndexedDB. This data is not uploaded to, or stored on, any server controlled by us.</li>
-                <li><strong>AI Interaction Data:</strong> To enable chat functionality, your conversation prompts (including persona details and chat history) are sent to the Google Gemini API. Please be aware that this data is subject to Google's own privacy policies and terms of service.</li>
+                <li><strong>AI Interaction Data:</strong> To enable chat functionality, your conversation prompts (including persona details and chat history) are sent to third-party AI providers (Groq, Together AI). Please be aware that this data is subject to each provider's own privacy policies and terms of service.</li>
                 <li><strong>Sensitive Information:</strong> We strongly advise against entering any real, personal, or sensitive information (such as passwords, credit card numbers, or personal addresses) into your conversations.</li>
               </ul>
             </section>

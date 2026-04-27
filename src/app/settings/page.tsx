@@ -29,7 +29,7 @@ export default function SettingsPage() {
   const { toast } = useToast();
   const router = useRouter();
   const [userDetails, setUserDetails] = useState<UserDetails>({ name: '', about: '' });
-  const [apiKeys, setApiKeys] = useState<ApiKeys>({ gemini: [''], groq: [''] });
+  const [apiKeys, setApiKeys] = useState<ApiKeys>({ groq: [''], togetherAi: '' });
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [isClearing, setIsClearing] = useState(false);
@@ -39,7 +39,7 @@ export default function SettingsPage() {
       setIsLoading(true);
       const [details, keys] = await Promise.all([getUserDetails(), getApiKeys()]);
       setUserDetails(details);
-      setApiKeys({ gemini: keys.gemini?.length > 0 ? keys.gemini : [''], groq: keys.groq?.length > 0 ? keys.groq : [''] });
+      setApiKeys({ groq: keys.groq?.length > 0 ? keys.groq : [''], togetherAi: keys.togetherAi || '' });
       setIsLoading(false);
     }
     loadSettings();
@@ -49,15 +49,19 @@ export default function SettingsPage() {
     setUserDetails(prev => ({ ...prev, [e.target.name]: e.target.value }));
   };
 
-  const handleApiKeyChange = (provider: 'gemini' | 'groq', index: number, value: string) => {
+  const handleApiKeyChange = (provider: 'groq', index: number, value: string) => {
     setApiKeys(prev => {
       const newKeys = [...prev[provider]];
       newKeys[index] = value;
       return { ...prev, [provider]: newKeys };
     });
   };
+
+  const handleTogetherAiKeyChange = (value: string) => {
+    setApiKeys(prev => ({ ...prev, togetherAi: value }));
+  };
   
-  const handleAddKey = (provider: 'gemini' | 'groq') => {
+  const handleAddKey = (provider: 'groq') => {
     const keys = apiKeys[provider];
     if (keys.length >= 5) {
       toast({ variant: 'destructive', title: 'Limit Reached', description: 'You can add a maximum of 5 API keys.' });
@@ -70,7 +74,7 @@ export default function SettingsPage() {
     setApiKeys(prev => ({ ...prev, [provider]: [...prev[provider], ''] }));
   };
 
-  const handleRemoveKey = (provider: 'gemini' | 'groq', index: number) => {
+  const handleRemoveKey = (provider: 'groq', index: number) => {
     const newKeys = apiKeys[provider].filter((_, i) => i !== index);
     setApiKeys(prev => ({ ...prev, [provider]: newKeys.length === 0 ? [''] : newKeys }));
   };
@@ -79,8 +83,8 @@ export default function SettingsPage() {
     setIsSaving(true);
     try {
       const keysToSave: ApiKeys = {
-        gemini: apiKeys.gemini.map(k => k.trim()).filter(Boolean),
         groq: apiKeys.groq.map(k => k.trim()).filter(Boolean),
+        togetherAi: apiKeys.togetherAi.trim(),
       };
       await Promise.all([saveUserDetails(userDetails), saveApiKeys(keysToSave)]);
       toast({
@@ -167,10 +171,10 @@ export default function SettingsPage() {
 
             <div className="space-y-4">
               <h3 className="font-semibold font-headline text-xl text-foreground">API Keys</h3>
-              <p className="text-sm text-muted-foreground">Add keys for one or both providers. Groq is used as the primary provider when available, with Gemini as fallback.</p>
+              <p className="text-sm text-muted-foreground">Add your API keys to enable AI features. All keys are stored locally on your device.</p>
               
               <div className="space-y-3">
-                <Label className="text-sm font-medium">Groq API Keys (Recommended)</Label>
+                <Label className="text-sm font-medium">Groq API Keys (Chat & AI)</Label>
                 {apiKeys.groq.map((key, index) => (
                   <div key={`groq-${index}`} className="flex items-center gap-2">
                     <Label htmlFor={`groq-${index}`} className="sr-only">Groq API Key {index + 1}</Label>
@@ -195,39 +199,27 @@ export default function SettingsPage() {
                   </Button>
                 )}
                 <p className="text-xs text-muted-foreground pt-1">
-                  Get your free API key from <a href="https://console.groq.com/keys" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">Groq Console</a>. Faster inference with generous free tier limits.
+                  Get your free API key from <a href="https://console.groq.com/keys" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">Groq Console</a>. Powers all chat and AI features.
                 </p>
               </div>
 
               <Separator />
 
               <div className="space-y-3">
-                <Label className="text-sm font-medium">Gemini API Keys</Label>
-                {apiKeys.gemini.map((key, index) => (
-                  <div key={`gemini-${index}`} className="flex items-center gap-2">
-                    <Label htmlFor={`gemini-${index}`} className="sr-only">Gemini API Key {index + 1}</Label>
-                    <Input
-                      id={`gemini-${index}`}
-                      type="password"
-                      value={key}
-                      onChange={(e) => handleApiKeyChange('gemini', index, e.target.value)}
-                      placeholder={`Enter Gemini key ${index + 1}`}
-                      className="flex-grow"
-                    />
-                    {apiKeys.gemini.length > 1 && (
-                      <Button variant="ghost" size="icon" onClick={() => handleRemoveKey('gemini', index)} aria-label={`Remove Gemini key ${index + 1}`}>
-                        <Trash2 className="h-4 w-4 text-muted-foreground" />
-                      </Button>
-                    )}
-                  </div>
-                ))}
-                {apiKeys.gemini.length < 5 && (
-                  <Button variant="outline" onClick={() => handleAddKey('gemini')} className="w-full justify-start text-muted-foreground">
-                    <PlusCircle className="mr-2 h-4 w-4" /> Add another Gemini key
-                  </Button>
-                )}
+                <Label className="text-sm font-medium">Together AI Key (Avatar Generation)</Label>
+                <div className="flex items-center gap-2">
+                  <Label htmlFor="together-ai" className="sr-only">Together AI API Key</Label>
+                  <Input
+                    id="together-ai"
+                    type="password"
+                    value={apiKeys.togetherAi}
+                    onChange={(e) => handleTogetherAiKeyChange(e.target.value)}
+                    placeholder="Enter Together AI key"
+                    className="flex-grow"
+                  />
+                </div>
                 <p className="text-xs text-muted-foreground pt-1">
-                  Get your free API key from <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">Google AI Studio</a>. Required for profile picture generation.
+                  Get your free API key from <a href="https://api.together.ai" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">Together AI</a>. Used for AI-generated profile pictures. Optional — you can use placeholder avatars instead.
                 </p>
               </div>
             </div>

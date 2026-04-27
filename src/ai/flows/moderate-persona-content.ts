@@ -8,8 +8,7 @@
 import { callLLM } from '@/lib/llm-router';
 import { z } from 'zod';
 import { safeParseJson } from '@/lib/safe-json';
-import { zodToGeminiSchema } from '@/lib/zod-to-gemini';
-import { GEMINI_TEXT_MODEL } from '@/lib/constants';
+import { zodToJsonSchema } from '@/lib/zod-to-json-schema';
 
 export const ModeratePersonaContentInputSchema = z.object({
   name: z.string(),
@@ -87,7 +86,7 @@ Set isSafe to true unless there is a CLEAR, EXPLICIT violation.
     generationConfig: {
       temperature: 0.0,
       responseMimeType: 'application/json',
-      responseSchema: zodToGeminiSchema(ModeratePersonaContentOutputSchema),
+      responseSchema: zodToJsonSchema(ModeratePersonaContentOutputSchema),
       thinkingConfig: {
         thinkingLevel: "low",
       },
@@ -101,7 +100,7 @@ Set isSafe to true unless there is a CLEAR, EXPLICIT violation.
   };
 
   try {
-    const response = await callLLM<any>(`${GEMINI_TEXT_MODEL}:generateContent`, requestBody);
+    const response = await callLLM<any>('generateContent', requestBody);
     
     if (!response.candidates || !response.candidates[0].content.parts[0].text) {
       return { isSafe: false, reason: 'Content could not be verified by the moderation service.' };

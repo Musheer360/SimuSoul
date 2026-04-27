@@ -8,8 +8,7 @@
 import { callLLM } from '@/lib/llm-router';
 import { z } from 'zod';
 import { safeParseJson } from '@/lib/safe-json';
-import { zodToGeminiSchema } from '@/lib/zod-to-gemini';
-import { GEMINI_TEXT_MODEL } from '@/lib/constants';
+import { zodToJsonSchema } from '@/lib/zod-to-json-schema';
 
 
 export const GeneratePersonaFromPromptInputSchema = z.object({
@@ -121,7 +120,7 @@ Generate a complete, multi-dimensional persona now.`;
       topP: 0.95,
       topK: 40,
       responseMimeType: 'application/json',
-      responseSchema: zodToGeminiSchema(GeneratePersonaFromPromptOutputSchema),
+      responseSchema: zodToJsonSchema(GeneratePersonaFromPromptOutputSchema),
       thinkingConfig: {
         thinkingLevel: "medium",
       },
@@ -141,7 +140,7 @@ Generate a complete, multi-dimensional persona now.`;
     ],
   };
 
-  const response = await callLLM<any>(`${GEMINI_TEXT_MODEL}:generateContent`, requestBody);
+  const response = await callLLM<any>('generateContent', requestBody);
   
   if (!response.candidates || !response.candidates[0].content.parts[0].text) {
     throw new Error('Invalid response from AI model for persona generation.');
