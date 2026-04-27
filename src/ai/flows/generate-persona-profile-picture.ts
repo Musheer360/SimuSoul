@@ -1,11 +1,16 @@
 'use client';
 
 /**
- * @fileOverview Generates persona profile pictures using Pollinations.ai (free, no API key needed).
+ * @fileOverview Generates persona profile pictures.
+ * Step 1: Uses Groq to craft an optimized image generation prompt from persona data.
+ * Step 2: Sends that prompt to Pollinations.ai FLUX for the actual image.
  */
 
 import { z } from 'zod';
 import { sanitizeForPrompt } from '@/lib/utils';
+import { callLLM } from '@/lib/llm-router';
+import { safeParseJson } from '@/lib/safe-json';
+import { GEMINI_TEXT_MODEL } from '@/lib/constants';
 
 export const GeneratePersonaProfilePictureInputSchema = z.object({
   personaName: z.string(),
@@ -28,8 +33,52 @@ export class ImageGenerationQuotaError extends Error {
   }
 }
 
+/**
+ * Uses Groq to generate an optimized FLUX image prompt from persona data.
+ */
+async function generateImagePrompt(input: GeneratePersonaProfilePictureInput): Promise<string> {
+  const requestBody = {
+    contents: [{ parts: [{ text: `You are an expert at writing prompts for AI image generators (FLUX/Stable Diffusion). Given a character description, write a single detailed image generation prompt for a portrait/headshot profile picture.
+
+Character:
+Name: ${sanitizeForPrompt(input.personaName)}
+Traits: ${sanitizeForPrompt(input.personaTraits)}
+Background: ${sanitizeForPrompt(input.personaBackstory.substring(0, 300))}
+
+Write ONE prompt (no explanation, just the prompt) that describes:
+- The person's approximate age, gender, ethnicity (infer from name/backstory)
+- Facial features, expression, and mood matching their personality
+- Hair style and color
+- Clothing/accessories appropriate to their character
+- Lighting and color palette that fits their vibe
+- Camera angle (close-up portrait, slight angle)
+
+Format: A single paragraph, 50-80 words. Start with the subject description, end with style keywords.
+End with: "digital art portrait, high quality, detailed face, sharp focus, studio lighting"` }] }],
+    generationConfig: {
+      temperature: 0.9,
+      responseMimeType: 'application/json',
+      responseSchema: { type: 'OBJECT', properties: { prompt: { type: 'STRING' } }, required: ['prompt'] },
+    },
+  };
+
+  try {
+    const response = await callLLM<any>(`${GEMINI_TEXT_MODEL}:generateContent`, requestBody);
+    const text = response.candidates?.[0]?.content?.parts?.[0]?.text;
+    if (text) {
+      const parsed = safeParseJson<{ prompt: string }>(text, 'imagePrompt');
+      if (parsed.prompt) return parsed.prompt;
+    }
+  } catch {
+    // Fall through to basic prompt
+  }
+
+  // Fallback: basic prompt if Groq fails
+  return `Portrait of ${sanitizeForPrompt(input.personaName)}, ${sanitizeForPrompt(input.personaTraits.substring(0, 100))}. digital art portrait, high quality, detailed face, sharp focus, studio lighting`;
+}
+
 export function buildProfilePicturePrompt(input: GeneratePersonaProfilePictureInput): string {
-  return `Semi-realistic digital portrait painting of ${sanitizeForPrompt(input.personaName)}. ${sanitizeForPrompt(input.personaTraits)}. ${sanitizeForPrompt(input.personaBackstory.substring(0, 200))}. Style: modern concept art, expressive lighting, painterly background. Portrait headshot.`;
+  return `Portrait of ${sanitizeForPrompt(input.personaName)}. ${sanitizeForPrompt(input.personaTraits)}. digital art portrait, high quality, detailed face, sharp focus, studio lighting`;
 }
 
 export function generatePlaceholderAvatar(name: string): string {
@@ -46,19 +95,17 @@ export function generatePlaceholderAvatar(name: string): string {
   return `data:image/svg+xml;base64,${btoa(svg)}`;
 }
 
-/**
- * Generate a profile picture using Pollinations.ai — completely free, no API key needed.
- * Fetches the image as a blob and converts to a data URI.
- */
 export async function generatePersonaProfilePicture(input: GeneratePersonaProfilePictureInput): Promise<GeneratePersonaProfilePictureOutput> {
-  const prompt = buildProfilePicturePrompt(input);
+  // Step 1: Use Groq to craft an optimized image prompt
+  const prompt = await generateImagePrompt(input);
+
+  // Step 2: Generate image via Pollinations.ai
   const encodedPrompt = encodeURIComponent(prompt);
   const seed = Math.floor(Math.random() * 1000000);
-  const url = `https://image.pollinations.ai/prompt/${encodedPrompt}?width=512&height=680&seed=${seed}&nologo=true&model=flux`;
+  const url = `https://image.pollinations.ai/prompt/${encodedPrompt}?width=768&height=1024&seed=${seed}&nologo=true&model=flux`;
 
   try {
     const response = await fetch(url);
-
     if (!response.ok) {
       if (response.status === 429) {
         throw new ImageGenerationQuotaError('Image generation rate limited. Please try again in a moment.', prompt);
