@@ -667,7 +667,7 @@ export default function NewPersonaPage() {
                       <div className="flex items-center gap-2">
                         <Input
                           type="file"
-                          accept=".txt,.zip"
+                          accept=".txt"
                           onChange={handleFileUpload}
                           className="cursor-pointer"
                         />

@@ -10,7 +10,7 @@ import type { Persona, ChatMessage, ChatSession, FileAttachment } from '@/lib/ty
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
-import { Send, Loader2, Bot, Trash2, MessageSquarePlus, ArrowLeft, PanelLeft, Pencil, Brain, Paperclip, X, FileText, Film, ImageIcon, Music } from 'lucide-react';
+import { Send, Loader2, Bot, Trash2, MessageSquarePlus, ArrowLeft, PanelLeft, Pencil, Brain, Paperclip, X, FileText, Film, ImageIcon } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import {
   AlertDialog,
@@ -878,7 +878,7 @@ export default function PersonaChatPage() {
                             href={`/persona/${persona.id}?chat=${chat.id}`} 
                             className="block group" 
                             scroll={false}
-                            aria-current={activeChatId === chat.id ? 'true' : undefined}
+                            aria-current={activeChatId === chat.id ? 'page' : undefined}
                             onClick={() => { if (isMobile) setIsSidebarOpen(false); }}
                         >
                            <div className={cn(

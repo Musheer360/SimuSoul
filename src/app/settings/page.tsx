@@ -95,7 +95,6 @@ export default function SettingsPage() {
     try {
       await clearDatabase();
       window.location.href = '/';
-      toast({ title: 'Application Reset', description: 'All data has been cleared. The application will now reload.' });
     } catch (error) {
       console.error('Failed to clear database:', error);
       toast({ variant: 'destructive', title: 'Reset Failed', description: 'Could not clear all data. Please try again.' });

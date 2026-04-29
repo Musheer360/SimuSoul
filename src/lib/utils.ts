@@ -7,7 +7,7 @@ export function cn(...inputs: ClassValue[]) {
 
 /** Escape < and > with fullwidth Unicode equivalents to prevent prompt injection */
 export function sanitizeForPrompt(text: string): string {
-  return text.replace(/</g, '\uff1c').replace(/>/g, '\uff1f');
+  return text.replace(/</g, '\uff1c').replace(/>/g, '\uff1e');
 }
 
 export const findLastIndex = <T,>(
