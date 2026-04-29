@@ -14,7 +14,6 @@ import { z } from 'zod';
 import { safeParseJson } from '@/lib/safe-json';
 import { zodToJsonSchema } from '@/lib/zod-to-json-schema';
 import { sanitizeForPrompt } from '@/lib/utils';
-import { CHAT_HISTORY_WINDOW_SIZE } from '@/lib/constants';
 
 // Instruction template for attachment context
 const ATTACHMENT_CONTEXT_TEMPLATE = (fileNames: string) => 
@@ -252,16 +251,27 @@ export async function chatWithPersona(
         summary: c.summary!,
     }));
 
-  // Hybrid sliding window: summarize old messages, keep recent ones verbatim
+  // Hybrid sliding window: character-budget based.
+  // Keep as many recent messages as fit in the budget, summarize the rest.
+  const HISTORY_CHAR_BUDGET = 60000; // ~15K tokens — leaves headroom for system prompt, memories, etc.
   let historyForPrompt = chatHistory;
   let currentChatSummary = '';
 
-  if (chatHistory.length > CHAT_HISTORY_WINDOW_SIZE) {
-    const cutoff = chatHistory.length - CHAT_HISTORY_WINDOW_SIZE;
-    const olderMessages = chatHistory.slice(0, cutoff);
-    historyForPrompt = chatHistory.slice(cutoff);
+  const totalChars = chatHistory.reduce((sum, m) => sum + m.content.length, 0);
+  if (totalChars > HISTORY_CHAR_BUDGET) {
+    // Walk backwards from the end, accumulating characters until budget is hit
+    let charCount = 0;
+    let cutoffIndex = chatHistory.length;
+    for (let i = chatHistory.length - 1; i >= 0; i--) {
+      charCount += chatHistory[i].content.length;
+      if (charCount > HISTORY_CHAR_BUDGET) { cutoffIndex = i + 1; break; }
+    }
+    cutoffIndex = Math.max(cutoffIndex, 1); // keep at least 1 old message for summary
 
-    // Sample from beginning and end of older messages for better coverage
+    const olderMessages = chatHistory.slice(0, cutoffIndex);
+    historyForPrompt = chatHistory.slice(cutoffIndex);
+
+    // Sample from beginning and end of older messages for context coverage
     const sampled = olderMessages.length <= 20
       ? olderMessages
       : [...olderMessages.slice(0, 10), ...olderMessages.slice(-10)];
@@ -269,7 +279,7 @@ export async function chatWithPersona(
       .filter(m => m.content.trim())
       .map(m => `${m.role}: ${sanitizeForPrompt(m.content.substring(0, 100))}`)
       .join('\n');
-    currentChatSummary = `[Earlier in this conversation (${cutoff} messages ago):\n${olderExcerpts}\n...]`;
+    currentChatSummary = `[Earlier in this conversation (${olderMessages.length} messages summarized):\n${olderExcerpts}\n...]`;
   }
 
   const input: ChatWithPersonaInput = {

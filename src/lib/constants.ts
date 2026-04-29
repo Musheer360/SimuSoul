@@ -21,8 +21,6 @@ export const KEYBOARD_HEIGHT_THRESHOLD = 150;
 export const MAX_CHAT_CONTEXTS = 50;
 export const MAX_MESSAGES_PER_CHAT = 8;
 
-// Chat history sliding window — keep last N messages verbatim, summarize older ones
-export const CHAT_HISTORY_WINDOW_SIZE = 40;
 
 // Groq API
 export const GROQ_API_URL = 'https://api.groq.com/openai/v1/chat/completions';
