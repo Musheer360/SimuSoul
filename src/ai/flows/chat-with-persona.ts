@@ -14,6 +14,7 @@ import { z } from 'zod';
 import { safeParseJson } from '@/lib/safe-json';
 import { zodToJsonSchema } from '@/lib/zod-to-json-schema';
 import { sanitizeForPrompt } from '@/lib/utils';
+import { CHAT_HISTORY_WINDOW_SIZE } from '@/lib/constants';
 
 // Instruction template for attachment context
 const ATTACHMENT_CONTEXT_TEMPLATE = (fileNames: string) => 
@@ -36,6 +37,7 @@ const ChatWithPersonaInputSchema = z.object({
   }).optional(),
   existingMemories: z.array(z.string()).describe('Facts that the persona already knows about the user.'),
   chatHistory: z.array(ChatMessageSchema).describe('The history of the conversation so far.'),
+  currentChatSummary: z.string().optional().describe('Summary of earlier messages in the current conversation that were truncated from the sliding window.'),
   currentDateTime: z.string().describe('The current date and time when the user sends the message.'),
   currentDateForMemory: z.string().describe('The current date in YYYY-MM-DD format for creating memories.'),
   userMessages: z.array(z.string()).describe("The user's new messages for this turn."),
@@ -131,6 +133,10 @@ ${input.chatSummaries && input.chatSummaries.length > 0 ? `
 ${input.chatSummaries.map(summary => `[${summary.date}] ${summary.summary}`).join('\n')}
 </past_conversations>` : ''}
 ${input.retrievedMemories ? `\n${input.retrievedMemories}` : ''}
+${input.currentChatSummary ? `
+<earlier_in_this_chat>
+${input.currentChatSummary}
+</earlier_in_this_chat>` : ''}
 ${input.chatHistory && input.chatHistory.length > 0 ? `
 <current_conversation>
 ${input.chatHistory.map(msg => `${msg.role === 'user' ? userIdentifier : 'You'}: ${msg.content}`).join('\n')}
@@ -246,6 +252,26 @@ export async function chatWithPersona(
         summary: c.summary!,
     }));
 
+  // Hybrid sliding window: summarize old messages, keep recent ones verbatim
+  let historyForPrompt = chatHistory;
+  let currentChatSummary = '';
+
+  if (chatHistory.length > CHAT_HISTORY_WINDOW_SIZE) {
+    const cutoff = chatHistory.length - CHAT_HISTORY_WINDOW_SIZE;
+    const olderMessages = chatHistory.slice(0, cutoff);
+    historyForPrompt = chatHistory.slice(cutoff);
+
+    // Sample from beginning and end of older messages for better coverage
+    const sampled = olderMessages.length <= 20
+      ? olderMessages
+      : [...olderMessages.slice(0, 10), ...olderMessages.slice(-10)];
+    const olderExcerpts = sampled
+      .filter(m => m.content.trim())
+      .map(m => `${m.role}: ${sanitizeForPrompt(m.content.substring(0, 100))}`)
+      .join('\n');
+    currentChatSummary = `[Earlier in this conversation (${cutoff} messages ago):\n${olderExcerpts}\n...]`;
+  }
+
   const input: ChatWithPersonaInput = {
     personaName: persona.name,
     personaRelation: persona.relation,
@@ -257,7 +283,8 @@ export async function chatWithPersona(
       aboutMe: userDetails.about
     },
     existingMemories: persona.memories,
-    chatHistory,
+    chatHistory: historyForPrompt,
+    currentChatSummary,
     userMessages,
     currentDateTime,
     currentDateForMemory,
