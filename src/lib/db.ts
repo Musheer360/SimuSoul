@@ -197,31 +197,41 @@ const defaultUserDetails: UserDetails = {
     hasAcceptedTerms: false,
 };
 
+let userDetailsCache: UserDetails | null = null;
+
 export async function getUserDetails(): Promise<UserDetails> {
+    if (userDetailsCache) return userDetailsCache;
     if (!dbPromise) return defaultUserDetails;
     const db = await dbPromise;
     const details = await db.get(USER_DETAILS_STORE, USER_DETAILS_KEY);
-    return { ...defaultUserDetails, ...details };
+    const result = { ...defaultUserDetails, ...details };
+    userDetailsCache = result;
+    return result;
 }
 
 export async function saveUserDetails(details: UserDetails): Promise<void> {
     if (!dbPromise) throw new Error("Database not available on server.");
     const db = await dbPromise;
     await db.put(USER_DETAILS_STORE, details, USER_DETAILS_KEY);
+    userDetailsCache = details;
 }
 
 // ApiKeys operations
 const API_KEYS_KEY = 'userApiKeys';
 
+let apiKeysCache: ApiKeys | null = null;
+
 export async function getApiKeys(): Promise<ApiKeys> {
+    if (apiKeysCache) return apiKeysCache;
     if (!dbPromise) return { groq: [] };
     
     try {
         const db = await dbPromise;
-        return (await db.get(API_KEYS_STORE, API_KEYS_KEY)) || { groq: [] };
+        const result = (await db.get(API_KEYS_STORE, API_KEYS_KEY)) || { groq: [] };
+        apiKeysCache = result;
+        return result;
     } catch (error) {
         console.warn('Failed to retrieve API keys from database:', error);
-        // Return empty keys to trigger the "no API key" error message
         return { groq: [] };
     }
 }
@@ -230,6 +240,7 @@ export async function saveApiKeys(keys: ApiKeys): Promise<void> {
     if (!dbPromise) throw new Error("Database not available on server.");
     const db = await dbPromise;
     await db.put(API_KEYS_STORE, keys, API_KEYS_KEY);
+    apiKeysCache = keys;
 }
 
 // Function to wipe the entire database

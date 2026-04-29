@@ -9,10 +9,10 @@ export const MIN_MESSAGES_FOR_SUMMARY = 7;
 export const SUMMARY_NEW_MESSAGES_THRESHOLD = 15;
 
 // Typing and response timing
-export const MIN_TYPING_DELAY_MS = 900;
-export const MAX_TYPING_DELAY_MS = 4000;
-export const RESPONSE_TIMER_MIN_MS = 2500;
-export const RESPONSE_TIMER_MAX_MS = 5000;
+export const MIN_TYPING_DELAY_MS = 400;
+export const MAX_TYPING_DELAY_MS = 2500;
+export const RESPONSE_TIMER_MIN_MS = 800;
+export const RESPONSE_TIMER_MAX_MS = 2000;
 
 // Mobile keyboard detection
 export const KEYBOARD_HEIGHT_THRESHOLD = 150;

@@ -344,6 +344,38 @@ function getEnhancedSummary(chat: ChatSession): string {
   return existingSummary;
 }
 
+function decideMemoryRetrievalLocal(userMessages: string[]): { needsRetrieval: boolean; searchQueries: string[]; timeFrameHint?: string } {
+  const combined = userMessages.join(' ').toLowerCase();
+  const triggers = [
+    /\bremember\s+(when|that|the)\b/, /\bdo you (remember|recall)\b/,
+    /\blast time\b/, /\bpreviously\b/, /\bbefore\b/,
+    /\bwhat (did|were) (we|you|i)\s+(talk|discuss|say|mention)/,
+    /\bwhen did (we|i|you)\b/, /\bwhat did (i|you) (tell|say|mention)/,
+    /\bi (told|mentioned|said)\b/, /\byou (told|said|mentioned)\b/,
+    /\bwe (talked|discussed|chatted)\b/, /\b(our|my) (last|previous)\b/,
+    /\blast (week|month|conversation|chat)\b/, /\byesterday\b/,
+  ];
+  if (!triggers.some(p => p.test(combined))) return { needsRetrieval: false, searchQueries: [] };
+  const searchQueries = userMessages.map(m => m.substring(0, 100)).slice(0, 3);
+  const timeMatch = combined.match(/\b(yesterday|last (?:week|month|time)|recently|a (?:while|few days) ago)\b/);
+  return { needsRetrieval: true, searchQueries, timeFrameHint: timeMatch?.[0] };
+}
+
+function findRelevantChatsLocal(searchQueries: string[], chatMetadata: ChatMetadata[]): string[] {
+  const terms = searchQueries.flatMap(q => q.toLowerCase().split(/\s+/)).filter(t => t.length > 2);
+  return chatMetadata
+    .map(chat => {
+      const text = `${chat.title} ${chat.summary}`.toLowerCase();
+      let score = terms.reduce((s, t) => s + (text.includes(t) ? 2 : 0), 0);
+      score += Math.max(0, 1 - (Date.now() - new Date(chat.date).getTime()) / (90 * 86400000));
+      return { id: chat.id, score };
+    })
+    .filter(r => r.score > 0)
+    .sort((a, b) => b.score - a.score)
+    .slice(0, 3)
+    .map(r => r.id);
+}
+
 /**
  * Main function to retrieve relevant memories for the current conversation.
  * This is the agentic memory retrieval system entry point.
@@ -387,19 +419,15 @@ export async function retrieveRelevantMemories(
     .slice(0, 5)
     .map(c => ({ date: c.date, summary: c.summary }));
   
-  // Step 1: Decide if we need to retrieve memories
-  const decision = await decideMemoryRetrieval(userMessages, existingMemories, recentSummaries);
+  // Step 1: Decide if we need to retrieve memories (local regex — no LLM call)
+  const decision = decideMemoryRetrievalLocal(userMessages);
   
   if (!decision.needsRetrieval || decision.searchQueries.length === 0) {
     return [];
   }
   
-  // Step 2: Find relevant chats
-  const relevantChatIds = await findRelevantChats(
-    decision.searchQueries,
-    chatMetadata,
-    decision.timeFrameHint
-  );
+  // Step 2: Find relevant chats (local scoring — no LLM call)
+  const relevantChatIds = findRelevantChatsLocal(decision.searchQueries, chatMetadata);
   
   if (relevantChatIds.length === 0) {
     return [];

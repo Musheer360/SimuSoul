@@ -271,6 +271,7 @@ export function useAIResponse({
 
   const startResponseTimer = useCallback(() => {
     if (responseTimerRef.current) clearTimeout(responseTimerRef.current);
+    setIsAiTyping(true); // Show typing dots immediately
     const delay = Math.random() * (RESPONSE_TIMER_MAX_MS - RESPONSE_TIMER_MIN_MS) + RESPONSE_TIMER_MIN_MS;
     responseTimerRef.current = setTimeout(() => {
       if (!isAiRespondingRef.current) {
