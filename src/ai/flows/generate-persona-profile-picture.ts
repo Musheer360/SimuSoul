@@ -91,7 +91,7 @@ export function generatePlaceholderAvatar(name: string): string {
     <rect width="256" height="256" fill="hsl(${hue}, ${sat}%, ${lit}%)"/>
     <text x="128" y="128" font-family="system-ui, -apple-system, sans-serif" font-size="96" font-weight="600" fill="hsl(${hue}, ${sat}%, 25%)" text-anchor="middle" dominant-baseline="central">${initials}</text>
   </svg>`;
-  return `data:image/svg+xml;base64,${btoa(svg)}`;
+  return `data:image/svg+xml;base64,${btoa(unescape(encodeURIComponent(svg)))}`;
 }
 
 export async function generatePersonaProfilePicture(input: GeneratePersonaProfilePictureInput): Promise<GeneratePersonaProfilePictureOutput> {

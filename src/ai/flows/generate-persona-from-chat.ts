@@ -201,20 +201,18 @@ ${userContext}
 
   const result = safeParseJson<Record<string, any>>(textContent, 'generatePersonaFromChat');
   const validated = GeneratePersonaFromChatOutputSchema.safeParse(result);
-  if (!validated.success) {
-    console.warn('Persona from chat validation warning:', validated.error.message);
-  }
-  
+  if (validated.success) return validated.data;
+  // Fallback: use raw result with defaults for missing fields
   return {
     name: result.name || personName,
-    age: result.age,
-    relation: result.relation,
-    traits: result.traits,
-    backstory: result.backstory,
-    interests: result.interests,
-    communicationStyle: result.communicationStyle,
-    emotionalTone: result.emotionalTone,
-    values: result.values,
-    quirks: result.quirks,
+    age: typeof result.age === 'number' ? result.age : 25,
+    relation: result.relation || 'Friend',
+    traits: typeof result.traits === 'string' ? result.traits : String(result.traits || ''),
+    backstory: typeof result.backstory === 'string' ? result.backstory : String(result.backstory || ''),
+    interests: typeof result.interests === 'string' ? result.interests : String(result.interests || ''),
+    communicationStyle: typeof result.communicationStyle === 'string' ? result.communicationStyle : String(result.communicationStyle || ''),
+    emotionalTone: typeof result.emotionalTone === 'string' ? result.emotionalTone : String(result.emotionalTone || ''),
+    values: typeof result.values === 'string' ? result.values : String(result.values || ''),
+    quirks: typeof result.quirks === 'string' ? result.quirks : String(result.quirks || ''),
   };
 }

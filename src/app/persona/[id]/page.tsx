@@ -39,7 +39,7 @@ import { useToast } from '@/hooks/use-toast';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { AnimatedChatTitle } from '@/components/animated-chat-title';
 import { savePersona, deletePersona, saveChatSession } from '@/lib/db';
-import { SUPPORTED_IMAGE_TYPES, SUPPORTED_VIDEO_TYPES, SUPPORTED_DOCUMENT_TYPES, SUPPORTED_AUDIO_TYPES, MAX_FILE_SIZE, KEYBOARD_HEIGHT_THRESHOLD } from '@/lib/constants';
+import { SUPPORTED_IMAGE_TYPES, SUPPORTED_VIDEO_TYPES, SUPPORTED_AUDIO_TYPES, MAX_FILE_SIZE, KEYBOARD_HEIGHT_THRESHOLD } from '@/lib/constants';
 import { MemoryItem } from '@/components/memory-item';
 import { MediaPreview } from '@/components/media-preview';
 import { ChatMessageItem } from './_components/ChatMessageItem';
@@ -760,11 +760,10 @@ export default function PersonaChatPage() {
                         <div className="flex items-center gap-4">
                             <Image
                                 src={persona.profilePictureUrl}
-                                alt={persona.name}
+                                alt={`Portrait of ${persona.name}`}
                                 width={56}
                                 height={56}
                                 className="rounded-full object-cover aspect-square border-2 border-primary/50"
-                                data-ai-hint="persona portrait"
                             />
                             <div className="flex-1 min-w-0">
                                 <h2 className="font-headline text-xl font-semibold truncate" title={persona.name}>{persona.name}</h2>
@@ -879,6 +878,7 @@ export default function PersonaChatPage() {
                             href={`/persona/${persona.id}?chat=${chat.id}`} 
                             className="block group" 
                             scroll={false}
+                            aria-current={activeChatId === chat.id ? 'true' : undefined}
                             onClick={() => { if (isMobile) setIsSidebarOpen(false); }}
                         >
                            <div className={cn(

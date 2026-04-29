@@ -384,11 +384,7 @@ export function useChatSession({
     if (shouldResetIgnoreState) {
       const updatedPersona = {
         ...persona,
-        ignoredState: {
-          isIgnored: false,
-          reason: undefined,
-          chatId: undefined,
-        }
+        ignoredState: null
       };
       setPersona(updatedPersona);
       await savePersona(updatedPersona);
@@ -413,11 +409,7 @@ export function useChatSession({
 
     const updatedPersona = {
       ...persona,
-      ignoredState: {
-        isIgnored: false,
-        reason: undefined,
-        chatId: undefined,
-      }
+      ignoredState: null
     };
     setPersona(updatedPersona);
     await savePersona(updatedPersona);

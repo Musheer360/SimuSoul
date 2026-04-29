@@ -217,7 +217,9 @@ export function useAIResponse({
           // Start typing for this message
           setIsAiTyping(true);
           
-          const { minWpm, maxWpm } = personaRef.current!;
+          const currentPersona = personaRef.current;
+          if (!currentPersona) break;
+          const { minWpm, maxWpm } = currentPersona;
           const wpm = Math.floor(Math.random() * (maxWpm - minWpm + 1)) + minWpm;
           const words = messageContent.split(/\s+/).filter(Boolean).length;
           const typingTimeMs = (words / wpm) * 60 * 1000;

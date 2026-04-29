@@ -43,7 +43,7 @@ export function MemoryItem({ memory, onDelete }: MemoryItemProps) {
       <Button
         variant="ghost"
         className="shrink-0 h-7 w-7 p-0 text-muted-foreground hover:bg-transparent hover:text-destructive focus-visible:ring-0 focus-visible:ring-offset-0 transition-opacity md:opacity-0 group-hover:opacity-100"
-        onClick={() => onDelete(memory)}
+        aria-label="Delete memory" onClick={() => onDelete(memory)}
       >
         <Trash2 className="h-4 w-4" />
       </Button>

@@ -50,6 +50,9 @@ export const FormattedMessage = memo(function FormattedMessage({ content }: { co
     ul: (props: any) => <ul className="list-disc pl-5 mb-3 last:mb-0" {...props} />,
     ol: (props: any) => <ol className="list-decimal pl-5 mb-3 last:mb-0" {...props} />,
     li: (props: any) => <li className="mb-1" {...props} />,
+    a: ({ href, children, ...props }: any) => (
+      <a href={href} target="_blank" rel="noopener noreferrer" className="text-primary underline" {...props}>{children}</a>
+    ),
   }), []);
 
   return (

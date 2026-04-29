@@ -238,5 +238,4 @@ export async function clearDatabase(): Promise<void> {
     const db = await dbPromise;
     db.close();
     await deleteDB(DB_NAME);
-    window.location.href = '/';
 }

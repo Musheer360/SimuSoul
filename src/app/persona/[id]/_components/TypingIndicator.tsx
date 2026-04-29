@@ -10,6 +10,8 @@ export const TypingIndicator = memo(function TypingIndicator({
 }) {
   return (
     <div
+      role="status"
+      aria-label="AI is typing"
       className={cn(
         "flex justify-start transition-all duration-200 ease-out",
         isFirstBubble ? 'mt-4' : 'mt-1',

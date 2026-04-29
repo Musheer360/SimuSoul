@@ -5,9 +5,9 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
 }
 
-/** Strip XML-like tags from user input to prevent prompt injection */
+/** Escape < and > with fullwidth Unicode equivalents to prevent prompt injection */
 export function sanitizeForPrompt(text: string): string {
-  return text.replace(/<\/?[a-zA-Z_][^>]*>/g, '');
+  return text.replace(/</g, '\uff1c').replace(/>/g, '\uff1f');
 }
 
 export const findLastIndex = <T,>(

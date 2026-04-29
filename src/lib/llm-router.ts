@@ -125,7 +125,8 @@ async function callGroqApi(body: Record<string, any>): Promise<string> {
 
           if ((response.status === 429 || response.status === 503) && retry < maxRetries - 1) {
             const retryAfter = response.headers.get('retry-after');
-            const delay = retryAfter ? parseInt(retryAfter) * 1000 : Math.pow(2, retry) * 1000;
+            const parsed = retryAfter ? parseInt(retryAfter, 10) : NaN;
+            const delay = !isNaN(parsed) ? parsed * 1000 : Math.pow(2, retry) * 1000;
             await new Promise(resolve => setTimeout(resolve, delay));
             continue;
           }

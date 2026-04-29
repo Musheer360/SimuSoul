@@ -156,11 +156,10 @@ export default function PersonasPage() {
                       <div className="h-full relative overflow-hidden">
                         <Image
                           src={persona.profilePictureUrl}
-                          alt={persona.name}
+                          alt={`Portrait of ${persona.name}`}
                           fill
                           sizes="(max-width: 768px) 100vw, (max-width: 1024px) 50vw, 33vw"
                           className="object-cover group-hover:scale-105 transition-transform duration-500 ease-in-out"
-                          data-ai-hint="persona portrait"
                         />
                         <div className="absolute inset-0 flex flex-col justify-end bg-gradient-to-t from-black/90 via-black/60 to-transparent p-4">
                           <CardTitle className="font-headline text-xl text-white group-hover:text-primary transition-colors">

@@ -205,6 +205,10 @@ export default function NewPersonaPage() {
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
+    if (file.size > 10 * 1024 * 1024) {
+      toast({ variant: 'destructive', title: 'File too large', description: 'Maximum chat export size is 10MB.' });
+      return;
+    }
     
     const reader = new FileReader();
     reader.onload = (event) => {
